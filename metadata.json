@@ -1,0 +1,6 @@
+{
+  "name": "Swiss Grid Meeting Board",
+  "description": "A highly structured, Swiss-grid inspired meeting agenda and Kanban system using monochrome aesthetics and classical Greek proportions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

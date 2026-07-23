@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Noto Serif SC", "Georgia", serif;
+  --font-display: "Playfair Display", "Noto Serif SC", "Georgia", serif;
+  --font-sans: "Noto Sans SC", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Editorial Color Palette mapping to standard neutral names */
+  --color-neutral-50: #f7f7f7;   /* c-gray-1 */
+  --color-neutral-100: #eaeaea;  /* c-gray-2 */
+  --color-neutral-200: #dcdcdc;  
+  --color-neutral-300: #a3a3a3;  /* c-gray-3 */
+  --color-neutral-400: #737373;
+  --color-neutral-500: #404040;  /* c-gray-4 */
+  --color-neutral-900: #171717;  /* c-black */
+  --color-neutral-950: #0a0a0a;  /* c-black */
+}
+
+/* Scrollbars conforming to the Swiss grid minimal style */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #000000;
+}
+
+body {
+  background-color: var(--theme-bg, #ffffff);
+  color: var(--theme-text-primary, #171717);
+  font-family: var(--theme-font, var(--font-sans));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Theme definitions */
+.theme-classic {
+  --theme-bg: #f5f5f5;
+  --theme-panel-bg: rgba(250, 250, 250, 0.85);
+  --theme-border: #171717;
+  --theme-text-primary: #171717;
+  --theme-text-secondary: #525252;
+  --theme-accent: #171717;
+  --theme-accent-light: #eaeaea;
+  --theme-accent-text: #ffffff;
+  --theme-card-bg: #ffffff;
+  --theme-font: var(--font-serif);
+}
+
+.theme-prussian {
+  --theme-bg: #e6ebf0;
+  --theme-panel-bg: rgba(235, 240, 245, 0.85);
+  --theme-border: #003153;
+  --theme-text-primary: #00213d;
+  --theme-text-secondary: #3a506b;
+  --theme-accent: #003153;
+  --theme-accent-light: #d0dee8;
+  --theme-accent-text: #ffffff;
+  --theme-card-bg: #f0f4f8;
+  --theme-font: var(--font-serif);
+}
+
+.theme-burgundy {
+  --theme-bg: #faf4eb;
+  --theme-panel-bg: rgba(250, 244, 235, 0.85);
+  --theme-border: #6b1d2f;
+  --theme-text-primary: #4a0e17;
+  --theme-text-secondary: #7e5e60;
+  --theme-accent: #6b1d2f;
+  --theme-accent-light: #f5e4e6;
+  --theme-accent-text: #ffffff;
+  --theme-card-bg: #fffbf5;
+  --theme-font: var(--font-serif);
+}
+
+.theme-latenight {
+  --theme-bg: #0d0d0f;
+  --theme-panel-bg: rgba(24, 24, 27, 0.85);
+  --theme-border: #d97706;
+  --theme-text-primary: #f5f5f4;
+  --theme-text-secondary: #a8a29e;
+  --theme-accent: #d97706;
+  --theme-accent-light: #27272a;
+  --theme-accent-text: #ffffff;
+  --theme-card-bg: #1c1c1f;
+  --theme-font: var(--font-serif);
+}
+
+/* Mixed background styling for urgent priorities */
+.bg-urgent-mixed {
+  background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 50%, #fecaca 100%) !important;
+  background-image: radial-gradient(at 10% 20%, rgba(239, 68, 68, 0.18) 0px, transparent 50%),
+                    radial-gradient(at 90% 80%, rgba(245, 158, 11, 0.12) 0px, transparent 50%) !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+}
+
+/* Editorial layout patterns: thin 1px crisp borders and no rounded corners */
+.border-2 {
+  border-width: 1px !important;
+}
+
+.border-t-2 {
+  border-top-width: 1px !important;
+}
+
+.border-b-2 {
+  border-bottom-width: 1px !important;
+}
+
+.border-l-2 {
+  border-left-width: 1px !important;
+}
+
+.border-r-2 {
+  border-right-width: 1px !important;
+}
+
+.divide-y-2 > :not([hidden]) ~ :not([hidden]) {
+  border-top-width: 1px !important;
+}
+
+.divide-x-2 > :not([hidden]) ~ :not([hidden]) {
+  border-left-width: 1px !important;
+}
+
+/* Soft border corners for premium, clean alignment */
+* {
+  border-radius: 4px !important;
+}
+
+/* Subtle editorial underline and typography styles */
+input, select, textarea {
+  background-color: #ffffff !important;
+  color: #171717 !important;
+  border-color: #dcdcdc !important;
+  border-radius: 4px !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  background-color: #f7f7f7 !important;
+  outline: none !important;
+  border-color: #171717 !important;
+}
+
+
