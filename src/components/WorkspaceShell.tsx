@@ -108,6 +108,10 @@ export function WorkspaceShell({
   pending,
   ready,
   notice,
+  connection,
+  connectionError,
+  onReconnect,
+  account,
   search,
   onSearchChange,
   onExport,
@@ -123,6 +127,10 @@ export function WorkspaceShell({
   pending: number;
   ready: boolean;
   notice: string;
+  connection: "local" | "connecting" | "connected" | "offline" | "error";
+  connectionError: string;
+  onReconnect: () => void;
+  account?: ReactNode;
   search: string;
   onSearchChange: (search: string) => void;
   onExport: () => void;
@@ -131,13 +139,13 @@ export function WorkspaceShell({
 }) {
   const current = navigation.find((item) => item.id === page)!;
   const ModeIcon = mode === "local" ? Monitor : Cloud;
-  const status = pending
+  const status = connection === "error" ? "连接需要处理" : connection === "offline" ? "连接中断" : pending
     ? "正在保存"
     : ready
       ? notice === "已保存"
         ? "已保存"
-        : "工作区已就绪"
-      : "正在加载";
+        : mode === "firebase" ? "云端已连接" : "工作区已就绪"
+      : mode === "firebase" ? "正在连接云端" : "正在加载";
   return (
     <div className="council-shell">
       <a className="skip-link" href="#workspace-main">
@@ -188,12 +196,12 @@ export function WorkspaceShell({
           <div className="storage-note">
             <ModeIcon size={20} aria-hidden="true" />
             <strong>{mode === "local" ? "本地工作区" : "云端工作区"}</strong>
-            <span className="connection-dot" />
+            <span className={`connection-dot connection-${connection}`} />
           </div>
           <p>
             {mode === "local"
               ? "数据保存在此浏览器。定期导出备份，让记录安心留存。"
-              : "供受信任的内部成员共同维护，保存后同步更新。"}
+              : "议会成员共享此工作区。请按分工维护资料，等待保存完成后离开。"}
           </p>
           <span className="sidebar-signature">
             每一份共识，都值得被记录。
@@ -209,6 +217,7 @@ export function WorkspaceShell({
             <strong>{current.title}</strong>
           </div>
           <div className="topbar-tools">
+            {account}
             <div className="workspace-search">
               <Search size={17} aria-hidden="true" />
               <input
@@ -285,6 +294,7 @@ export function WorkspaceShell({
                     导入备份
                   </button>
                 </div>
+                <a className="workspace-guide-link" href="/antico-council-guide.pdf" target="_blank" rel="noreferrer">查看 PDF 使用说明</a>
               </div>
             </details>
           </div>
@@ -309,7 +319,7 @@ export function WorkspaceShell({
                 {mode === "local" ? "本地工作区" : "云端工作区"}
               </span>
               <span
-                className={`save-status ${pending || !ready ? "is-pending" : ""}`}
+                className={`save-status ${pending || !ready ? "is-pending" : ""} connection-${connection}`}
                 role="status"
               >
                 {ready && !pending && <Check size={14} />}
@@ -317,6 +327,12 @@ export function WorkspaceShell({
               </span>
             </div>
           </div>
+          {mode === "firebase" && connectionError && (
+            <div className="workspace-connection-error" role="alert">
+              <span>{connectionError}</span>
+              <button type="button" className="workspace-button" onClick={onReconnect}>重新连接</button>
+            </div>
+          )}
           {notice && notice !== "已保存" && (
             <p className="workspace-notice" role="status">
               <Check size={16} aria-hidden="true" />

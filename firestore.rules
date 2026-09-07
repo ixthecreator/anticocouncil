@@ -1,8 +1,79 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function verified() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string;
+    }
+    function owner() {
+      return verified() && request.auth.token.email == 'ez4eason@gmail.com';
+    }
+    function accessPath(uid) {
+      return /databases/$(database)/documents/workspaceAccess/$(uid);
+    }
+    function requestPath(uid) {
+      return /databases/$(database)/documents/accessRequests/$(uid);
+    }
+    function approved() {
+      return verified() && (owner() || (
+        exists(accessPath(request.auth.uid))
+        && get(accessPath(request.auth.uid)).data.active == true
+        && get(accessPath(request.auth.uid)).data.email == request.auth.token.email
+        && get(accessPath(request.auth.uid)).data.role in ['member', 'admin']
+      ));
+    }
+    function administrator() {
+      return owner() || (approved() && get(accessPath(request.auth.uid)).data.role == 'admin');
+    }
+    function validAccess(data) {
+      return data.keys().hasAll(['name', 'email', 'role', 'active'])
+        && data.keys().hasOnly(['name', 'email', 'role', 'active'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 80
+        && data.email is string && data.email.size() > 0
+        && data.email != 'ez4eason@gmail.com'
+        && data.role in ['member', 'admin'] && data.active is bool;
+    }
+    function validRequest(data) {
+      return data.keys().hasAll(['name', 'email', 'requestedAt'])
+        && data.keys().hasOnly(['name', 'email', 'requestedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 80
+        && data.email == request.auth.token.email
+        && data.email != 'ez4eason@gmail.com'
+        && data.requestedAt is timestamp;
+    }
+    match /workspaceAccess/{uid} {
+      allow get: if verified() && (uid == request.auth.uid || administrator());
+      allow list: if administrator();
+      allow create: if administrator()
+        && uid != request.auth.uid && validAccess(request.resource.data)
+        && exists(requestPath(uid))
+        && get(requestPath(uid)).data.email == request.resource.data.email
+        && (owner() || request.resource.data.role == 'member');
+      allow update: if administrator()
+        && uid != request.auth.uid
+        && resource.data.email != 'ez4eason@gmail.com'
+        && validAccess(request.resource.data)
+        && request.resource.data.email == resource.data.email
+        && (owner() || (resource.data.role == 'member' && request.resource.data.role == 'member'));
+      // Keep authorization history and prevent a disabled member from signing up again.
+      allow delete: if false;
+    }
+    match /accessRequests/{uid} {
+      allow get: if verified() && (uid == request.auth.uid || administrator());
+      allow list: if administrator();
+      allow create, update: if verified() && uid == request.auth.uid
+        && !exists(accessPath(uid)) && validRequest(request.resource.data);
+      allow delete: if administrator() && uid != request.auth.uid;
+    }
+    match /{businessCollection}/{recordId} {
+      allow read, write: if businessCollection in [
+        'meetings', 'issues', 'members', 'activities',
+        'attendance', 'editorial', 'assets', 'inventory'
+      ] && approved();
+    }
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

@@ -702,6 +702,27 @@ a:focus-visible {
   background: #94c9b3;
   margin-left: auto;
 }
+.connection-dot.connection-connecting { background: #e8bb69; }
+.connection-dot.connection-offline,
+.connection-dot.connection-error { background: #edaaa1; }
+.save-status.connection-error,
+.save-status.connection-offline { color: #b04c38; }
+.workspace-connection-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border: 1px solid var(--theme-border);
+  border-left: 3px solid #b78037;
+  padding: 15px 18px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.workspace-guide-link { display: block; margin-top: 16px; color: var(--theme-accent); font-size: 13px; text-decoration: underline; }
+.workspace-editable { border: 0; padding: 0; margin: 0; min-width: 0; }
 .sidebar-footer p {
   color: #91a9bf;
   font-size: 11px;

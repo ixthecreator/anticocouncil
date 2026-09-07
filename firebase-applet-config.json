@@ -1,12 +1,9 @@
 {
-  "projectId": "gen-lang-client-0812096423",
-  "appId": "1:397125428761:web:189b42a558d95ecb04ac88",
-  "apiKey": "AIzaSyDYmxxAHH44HeQYxiUxnO0rRVTLFW00YeA",
-  "authDomain": "gen-lang-client-0812096423.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-swissgridmeeting-a16ddb46-1d3b-4bec-b582-68e11ee0149e",
-  "storageBucket": "gen-lang-client-0812096423.firebasestorage.app",
-  "messagingSenderId": "397125428761",
-  "measurementId": "",
-  "oAuthClientId": "397125428761-5pd42ma06nolgh1gj1j5hmc1juk1a7tp.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "antico-council",
+  "appId": "1:417887922898:web:cc804dec19f6c0b5315b0b",
+  "apiKey": "AIzaSyAtxkPtRuPRx3vKfQaoGMxa0W0QB6bk6io",
+  "authDomain": "antico-council.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "antico-council.firebasestorage.app",
+  "messagingSenderId": "417887922898"
 }

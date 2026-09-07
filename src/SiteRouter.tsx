@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import LandingPage, { BlogPage, NotFoundPage } from "./components/LandingPage";
 
-const Workspace = lazy(() => import("./App"));
+const Workspace = lazy(() => import("./WorkspaceEntry"));
 
 export default function SiteRouter() {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";

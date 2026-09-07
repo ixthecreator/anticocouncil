@@ -13,7 +13,7 @@ import {
   DEFAULT_DEPARTMENTS,
   ActivityEvent,
 } from "./types";
-import { WorkspaceShell } from "./components/WorkspaceShell";
+import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
 import { Empty } from "./components/WorkspaceForms";
 import { Users, ListChecks, CircleCheck } from "lucide-react";
 import { MeetingManager } from "./components/MeetingManager";
@@ -56,13 +56,18 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { db, saveDoc, removeDoc, subscribeToCollection } from "./lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
 
 // Import GitHub Sync helpers
 
-export default function App() {
-  const workspace = useWorkspace();
+const workspacePages = new Set<WorkspacePage>(["session", "post", "archive", "supervision", "activity", "editorial", "assets", "inventory"]);
+function pageFromHash(): WorkspacePage {
+  const page = window.location.hash.slice(1) as WorkspacePage;
+  return workspacePages.has(page) ? page : "session";
+}
+
+export default function App(props: {mode: "local" | "firebase"; onModeChange: (mode: "local" | "firebase") => void; account?: React.ReactNode}) {
+  const workspace = useWorkspace(props);
   const {
     data,
     mode: storageMode,
@@ -102,7 +107,12 @@ export default function App() {
     | "editorial"
     | "assets"
     | "inventory"
-  >("session");
+  >(pageFromHash);
+  useEffect(() => {
+    const navigate = () => { setActiveTab(pageFromHash()); setGlobalSearch(""); };
+    window.addEventListener("hashchange", navigate);
+    return () => window.removeEventListener("hashchange", navigate);
+  }, []);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [listSortKey, setListSortKey] = useState<
     "priority" | "category" | "status"
@@ -443,6 +453,7 @@ export default function App() {
       <WorkspaceShell
         page={activeTab}
         onNavigate={(page) => {
+          window.location.hash = page;
           setActiveTab(page);
           setGlobalSearch("");
           window.scrollTo({ top: 0 });
@@ -457,6 +468,10 @@ export default function App() {
         pending={pending}
         ready={ready}
         notice={notice}
+        connection={workspace.connection}
+        connectionError={workspace.connectionError}
+        onReconnect={workspace.reconnect}
+        account={React.isValidElement(props.account) ? React.cloneElement(props.account as React.ReactElement<{workspacePending?: number}>, {workspacePending: pending}) : props.account}
         search={globalSearch}
         onSearchChange={setGlobalSearch}
         onExport={handleExportJSON}
@@ -568,14 +583,14 @@ export default function App() {
             </div>
           </div>
         )}
-        {!ready && !error && (
+        {!ready && !error && !workspace.connectionError && (
           <div className="workspace-loading" role="status">
             <span />
             正在准备工作区…
           </div>
         )}
-        {ready && (
-          <div className="page-body">
+        {workspace.dataLoaded && (
+          <fieldset className="page-body workspace-editable" disabled={!ready}>
             {activeTab === "session" && (
               <SessionView
                 key={`${storageMode}-${currentMeetingId}`}
@@ -655,7 +670,7 @@ export default function App() {
                 search={globalSearch}
               />
             )}
-          </div>
+          </fieldset>
         )}
       </WorkspaceShell>
       <input
