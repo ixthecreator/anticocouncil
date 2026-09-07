@@ -33,4 +33,4 @@
 本地数据仅保存在当前浏览器，请定期导出。云端连接现有Firebase，项目的原公开读写规则未部署修改；公开使用前还需认证和成员权限。详情见README.md。
 
 GitHub 与部署
-代码通过自有 GitHub 仓库管理，Vercel 从 main 自动构建，目标域名 anticocouncil.com。代码同步不等于业务数据同步。更换域名后，本地数据需要导出再导入。发布状态见项目部署记录。
+代码已同步到私有仓库 https://github.com/ixthecreator/anticocouncil，Vercel 项目 anticocouncil 已关联 main 并完成首次生产构建。临时生产地址为 https://anticocouncil-sigma.vercel.app。www.anticocouncil.com 已配置为 Production，根域 anticocouncil.com 通过308跳转至www；Namecheap解析已保存，首次HTTPS验收结果见交付部署记录。代码同步不等于业务数据同步。更换域名后，本地数据需要导出再导入。

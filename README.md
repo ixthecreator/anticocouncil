@@ -60,7 +60,7 @@ bun run build
 - 新浏览器默认使用本地工作区；若已有 `storage_mode` 选择则沿用。旧 `local_*` 数据按需读取，写入统一的 `antico_workspace_v2`。本地数据不跨设备自动同步。
 - 云端模式沿用现有 Firebase 项目和数据库；只有选择云端时才订阅它。前端未新增账号认证。成员姓名是自行选择的身份标签，不能用于防冒名或正式实名投票。
 - 仓库原有 `firestore.rules` 允许公开读写，本次未修改或部署规则。公开多人上线前需要接入认证、成员权限和经后端验证的投票权限。不要把当前实现描述为已具备生产级访问控制。
-- 实际云端连接、数据库规则部署、多人并发集成测试未在本次环境执行；事务与分批导入实现已加入代码。
+- 已在浏览器确认可读取原有云端会议；未修改云端业务记录，也未执行数据库规则部署或多人并发集成测试。事务与分批导入实现已加入代码。
 - 作者名片与资料支持上传 PNG/JPG/WEBP/PDF（单文件最多 400 KB），保存在当前工作区备份内；大文件使用 HTTP(S) 资料链接。浏览器容量不足时会显示保存错误，原记录保留。
 - 选题可按作者姓名调取资料库中同名作者的名片。同名作者需要在资料名称或作者字段中自行区分。
 - 外部表格只保留业务入口，没有抓取、迁移或修改表中数据。文档中的第三方密码未进入源代码。
@@ -83,9 +83,16 @@ bun run build
 
 ## GitHub 与 Vercel
 
-仓库根目录已有 `vercel.json`，Vercel 使用 Vite，安装 `bun install --frozen-lockfile`，构建 `bun run build`，输出 `dist`。SPA 重写保证 `/workspace` 与 `/blog` 刷新时仍可打开。Vercel 项目应关联新的自有 GitHub 仓库，生产分支使用 `main`，以后推送代码后自动构建与发布。GitHub 同步的是项目代码，业务数据继续保存在浏览器或 Firebase。
+项目已推送到自有私有仓库 [ixthecreator/anticocouncil](https://github.com/ixthecreator/anticocouncil)，并关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。生产分支为 `main`，推送代码后由 Vercel 自动构建与发布。首次标准生产构建已成功，临时生产地址为 [anticocouncil-sigma.vercel.app](https://anticocouncil-sigma.vercel.app)。GitHub 同步的是项目代码，业务数据继续保存在浏览器或 Firebase。
 
-目标域名为 `anticocouncil.com`。在 Vercel 添加域名后，以项目显示的实际 A/CNAME 值配置 Namecheap PremiumDNS；仅替换网站停放/跳转记录，保留邮件及其他现有记录。根域与 `www` 由 Vercel 统一跳转，发布后检查 HTTPS、首页和工作台直接访问。
+仓库根目录的 `vercel.json` 使用 Vite，安装 `bun install --frozen-lockfile`，构建 `bun run build`，输出 `dist`。SPA 重写支持 `/workspace` 与 `/blog` 直接打开与刷新。
+
+Vercel 已将 `www.anticocouncil.com` 分配到 Production，并将 `anticocouncil.com` 设置为 308 跳转到 `www`。Namecheap PremiumDNS 已保存以下记录，TTL 均为 30 分钟；原邮件设置保留。首次绑定后的 HTTPS 验收结果见交付部署记录。
+
+| 类型 | 主机 | 值 |
+| --- | --- | --- |
+| A | `@` | `216.198.79.1` |
+| CNAME | `www` | `692d5a0bed12b64c.vercel-dns-017.com.` |
 
 更换域名会更换浏览器数据存储位置。旧域名的本地数据需通过「设置 → 导出备份」保存，再到新域名的「设置 → 导入备份」恢复；同一 Firebase 云端数据源不受域名变化影响。工作台路径和公开首页的分离不等同于登录权限控制。
 
