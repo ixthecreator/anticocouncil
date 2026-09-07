@@ -4,9 +4,11 @@
 
 ## 本轮状态
 
-2026 年 9 月 7 日：新版门户、登录与成员审批界面、Firebase 连接状态处理及受限访问规则已加入代码。云端目标改为自有 Firebase 项目 `antico-council`，不再默认连接原作者的数据库。
+2026 年 9 月 7 日：新版门户、工作台入口和使用说明 PDF 已发布至正式网站并验证。已推送并验收的代码版本为 `4ee54d82d43f76836b6840eae108a8c3e9af2840`，[本轮 Vercel 部署成功](https://vercel.com/ixthecreators-projects/anticocouncil/HfinYsxQexQDcLop2uwt35b3JzcC)。
 
-**Google 与邮箱密码登录提供方的启用、Firestore 权限规则发布仍待用户具体授权及后续验收。当前不能据此认定云端协作已启用。** 新版部署、PDF 在线路径和真实账号的完整登录审批流程，需在最终发布后确认。此前已经完成的 GitHub、Vercel 和域名接入继续沿用。
+自有 Firebase Spark 项目 `antico-council`、Web 应用和位于 `asia-east2` 的 Firestore 默认数据库已创建，Vercel 的 7 项 Firebase 环境变量已设置，线上构建已确认对应新 Web 应用，不再默认连接原作者的数据库。
+
+**Google 与邮箱密码登录提供方仍待明确授权；成员权限规则只完成草稿模拟，尚未发布，线上规则继续拒绝所有客户端读写。云端共享尚未启用，真实登录、验证、审批与成员停用流程未完成联调。** 本轮未写入云端业务数据。
 
 ## 页面入口
 
@@ -14,7 +16,7 @@
 - `/workspace#session`：例会现场。其余工作模块使用 `post`、`supervision`、`archive`、`activity`、`editorial`、`assets`、`inventory` 锚点直达。
 - `/workspace`：先进入工作区入口，再根据所选模式加载本地记录，或完成云端身份与成员资格确认。
 - `/blog`：文章栏目预留页，尚未发布文章，也没有文章编辑后台。
-- `/antico-council-guide.pdf`：门户使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`。发布包须包含此文件，并单独验收它返回 PDF 而非单页应用 HTML。
+- `/antico-council-guide.pdf`：门户使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`。本轮已确认返回 HTTP 200、`application/pdf`，文件与本地交付版完全一致。
 - 其他路径显示未找到页面。公开页、工作台和文章页支持直接打开、刷新及浏览器返回。
 
 ## 启动与配置
@@ -86,12 +88,14 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 
 ## 验证与发布
 
-已有核心测试覆盖表决、备份校验、日期和导出；新增测试覆盖缓存误报连接、集合错误恢复、配置缺失以及客户端成员权限判断。客户端权限测试不等于 Firestore 规则模拟器测试，也不等于真实账号联调。Google/邮箱登录、验证邮件、审批、停用后的实际拒绝访问和本轮最终生产构建仍须按发布记录验收。
+本轮 TypeScript 检查及 30 项测试、97 项断言通过，覆盖核心业务、备份、日期、导出、连接状态和客户端权限判断。正式 `www` 门户、工作台入口及文章预留页已实际浏览确认，标准 Vercel 生产构建成功。
+
+Firebase 控制台对草稿规则完成 4 项实际模拟：未登录拒绝、已验证但未获批成员拒绝、已验证所有者允许、所有者邮箱未验证时拒绝。模拟没有写入业务数据，也没有发布规则；线上仍使用拒绝全部访问的规则。这 4 项模拟不能代替完整登录审批或成员停用的端到端验证。
 
 Windows 本地验证环境对 esbuild 子进程管道有限制，因此曾使用进程内 TypeScript/Bun 转换配合 Vite/Rollup 和 Tailwind 生成验证产物。项目标准构建配置保持 Vite；正式发布以 Vercel 对源码的标准生产构建为准。
 
 自有私有仓库为 [ixthecreator/anticocouncil](https://github.com/ixthecreator/anticocouncil)，关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。生产分支为 `main`，推送后由 Vercel 自动构建。安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build`，输出目录为 `dist`；`vercel.json` 保留单页应用路径重写。
 
-正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。这些域名和先前版本已完成接入，不代表本轮 Firebase 提供方与权限规则已经启用。门户 PDF 发布时须确认 `public/antico-council-guide.pdf` 被复制到构建输出，并在线检查 PDF 响应。
+正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。本轮门户与 PDF 已完成在线验证；PDF 为 696,433 字节，SHA-256 与本地文件一致。网站发布成功不代表 Firebase 登录提供方和成员权限规则已经启用。
 
 本项目由 [Fiochanqwq/newmeetingapp](https://github.com/Fiochanqwq/newmeetingapp) 延续改进，保留原有仓库历史与代码署名。
