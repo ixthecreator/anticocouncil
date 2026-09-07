@@ -1,150 +1,237 @@
-import React, { useState } from 'react';
-import { ActivityEvent } from '../types';
-import { Plus, Trash2 } from 'lucide-react';
-
-interface ActivityViewProps {
-  activities: ActivityEvent[];
-  onAddActivity: (activity: ActivityEvent) => void;
-  onDeleteActivity: (id: string) => void;
-}
-
-export const ActivityView: React.FC<ActivityViewProps> = ({
-  activities,
-  onAddActivity,
-  onDeleteActivity,
-}) => {
-  const [isAdding, setIsAdding] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [time, setTime] = useState('');
-  const [organizer, setOrganizer] = useState('');
-  const [name, setName] = useState('');
-  const [participants, setParticipants] = useState('');
-
-  const handleAdd = () => {
-    if (!name || !time) return;
-    onAddActivity({
-      id: Date.now().toString(),
-      time,
-      organizer,
-      name,
-      participants,
-    });
-    setTime('');
-    setOrganizer('');
-    setName('');
-    setParticipants('');
-    setIsAdding(false);
-  };
-
+import { useState } from "react";
+import type { ActivityEvent } from "../types";
+import type { Workspace } from "../lib/useWorkspace";
+import { localDate, safeUrl } from "../lib/workspace";
+import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
+export function ActivityView({
+  workspace,
+  search,
+}: {
+  workspace: Workspace;
+  search: string;
+}) {
+  const [month, setMonth] = useState("");
+  const [editing, setEditing] = useState<ActivityEvent | null>(null);
+  const [deleting, setDeleting] = useState("");
+  const rows = workspace.data.activities
+    .filter(
+      (a) =>
+        (!month || a.time.startsWith(month)) &&
+        [
+          a.name,
+          a.time,
+          a.organizer,
+          a.participants,
+          a.description,
+          a.location,
+        ].some((value) => value?.toLowerCase().includes(search.toLowerCase())),
+    )
+    .sort((a, b) => a.time.localeCompare(b.time));
   return (
-    <div className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-6 min-h-[600px]">
-      <div className="flex justify-between items-center border-b-2 border-[var(--theme-border)] pb-4 mb-6">
-        <h2 className="font-serif text-3xl font-bold text-[var(--theme-text-primary)]">独立活动</h2>
+    <section className="workspace-panel">
+      <div className="workspace-heading">
+        <div>
+          <span className="eyebrow">SALON / CALENDAR</span>
+          <h2>月度线上沙龙</h2>
+        </div>
         <button
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--theme-border)] bg-[var(--theme-accent)] text-[var(--theme-accent-text)] font-sans text-sm font-bold hover:opacity-90 transition-colors"
+          className="workspace-button primary"
+          onClick={() =>
+            setEditing({
+              id: crypto.randomUUID(),
+              time: `${localDate()}T19:00`,
+              name: "",
+              organizer: "",
+              participants: "",
+              location: "",
+              description: "",
+              status: "planned",
+            })
+          }
         >
-          <Plus className="w-4 h-4" /> 新增活动
+          ＋ 新增活动
         </button>
       </div>
-
-      {isAdding && (
-        <div className="mb-6 p-4 border-2 border-[var(--theme-border)] bg-[var(--theme-card-bg)] space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-mono mb-1 text-[var(--theme-text-secondary)]">时间</label>
-              <input
-                type="text"
-                value={time}
-                onChange={e => setTime(e.target.value)}
-                placeholder="例如：2026-08-01 14:00"
-                className="w-full px-3 py-2 border-2"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono mb-1 text-[var(--theme-text-secondary)]">活动名</label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="活动名称"
-                className="w-full px-3 py-2 border-2"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono mb-1 text-[var(--theme-text-secondary)]">活动举办者</label>
-              <input
-                type="text"
-                value={organizer}
-                onChange={e => setOrganizer(e.target.value)}
-                placeholder="举办者"
-                className="w-full px-3 py-2 border-2"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono mb-1 text-[var(--theme-text-secondary)]">参与或协助社团/组织</label>
-              <input
-                type="text"
-                value={participants}
-                onChange={e => setParticipants(e.target.value)}
-                placeholder="参与/协助社团或组织"
-                className="w-full px-3 py-2 border-2"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setIsAdding(false)}
-              className="px-4 py-2 border border-neutral-300 hover:bg-neutral-100 font-mono text-sm"
+      <div className="workspace-actions">
+        <Field label="筛选月份">
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
+        </Field>
+        {month && (
+          <button className="workspace-button" onClick={() => setMonth("")}>
+            查看全部
+          </button>
+        )}
+        <a
+          className="resource-link"
+          target="_blank"
+          rel="noreferrer"
+          href="https://docs.qq.com/sheet/DSm5ubnNnSktMY2R5?tab=BB08J2"
+        >
+          原月度安排表 ↗
+        </a>
+      </div>
+      {editing && (
+        <SaveForm
+          key={editing.id}
+          onCancel={() => setEditing(null)}
+          onSave={async () => {
+            if (!editing.name.trim()) throw new Error("请输入活动主题。");
+            await workspace.save("activities", {
+              ...editing,
+              name: editing.name.trim(),
+            });
+            setEditing(null);
+          }}
+        >
+          <Field label="沙龙主题">
+            <input
+              required
+              value={editing.name}
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+            />
+          </Field>
+          <Field label="活动时间（北京时间）">
+            <input
+              required
+              type="datetime-local"
+              value={editing.time.replace(" ", "T")}
+              onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+            />
+          </Field>
+          <Field label="举办者">
+            <input
+              value={editing.organizer}
+              onChange={(e) =>
+                setEditing({ ...editing, organizer: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="参与或协助组织">
+            <input
+              value={editing.participants}
+              onChange={(e) =>
+                setEditing({ ...editing, participants: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="线上会议链接或地点">
+            <input
+              value={editing.location || ""}
+              onChange={(e) =>
+                setEditing({ ...editing, location: e.target.value })
+              }
+            />
+          </Field>
+          <Field label="活动状态">
+            <select
+              value={editing.status || "planned"}
+              onChange={(e) =>
+                setEditing({
+                  ...editing,
+                  status: e.target.value as ActivityEvent["status"],
+                })
+              }
             >
-              取消
-            </button>
-            <button
-              onClick={handleAdd}
-              className="px-4 py-2 bg-[var(--theme-accent)] text-[var(--theme-accent-text)] font-mono text-sm border-2 border-[var(--theme-border)] hover:opacity-90"
-            >
-              保存
-            </button>
-          </div>
+              <option value="planned">计划中</option>
+              <option value="completed">已结束</option>
+              <option value="cancelled">已取消</option>
+            </select>
+          </Field>
+          <Field label="活动安排与备注">
+            <textarea
+              rows={3}
+              value={editing.description || ""}
+              onChange={(e) =>
+                setEditing({ ...editing, description: e.target.value })
+              }
+            />
+          </Field>
+        </SaveForm>
+      )}
+      {!rows.length ? (
+        <Empty>
+          {month || search
+            ? "当前月份或搜索条件下没有活动。"
+            : "尚无沙龙安排，添加主题和时间开始排期。"}
+        </Empty>
+      ) : (
+        <div className="record-list">
+          {rows.map((row) => (
+            <article key={row.id} className="record-card">
+              <div className="workspace-heading">
+                <div>
+                  <span className="eyebrow">{row.time.replace("T", " ")}</span>
+                  <h3>{row.name}</h3>
+                </div>
+                <span className="workspace-badge">
+                  {
+                    {
+                      planned: "计划中",
+                      completed: "已结束",
+                      cancelled: "已取消",
+                    }[row.status || "planned"]
+                  }
+                </span>
+              </div>
+              <p>
+                举办者：{row.organizer || "待安排"}　参与 / 协助：
+                {row.participants || "未填写"}
+              </p>
+              {row.location &&
+                (safeUrl(row.location) ? (
+                  <a
+                    className="resource-link"
+                    target="_blank"
+                    rel="noreferrer"
+                    href={safeUrl(row.location)}
+                  >
+                    进入线上会议 ↗
+                  </a>
+                ) : (
+                  <p>地点：{row.location}</p>
+                ))}
+              {row.description && (
+                <p className="notes-text">{row.description}</p>
+              )}
+              <div className="workspace-actions">
+                <button
+                  className="workspace-button"
+                  onClick={() => setEditing(row)}
+                >
+                  编辑活动
+                </button>
+                {deleting === row.id ? (
+                  <>
+                    <Action
+                      className="danger"
+                      onClick={() => workspace.remove("activities", row.id)}
+                    >
+                      确认删除
+                    </Action>
+                    <button
+                      className="workspace-button"
+                      onClick={() => setDeleting("")}
+                    >
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="workspace-button subtle"
+                    onClick={() => setDeleting(row.id)}
+                  >
+                    删除
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activities.map(act => (
-          <div key={act.id} className="p-4 border-2 border-[var(--theme-border)] bg-[var(--theme-card-bg)] flex flex-col justify-between">
-            <div>
-              <h3 className="font-bold text-lg mb-2 text-[var(--theme-text-primary)]">{act.name}</h3>
-              <div className="space-y-1 text-sm font-sans text-[var(--theme-text-secondary)]">
-                <p><strong>时间:</strong> {act.time}</p>
-                <p><strong>举办者:</strong> {act.organizer}</p>
-                <p><strong>参与/协助:</strong> {act.participants}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => {
-                  if (confirmDeleteId === act.id) {
-                    onDeleteActivity(act.id);
-                    setConfirmDeleteId(null);
-                  } else {
-                    setConfirmDeleteId(act.id);
-                    setTimeout(() => setConfirmDeleteId(null), 3000);
-                  }
-                }}
-                className={`p-1 transition-colors border ${confirmDeleteId === act.id ? 'border-red-500 bg-red-500 text-white' : 'text-red-500 hover:bg-red-50 border-transparent hover:border-red-200'}`}
-                title={confirmDeleteId === act.id ? "点击确认删除" : "删除活动"}
-              >
-                {confirmDeleteId === act.id ? <span className="text-xs font-bold px-1">确认删除?</span> : <Trash2 className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-        ))}
-        {activities.length === 0 && !isAdding && (
-          <div className="col-span-full py-12 text-center text-[var(--theme-text-secondary)] font-mono text-sm opacity-50">
-            暂无独立活动记录
-          </div>
-        )}
-      </div>
-    </div>
+    </section>
   );
-};
+}

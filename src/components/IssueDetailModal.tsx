@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
-import { Issue, Member, Priority, Status } from '../types';
-import { X, Calendar, User, Tag, AlertTriangle, ArrowRight, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { Issue, Member, Priority, Status } from "../types";
+import {
+  X,
+  Calendar,
+  User,
+  Tag,
+  AlertTriangle,
+  ArrowRight,
+  MessageSquare,
+} from "lucide-react";
 
 interface IssueDetailModalProps {
   issue: Issue;
   members: Member[];
   categories: string[];
   onClose: () => void;
-  onUpdate: (updated: Issue) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (updated: Issue) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
@@ -24,65 +32,118 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   const [category, setCategory] = useState(issue.category);
   const [priority, setPriority] = useState<Priority>(issue.priority);
   const [status, setStatus] = useState<Status>(issue.status);
-  const [discussion, setDiscussion] = useState(issue.discussion || '');
-  const [signature, setSignature] = useState(issue.signature || '');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [discussion, setDiscussion] = useState(issue.discussion || "");
+  const [signature, setSignature] = useState(issue.signature || "");
+  const [errorMsg, setErrorMsg] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [dueDate, setDueDate] = useState(issue.dueDate || "");
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement;
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>("input")?.focus();
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !saving) onClose();
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input, textarea, select, a[href]",
+        ) || [],
+      ).filter((el) => el.offsetParent !== null);
+      const first = focusable[0],
+        last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+      previous?.focus();
+    };
+  }, [saving]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim()) {
-      setErrorMsg('标题不能为空');
+      setErrorMsg("标题不能为空");
       return;
     }
     if (!signature.trim()) {
-      setErrorMsg('经办落款不能为空');
+      setErrorMsg("经办落款不能为空");
       return;
     }
-    setErrorMsg('');
-    onUpdate({
-      ...issue,
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      priority,
-      status,
-      discussion: discussion.trim(),
-      signature,
-      updatedAt: new Date().toISOString(),
-    });
-    onClose();
+    setErrorMsg("");
+    setSaving(true);
+    try {
+      await onUpdate({
+        ...issue,
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim() || "其他",
+        priority,
+        status,
+        discussion: discussion.trim(),
+        signature,
+        dueDate,
+        updatedAt: new Date().toISOString(),
+      });
+      onClose();
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "保存失败，请重试。");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getStatusLabel = (s: Status) => {
     switch (s) {
-      case 'agenda': return '议程';
-      case 'voting': return '表决中';
-      case 'passed': return '已通过';
-      case 'rejected': return '已否决';
-      case 'authorization': return '授权';
-      case 'execution': return '执行';
-      case 'completed': return '归档完成';
+      case "agenda":
+        return "议程";
+      case "voting":
+        return "表决中";
+      case "passed":
+        return "已通过";
+      case "rejected":
+        return "已否决";
+      case "authorization":
+        return "授权";
+      case "execution":
+        return "执行";
+      case "completed":
+        return "归档完成";
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-sm">
-      <div 
+      <div
         id="issue-detail-panel"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="议题详情"
         className="w-full max-w-2xl bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] border-2 border-[var(--theme-border,#171717)] flex flex-col max-h-[90vh]"
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))]">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs tracking-wider uppercase px-2 py-0.5 border border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)]">
+            <span className="font-sans text-xs tracking-normal uppercase px-2 py-0.5 border border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)]">
               {getStatusLabel(status)}
             </span>
-            <span className="font-mono text-xs text-[var(--theme-text-secondary,#525252)]">
-              ID: {issue.id.slice(0, 8)}
+            <span className="font-sans text-xs text-[var(--theme-text-secondary,#525252)]">
+              议题详情
             </span>
           </div>
-          <button 
+          <button
             id="close-modal-btn"
+            aria-label="关闭议题详情"
+            disabled={saving}
             onClick={onClose}
             className="p-1 hover:bg-[var(--theme-accent-light,#eaeaea)] border border-transparent hover:border-[var(--theme-border,#171717)] transition-all cursor-pointer"
           >
@@ -92,32 +153,34 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
 
         {/* Modal Content - Scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
           {/* Main Form Fields */}
           <div className="space-y-4">
             <div>
-              <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                议题标题
+              <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
+                议题标题 · 必填
               </label>
               <input
                 type="text"
+                aria-label="议题标题"
+                aria-required="true"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-serif text-lg focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
+                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-lg focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
                 placeholder="在此录入议题标题..."
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
+                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
                   议题部门
                 </label>
                 <select
-                  value={categories.includes(category) ? category : '其他'}
+                  aria-label="议题部门"
+                  value={categories.includes(category) ? category : "其他"}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setCategory(val === '其他' ? '' : val);
+                    setCategory(val === "其他" ? "" : val);
                   }}
                   className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none mb-2"
                 >
@@ -127,19 +190,19 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                     </option>
                   ))}
                 </select>
-                {(!categories.includes(category) || category === '其他') && (
+                {(!categories.includes(category) || category === "其他") && (
                   <input
                     type="text"
-                    value={category === '其他' ? '' : category}
+                    value={category === "其他" ? "" : category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-mono text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
+                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
                     placeholder="请输入自定义部门..."
                   />
                 )}
               </div>
 
               <div>
-                <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
+                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
                   优先级
                 </label>
                 <select
@@ -155,7 +218,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
+                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
                   状态
                 </label>
                 <select
@@ -175,7 +238,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
+              <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
                 议题阐述与背景
               </label>
               <textarea
@@ -191,11 +254,19 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
           <hr className="border-t-2 border-[var(--theme-border,#171717)] opacity-30" />
 
           {/* Discussion & Resolution */}
+          <label className="workspace-field">
+            <span>执行截止日期</span>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </label>
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <MessageSquare className="w-4 h-4 text-[var(--theme-text-primary,#171717)]" />
-                <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-primary,#171717)] font-bold">
+                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-primary,#171717)] font-bold">
                   会商决议与执行要点
                 </label>
               </div>
@@ -203,7 +274,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 value={discussion}
                 onChange={(e) => setDiscussion(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-mono text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
+                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
                 placeholder="在此记录例会就此议题达成的一致结论、行动决议或指导意见..."
               />
             </div>
@@ -212,14 +283,21 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <User className="w-4 h-4 text-[var(--theme-text-primary,#171717)]" />
-                <label className="block font-display text-xs tracking-wider uppercase text-[var(--theme-text-primary,#171717)] font-bold">
-                  经办落款
+                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-primary,#171717)] font-bold">
+                  经办落款 · 必填
                 </label>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <select
-                    value={members.some(m => m.name === signature || m.id === signature) ? signature : ''}
+                    aria-label="指派经办成员"
+                    value={
+                      members.some(
+                        (m) => m.name === signature || m.id === signature,
+                      )
+                        ? signature
+                        : ""
+                    }
                     onChange={(e) => setSignature(e.target.value)}
                     className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none"
                   >
@@ -234,43 +312,61 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 <div>
                   <input
                     type="text"
+                    aria-label="经办落款"
+                    aria-required="true"
                     value={signature}
                     onChange={(e) => setSignature(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-mono text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
+                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
                     placeholder="或手写其他执行落款..."
                   />
                 </div>
               </div>
-              <p className="mt-1 text-[10px] text-[var(--theme-text-secondary,#525252)] font-mono">
-                * 每次状态流转或修改，均需指明明确的执行负责人或经办代表，确立核心责任。
+              <p className="mt-1 text-xs text-[var(--theme-text-secondary,#525252)] font-sans">
+                *
+                每次状态流转或修改，均需指明明确的执行负责人或经办代表，确立核心责任。
               </p>
             </div>
           </div>
 
           {errorMsg && (
-            <div className="p-3 border-2 border-[var(--theme-border,#171717)] bg-red-50 text-red-700 font-mono text-xs flex items-center gap-2">
+            <div className="p-3 border-2 border-[var(--theme-border,#171717)] bg-red-50 text-red-700 font-sans text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-700" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Timestamps */}
-          <div className="flex flex-wrap gap-4 text-[10px] font-mono text-[var(--theme-text-secondary,#525252)] pt-4 border-t border-neutral-100">
-            <div>创建于: {new Date(issue.createdAt).toLocaleString('zh-CN')}</div>
-            <div>更新于: {new Date(issue.updatedAt).toLocaleString('zh-CN')}</div>
-            {issue.meetingId && <div>已绑定例会 ID: {issue.meetingId.slice(0, 8)}</div>}
+          <div className="flex flex-wrap gap-4 text-xs font-sans text-[var(--theme-text-secondary,#525252)] pt-4 border-t border-neutral-100">
+            <div>
+              创建于: {new Date(issue.createdAt).toLocaleString("zh-CN")}
+            </div>
+            <div>
+              更新于: {new Date(issue.updatedAt).toLocaleString("zh-CN")}
+            </div>
           </div>
         </div>
 
         {/* Modal Footer */}
         <div className="p-4 border-t-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))] flex items-center justify-between">
           {showDeleteConfirm ? (
-            <div className="flex items-center gap-2 border-2 border-red-500 bg-red-50 p-2 text-xs font-mono">
-              <span className="text-red-700 font-bold">确定要彻底删除该议题吗？此操作不可逆。</span>
+            <div className="flex items-center gap-2 border-2 border-red-500 bg-red-50 p-2 text-xs font-sans">
+              <span className="text-red-700 font-bold">
+                确定要彻底删除该议题吗？此操作不可逆。
+              </span>
               <button
-                onClick={() => {
-                  onDelete(issue.id);
-                  onClose();
+                disabled={saving}
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await onDelete(issue.id);
+                    onClose();
+                  } catch (err) {
+                    setErrorMsg(
+                      err instanceof Error ? err.message : "删除失败",
+                    );
+                  } finally {
+                    setSaving(false);
+                  }
                 }}
                 className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer font-bold"
               >
@@ -287,24 +383,26 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             <button
               id="delete-issue-btn"
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 border border-neutral-400 text-neutral-500 hover:text-red-600 hover:border-red-600 text-xs font-mono transition-colors cursor-pointer"
+              className="px-3 py-1.5 border border-neutral-400 text-neutral-500 hover:text-red-600 hover:border-red-600 text-xs font-sans transition-colors cursor-pointer"
             >
               彻底删除
             </button>
           )}
-          
+
           <div className="flex gap-2">
             <button
               id="cancel-modal-btn"
+              disabled={saving}
               onClick={onClose}
-              className="px-4 py-2 border border-[var(--theme-border,#171717)] hover:bg-[var(--theme-accent-light,#eaeaea)] text-xs font-mono transition-colors cursor-pointer"
+              className="px-4 py-2 border border-[var(--theme-border,#171717)] hover:bg-[var(--theme-accent-light,#eaeaea)] text-xs font-sans transition-colors cursor-pointer"
             >
               取消
             </button>
             <button
               id="save-issue-btn"
+              disabled={saving}
               onClick={handleSave}
-              className="px-4 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-white hover:opacity-90 text-xs font-bold font-mono transition-colors flex items-center gap-1 cursor-pointer"
+              className="px-4 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-white hover:opacity-90 text-xs font-bold font-sans transition-colors flex items-center gap-1 cursor-pointer"
             >
               存盘落款 <ArrowRight className="w-3.5 h-3.5" />
             </button>

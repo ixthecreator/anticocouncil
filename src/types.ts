@@ -35,6 +35,9 @@ export interface Issue {
     abstain: number;
   };
   voteRule?: 'simple' | 'absolute'; // 简单多数 or 绝对多数
+  voteMode?: 'manual' | 'members';
+  ballots?: Record<string, 'approve' | 'reject' | 'abstain'>;
+  dueDate?: string;
 }
 
 export interface Meeting {
@@ -54,6 +57,65 @@ export interface ActivityEvent {
   organizer: string;
   name: string;
   participants: string;
+  location?: string;
+  description?: string;
+  status?: 'planned' | 'completed' | 'cancelled';
+}
+
+export interface Attendance {
+  id: string;
+  meetingId: string;
+  memberId: string;
+  memberName: string;
+  checkedInAt: string;
+  reportStatus: 'pending' | 'reported' | 'exempt';
+  reportNote: string;
+  reportedAt?: string;
+}
+
+export interface EditorialItem {
+  id: string;
+  title: string;
+  department: '微信编辑部' | 'QQ编辑部';
+  author: string;
+  editor: string;
+  designer: string;
+  dueDate: string;
+  status: '选题' | '撰稿' | '编辑' | '排版' | '已发布';
+  notes: string;
+}
+
+export interface LibraryAsset {
+  id: string;
+  title: string;
+  kind: '作者名片' | '美工素材' | '往期成果';
+  author: string;
+  tags: string;
+  url: string;
+  fileName: string;
+  fileData: string;
+  notes: string;
+  updatedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  title: string;
+  location: string;
+  quantity: number;
+  keeper: string;
+  notes: string;
+}
+
+export interface WorkspaceData {
+  meetings: Meeting[];
+  issues: Issue[];
+  members: Member[];
+  activities: ActivityEvent[];
+  attendance: Attendance[];
+  editorial: EditorialItem[];
+  assets: LibraryAsset[];
+  inventory: InventoryItem[];
 }
 
 export const INITIAL_MEMBERS: Member[] = [];

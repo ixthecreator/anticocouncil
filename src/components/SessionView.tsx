@@ -1,368 +1,408 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Meeting, Issue, Status } from '../types';
-import { ParliamentChart } from './ParliamentChart';
-import { Play, Check, X, Hand, AlertTriangle, BookOpen, Plus, Save } from 'lucide-react';
+import { useState } from "react";
+import type { Issue, Meeting } from "../types";
+import type { Workspace } from "../lib/useWorkspace";
+import {
+  downloadText,
+  advanceIssue,
+  meetingBrief,
+  recordBallot,
+  statusLabels,
+  voteTotals,
+  votingResult,
+} from "../lib/workspace";
+import { ParliamentChart } from "./ParliamentChart";
+import { AttendanceView } from "./AttendanceView";
+import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 
-interface SessionViewProps {
-  currentMeeting: Meeting | null;
-  issues: Issue[];
-  onUpdateMeetingRegularReport: (id: string, report: string) => void;
-  onUpdateIssue: (issue: Issue) => void;
-  onAddIssue: (status: Status) => void; // modified to open modal
-}
-
-export const SessionView: React.FC<SessionViewProps> = ({
+export function SessionView({
   currentMeeting,
-  issues,
-  onUpdateMeetingRegularReport,
-  onUpdateIssue,
-  onAddIssue
-}) => {
-  const [activeVotingIssueId, setActiveVotingIssueId] = useState<string | null>(null);
-
-  if (!currentMeeting) {
+  workspace,
+  search,
+  onAddIssue,
+  onOpenDetail,
+}: {
+  currentMeeting: Meeting | null;
+  workspace: Workspace;
+  search: string;
+  onAddIssue: () => void;
+  onOpenDetail: (issue: Issue) => void;
+}) {
+  const { data, change } = workspace;
+  const [activeId, setActiveId] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [report, setReport] = useState(currentMeeting?.regularReport || "");
+  const [summary, setSummary] = useState(currentMeeting?.summary || "");
+  const [editingNotes, setEditingNotes] = useState(false);
+  if (!currentMeeting)
     return (
-      <div className="text-center py-16 bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md border-2 border-dashed border-[var(--theme-border,#171717)] flex flex-col items-center justify-center gap-3 text-[var(--theme-text-primary,#171717)]">
-        <AlertTriangle className="w-8 h-8 text-[var(--theme-text-secondary,#525252)]" />
-        <h3 className="font-serif text-lg font-bold">暂无活跃的例会周期</h3>
-        <p className="text-xs font-mono text-[var(--theme-text-secondary,#525252)] max-w-sm">
-          为了开启协同，请在顶部 “例会周期管理” 中确立一个活跃例会周期。
-        </p>
-      </div>
+      <Empty>还没有当前例会。点击「新建例会」，开始签到与议程记录。</Empty>
     );
-  }
-
-  const meetingIssues = issues.filter(i => i.meetingId === currentMeeting.id && !i.archived);
-  const agendaIssues = meetingIssues.filter(i => i.status === 'agenda');
-  const votingIssues = meetingIssues.filter(i => i.status === 'voting');
-
-  // Currently active voting issue
-  const activeIssue = issues.find(i => i.id === activeVotingIssueId) || votingIssues[0] || null;
-
-  const handleStartVoting = (issue: Issue) => {
-    onUpdateIssue({
-      ...issue,
-      status: 'voting',
-      votes: { approve: 0, reject: 0, abstain: 0 },
-      voteRule: 'simple'
+  const allIssues = data.issues.filter(
+    (i) => i.meetingId === currentMeeting.id && !i.archived,
+  );
+  const issues = allIssues.filter((i) =>
+    [i.title, i.description, i.signature, i.category].some((value) =>
+      value?.toLowerCase().includes(search.toLowerCase()),
+    ),
+  );
+  const voting = allIssues.filter((i) => i.status === "voting");
+  const active = voting.find((i) => i.id === activeId) || voting[0];
+  const totals = active
+    ? voteTotals(active)
+    : { approve: 0, reject: 0, abstain: 0 };
+  const checked = data.attendance.filter(
+    (r) => r.meetingId === currentMeeting.id,
+  );
+  const updateVoting = (update: (issue: Issue) => Issue) =>
+    active &&
+    change("issues", active.id, (old) => {
+      if (!old || old.status !== "voting") throw new Error("此表决已结束。");
+      return { ...update(old), updatedAt: new Date().toISOString() };
     });
-    setActiveVotingIssueId(issue.id);
-  };
-
-  const handleVote = (type: 'approve' | 'reject' | 'abstain', increment: boolean) => {
-    if (!activeIssue || !activeIssue.votes) return;
-    const currentVal = activeIssue.votes[type] || 0;
-    const newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
-    
-    onUpdateIssue({
-      ...activeIssue,
-      votes: {
-        ...activeIssue.votes,
-        [type]: newVal
-      }
-    });
-  };
-
-  const handleChangeRule = (rule: 'simple' | 'absolute') => {
-    if (!activeIssue) return;
-    onUpdateIssue({ ...activeIssue, voteRule: rule });
-  };
-
-  const handleConcludeVoting = (forceStatus?: 'passed' | 'rejected') => {
-    if (!activeIssue || !activeIssue.votes) return;
-    
-    let finalStatus: Status = 'rejected';
-    
-    if (forceStatus) {
-      finalStatus = forceStatus;
-    } else {
-      const { approve, reject, abstain } = activeIssue.votes;
-      const totalVotes = approve + reject + abstain;
-      
-      if (activeIssue.voteRule === 'absolute') {
-        // Absolute majority: approve must be > half of the total voting participants
-        finalStatus = approve > (totalVotes / 2) ? 'passed' : 'rejected';
-      } else {
-        // Simple majority: approve > reject (ignores abstains)
-        finalStatus = approve > reject ? 'passed' : 'rejected';
-      }
-    }
-
-    onUpdateIssue({
-      ...activeIssue,
-      status: finalStatus
-    });
-    setActiveVotingIssueId(null);
-  };
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Left Column: Report & Agenda List */}
-      <div className="lg:col-span-5 space-y-6">
-        
-        {/* Regular Report */}
-        <div className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-4 space-y-4 text-[var(--theme-text-primary,#171717)]">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-            <h3 className="font-display text-sm font-bold tracking-wider uppercase flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4" />
-              <span>会议中报告记录</span>
-            </h3>
-            <span className="text-[10px] font-mono text-[var(--theme-text-secondary,#525252)]">随时保存</span>
-          </div>
-          <div className="space-y-2">
-            <textarea
-              value={currentMeeting.regularReport || ''}
-              onChange={(e) => onUpdateMeetingRegularReport(currentMeeting.id, e.target.value)}
-              placeholder="在此录入本周例会常规报告内容，如固定进度、日常行政报告等..."
-              rows={8}
-              className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-serif text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.03))] leading-relaxed transition-colors"
-            />
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  const getWeekdayCN = (dateStr: string): string => {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-                    return weekdays[date.getDay()];
-                  };
-                  
-                  const completedIssues = meetingIssues.filter((i) => i.status === 'completed');
-                  const activeIssues = meetingIssues.filter((i) => i.status !== 'completed');
-
-                  let brief = `========================================\n`;
-                  brief += `【${currentMeeting.title} 回顾简报】\n`;
-                  brief += ` 日期: ${currentMeeting.date} (${currentMeeting.week})\n`;
-                  brief += `========================================\n\n`;
-
-                  brief += `一、 常规报告与大纲 (OVERVIEW)\n`;
-                  brief += `  ${currentMeeting.regularReport || currentMeeting.summary || '未录入常规报告。'}\n\n`;
-
-                  brief += `二、 本期已归档完成议题 (RESOLVED - ${completedIssues.length} 项)\n`;
-                  if (completedIssues.length === 0) {
-                    brief += `  - 暂无已归档完成项\n`;
-                  } else {
-                    completedIssues.forEach((issue, index) => {
-                      brief += `  [${index + 1}] 《${issue.serialNumber ? `[${issue.serialNumber}] ` : ''}${issue.title}》\n`;
-                      brief += `      类别: ${issue.category} | 优先度: ${issue.priority.toUpperCase()}\n`;
-                      brief += `      执行落款: ${issue.signature}\n`;
-                      if (issue.discussion) {
-                        brief += `      会商结论: ${issue.discussion}\n`;
-                      }
-                      brief += `\n`;
-                    });
-                  }
-
-                  brief += `三、 本期推进中议题 (IN PROGRESS/TODO - ${activeIssues.length} 项)\n`;
-                  if (activeIssues.length === 0) {
-                    brief += `  - 所有议题均已归档销号。\n`;
-                  } else {
-                    activeIssues.forEach((issue, index) => {
-                      const statusMap: Record<Status, string> = {
-                        agenda: '议程',
-                        voting: '表决中',
-                        passed: '已通过',
-                        rejected: '已否决',
-                        authorization: '授权',
-                        execution: '执行',
-                        completed: '归档完成'
-                      };
-                      brief += `  * 《${issue.serialNumber ? `[${issue.serialNumber}] ` : ''}${issue.title}》 [${statusMap[issue.status] || '处理中'}]\n`;
-                      brief += `      类别: ${issue.category} | 优先度: ${issue.priority.toUpperCase()} | 承办落款: ${issue.signature || '待指派'}\n`;
-                    });
-                  }
-
-                  brief += `========================================\n`;
-                  brief += `落款鉴印：${completedIssues.map(i => i.signature).filter((v, idx, a) => v && a.indexOf(v) === idx).join(', ') || '全体参会成员'}\n`;
-                  brief += `生成时刻: ${new Date().toLocaleString('zh-CN')}\n`;
-                  
-                  const blob = new Blob([brief], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `回顾简报_${currentMeeting.date}.txt`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="px-3 py-1.5 border border-[var(--theme-border)] text-xs font-mono bg-[var(--theme-accent-light)] hover:bg-[var(--theme-border)] hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>生成并导出 txt 简报</span>
+    <div className="session-workspace">
+      <AttendanceView meeting={currentMeeting} workspace={workspace} />
+      <div className="session-columns">
+        <div className="space-y-6">
+          <section className="workspace-panel">
+            <div className="workspace-heading">
+              <div>
+                <span className="eyebrow">02 / AGENDA</span>
+                <h2>
+                  议程与执行 <small>{allIssues.length}</small>
+                </h2>
+              </div>
+              <button className="workspace-button primary" onClick={onAddIssue}>
+                ＋ 新增议题
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Agenda List */}
-        <div className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-4 space-y-4 text-[var(--theme-text-primary,#171717)]">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-            <h3 className="font-display text-sm font-bold tracking-wider uppercase flex items-center gap-1.5">
-              <span>待议议程 (Agenda)</span>
-            </h3>
-            <button
-              onClick={() => onAddIssue('agenda')}
-              className="px-2 py-1 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)] font-mono text-[10px] font-bold flex items-center gap-1 hover:opacity-90 transition-opacity cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              <span>提交新议题</span>
-            </button>
-          </div>
-
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-            {agendaIssues.length === 0 ? (
-              <p className="text-[10px] font-mono text-[var(--theme-text-secondary,#525252)] italic text-center py-4">无待议议程</p>
+            {!issues.length ? (
+              <Empty>
+                {search
+                  ? "没有匹配的议题。"
+                  : "暂无议题。记录本次需要讨论或执行的事项。"}
+              </Empty>
             ) : (
-              <AnimatePresence>
-                {agendaIssues.map(issue => (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    key={issue.id} 
-                    className="p-2 border-2 border-neutral-200 bg-[var(--theme-card-bg,#ffffff)] flex items-center justify-between hover:border-[var(--theme-border,#171717)] transition-colors"
-                  >
-                    <div>
-                      <h4 className="font-sans text-xs font-bold">{issue.serialNumber ? `[${issue.serialNumber}] ` : ''}{issue.title}</h4>
-                      <p className="font-mono text-[9px] text-[var(--theme-text-secondary,#525252)] mt-0.5">{issue.category} | 经办: {issue.signature || '待定'}</p>
+              <div className="agenda-list">
+                {issues.map((i) => (
+                  <article key={i.id}>
+                    <div className="workspace-heading">
+                      <button
+                        className="agenda-title"
+                        onClick={() => onOpenDetail(i)}
+                      >
+                        {i.title}
+                      </button>
+                      <span className="workspace-badge">
+                        {statusLabels[i.status]}
+                      </span>
                     </div>
-                    <button
-                      onClick={() => handleStartVoting(issue)}
-                      className="p-1.5 bg-[var(--theme-accent-light,rgba(0,0,0,0.05))] border border-[var(--theme-border,#171717)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-accent,#171717)] hover:text-[var(--theme-accent-text)] transition-colors cursor-pointer"
-                      title="付诸表决"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
+                    <p className="workspace-help">
+                      {i.category} · {i.signature || "待安排负责人"}
+                      {i.dueDate ? ` · 截止 ${i.dueDate}` : ""}
+                    </p>
+                    {i.discussion && <p>{i.discussion}</p>}
+                    <div className="workspace-actions">
+                      <button
+                        className="workspace-button"
+                        onClick={() => onOpenDetail(i)}
+                      >
+                        编辑与记录
+                      </button>
+                      {i.status === "agenda" && (
+                        <>
+                          <Action
+                            onClick={async () => {
+                              await change("issues", i.id, (old) => {
+                                if (!old || old.status !== "agenda")
+                                  throw new Error("议题状态已改变，请重试。");
+                                return {
+                                  ...old,
+                                  status: "voting",
+                                  voteMode: "members",
+                                  voteRule: "simple",
+                                  ballots: {},
+                                  votes: { approve: 0, reject: 0, abstain: 0 },
+                                  updatedAt: new Date().toISOString(),
+                                };
+                              });
+                              setActiveId(i.id);
+                            }}
+                          >
+                            发起表决
+                          </Action>
+                          <Action
+                            onClick={() =>
+                              change("issues", i.id, (old) => {
+                                if (!old) throw new Error("议题不存在");
+                          return advanceIssue(old, 'agenda', 'execution');
+                              })
+                            }
+                          >
+                            直接执行
+                          </Action>
+                        </>
+                      )}
+                    </div>
+                  </article>
                 ))}
-              </AnimatePresence>
+              </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column: Real-time Voting System */}
-      <div className="lg:col-span-7">
-        <div className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-6 space-y-6 text-[var(--theme-text-primary,#171717)] min-h-[500px] flex flex-col">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-            <h3 className="font-display text-sm font-bold tracking-wider uppercase flex items-center gap-1.5">
-              <span>实时表决系统 (Voting)</span>
-            </h3>
-          </div>
-
-          {!activeIssue ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 space-y-4">
-              <div className="w-48 h-24 border-t-2 border-l-2 border-r-2 border-dashed border-[var(--theme-text-primary)] rounded-t-full flex items-end justify-center pb-2">
-                <span className="font-mono text-[10px] uppercase">等待表决开始</span>
+          </section>
+          <section className="workspace-panel">
+            <div className="workspace-heading">
+              <div>
+                <span className="eyebrow">03 / MINUTES</span>
+                <h2>会议记录</h2>
               </div>
-              <p className="text-xs font-mono">从左侧议程列表中选择议案付诸表决</p>
+              <Action
+                onClick={() =>
+                  downloadText(
+                    meetingBrief(data, currentMeeting.id),
+                    `例会纪要_${currentMeeting.date}.txt`,
+                  )
+                }
+              >
+                导出完整纪要
+              </Action>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col">
-              {/* Active Issue Header */}
-              <div className="text-center space-y-2 mb-6">
-                <span className="inline-block px-2 py-0.5 border border-red-500 bg-red-50 text-red-600 font-mono text-[9px] uppercase font-bold animate-pulse">
-                  正在表决 (LIVE)
-                </span>
-                <h2 className="font-serif text-2xl font-bold">{activeIssue.serialNumber ? `[${activeIssue.serialNumber}] ` : ''}{activeIssue.title}</h2>
-                <p className="text-xs text-[var(--theme-text-secondary)]">{activeIssue.description || '无详细描述'}</p>
-                
-                {/* Voting Rule Toggle */}
-                <div className="inline-flex items-center border-2 border-[var(--theme-border,#171717)] p-0.5 mt-4 bg-[var(--theme-card-bg)]">
-                  <button
-                    onClick={() => handleChangeRule('simple')}
-                    className={`px-3 py-1 font-mono text-[10px] uppercase cursor-pointer transition-colors ${activeIssue.voteRule === 'simple' ? 'bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text)] font-bold' : 'hover:bg-[var(--theme-accent-light)]'}`}
-                  >
-                    简单多数制 (赞成&gt;反对)
-                  </button>
-                  <button
-                    onClick={() => handleChangeRule('absolute')}
-                    className={`px-3 py-1 font-mono text-[10px] uppercase cursor-pointer transition-colors ${activeIssue.voteRule === 'absolute' ? 'bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text)] font-bold' : 'hover:bg-[var(--theme-accent-light)]'}`}
-                  >
-                    绝对多数制 (&gt;总数1/2)
-                  </button>
-                </div>
-              </div>
-
-              {/* Parliament Chart */}
-              <div className="mb-6">
-                <ParliamentChart 
-                  approve={activeIssue.votes?.approve || 0} 
-                  reject={activeIssue.votes?.reject || 0} 
-                  abstain={activeIssue.votes?.abstain || 0} 
-                />
-              </div>
-
-              {/* Vote Controls */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                <div className="flex flex-col items-center gap-2">
-                  <span className="font-bold text-green-600 text-lg">{activeIssue.votes?.approve || 0}</span>
-                  <div className="flex border-2 border-green-600 rounded bg-green-50 overflow-hidden">
-                    <button onClick={() => handleVote('approve', false)} className="px-2 py-1 hover:bg-green-200 text-green-700 font-bold">-</button>
-                    <div className="px-3 py-1 bg-green-600 text-white font-mono text-xs flex items-center gap-1">
-                      <Check className="w-3 h-3"/> 赞同
-                    </div>
-                    <button onClick={() => handleVote('approve', true)} className="px-2 py-1 hover:bg-green-200 text-green-700 font-bold">+</button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                  <span className="font-bold text-neutral-500 text-lg">{activeIssue.votes?.abstain || 0}</span>
-                  <div className="flex border-2 border-neutral-400 rounded bg-neutral-50 overflow-hidden">
-                    <button onClick={() => handleVote('abstain', false)} className="px-2 py-1 hover:bg-neutral-200 text-neutral-600 font-bold">-</button>
-                    <div className="px-3 py-1 bg-neutral-400 text-white font-mono text-xs flex items-center gap-1">
-                      <Hand className="w-3 h-3"/> 弃权
-                    </div>
-                    <button onClick={() => handleVote('abstain', true)} className="px-2 py-1 hover:bg-neutral-200 text-neutral-600 font-bold">+</button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                  <span className="font-bold text-red-600 text-lg">{activeIssue.votes?.reject || 0}</span>
-                  <div className="flex border-2 border-red-600 rounded bg-red-50 overflow-hidden">
-                    <button onClick={() => handleVote('reject', false)} className="px-2 py-1 hover:bg-red-200 text-red-700 font-bold">-</button>
-                    <div className="px-3 py-1 bg-red-600 text-white font-mono text-xs flex items-center gap-1">
-                      <X className="w-3 h-3"/> 否决
-                    </div>
-                    <button onClick={() => handleVote('reject', true)} className="px-2 py-1 hover:bg-red-200 text-red-700 font-bold">+</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Conclude Controls */}
-              <div className="mt-auto flex items-center justify-between border-t border-neutral-200 pt-4">
+            {!editingNotes ? (
+              <>
+                <p className="notes-text">
+                  {currentMeeting.regularReport || "暂无会议记录。"}
+                </p>
+                {currentMeeting.summary && (
+                  <p className="notes-text">
+                    会议摘要：{currentMeeting.summary}
+                  </p>
+                )}
                 <button
-                  onClick={() => handleConcludeVoting()}
-                  className="px-6 py-2 bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)] font-bold font-mono text-xs hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-2"
+                  className="workspace-button"
+                  onClick={() => {
+                    setReport(currentMeeting.regularReport || "");
+                    setSummary(currentMeeting.summary || "");
+                    setEditingNotes(true);
+                  }}
                 >
-                  <Save className="w-4 h-4"/>
-                  结束表决并结算
+                  编辑会议记录
                 </button>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleConcludeVoting('passed')}
-                    className="px-3 py-1.5 border border-green-600 text-green-600 hover:bg-green-50 font-mono text-[10px] font-bold uppercase transition-colors cursor-pointer"
-                    title="防止系统故障，强制标记为通过"
+              </>
+            ) : (
+              <SaveForm
+                onCancel={() => setEditingNotes(false)}
+                onSave={async () => {
+                  await change("meetings", currentMeeting.id, (old) => {
+                    if (!old) throw new Error("会议不存在");
+                    return { ...old, regularReport: report, summary };
+                  });
+                  setEditingNotes(false);
+                }}
+              >
+                <Field label="常规报告与会议记录">
+                  <textarea
+                    rows={7}
+                    value={report}
+                    onChange={(e) => setReport(e.target.value)}
+                  />
+                </Field>
+                <Field label="会议摘要">
+                  <textarea
+                    rows={3}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                  />
+                </Field>
+              </SaveForm>
+            )}
+          </section>
+        </div>
+        <section className="workspace-panel voting-panel">
+          <div className="workspace-heading">
+            <div>
+              <span className="eyebrow">LIVE / VOTING</span>
+              <h2>会议表决</h2>
+            </div>
+            <span className="workspace-badge">
+              {voting.length ? "表决进行中" : "尚未开始"}
+            </span>
+          </div>
+          {!active ? (
+            <Empty>从议程中发起表决。成员签到后，可选择姓名投票。</Empty>
+          ) : (
+            <>
+              {voting.length > 1 && (
+                <Field label="切换表决议题">
+                  <select
+                    value={active.id}
+                    onChange={(e) => setActiveId(e.target.value)}
                   >
-                    强制通过
-                  </button>
-                  <button
-                    onClick={() => handleConcludeVoting('rejected')}
-                    className="px-3 py-1.5 border border-red-600 text-red-600 hover:bg-red-50 font-mono text-[10px] font-bold uppercase transition-colors cursor-pointer"
-                    title="防止系统故障，强制标记为否决"
+                    {voting.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.title}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              <h3 className="voting-title">{active.title}</h3>
+              <p>{active.description}</p>
+              <div className="workspace-fields">
+                <Field label="计票方式">
+                  <select
+                    value={active.voteMode || "manual"}
+                    disabled={
+                      Object.keys(active.ballots || {}).length > 0 ||
+                      Object.values(totals).some((n) => n > 0)
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value as "members" | "manual";
+                      void updateVoting((old) => {
+                        if (
+                          Object.keys(old.ballots || {}).length ||
+                          Object.values(voteTotals(old)).some((n) => n > 0)
+                        )
+                          throw new Error("已有投票，不能切换计票方式。");
+                        return { ...old, voteMode: value };
+                      }).catch(() => {});
+                    }}
                   >
-                    强制否决
-                  </button>
+                    <option value="members">成员投票</option>
+                    <option value="manual">主持人录票</option>
+                  </select>
+                </Field>
+                <Field label="通过规则">
+                  <select
+                    value={active.voteRule || "simple"}
+                    onChange={(e) => {
+                      const value = e.target.value as "simple" | "absolute";
+                      void updateVoting((old) => ({
+                        ...old,
+                        voteRule: value,
+                      })).catch(() => {});
+                    }}
+                  >
+                    <option value="simple">赞成多于反对</option>
+                    <option value="absolute">赞成超过已投票数的一半</option>
+                  </select>
+                </Field>
+              </div>
+              <ParliamentChart
+                approve={totals.approve}
+                reject={totals.reject}
+                abstain={totals.abstain}
+              />
+              <div className="vote-totals">
+                <div>
+                  <strong>{totals.approve}</strong>赞成
+                </div>
+                <div>
+                  <strong>{totals.reject}</strong>反对
+                </div>
+                <div>
+                  <strong>{totals.abstain}</strong>弃权
                 </div>
               </div>
-
-            </div>
+              {active.voteMode === "members" ? (
+                <>
+                  <Field label="投票成员">
+                    <select
+                      value={memberId}
+                      onChange={(e) => setMemberId(e.target.value)}
+                    >
+                      <option value="">选择本次已签到成员</option>
+                      {checked.map((r) => (
+                        <option key={r.memberId} value={r.memberId}>
+                          {r.memberName}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <div className="workspace-actions vote-buttons">
+                    {(["approve", "reject", "abstain"] as const).map((vote) => (
+                      <Action
+                        key={vote}
+                        className={
+                          active.ballots?.[memberId] === vote ? "primary" : ""
+                        }
+                        disabled={!checked.some((r) => r.memberId === memberId)}
+                        onClick={() =>
+                          updateVoting((old) =>
+                            recordBallot(old, memberId, vote),
+                          )
+                        }
+                      >
+                        {
+                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
+                            vote
+                          ]
+                        }
+                      </Action>
+                    ))}
+                  </div>
+                  <p className="workspace-help">
+                    每个成员计一票，结束前可改票。姓名由成员自行选择，请仅代表本人操作；此处不验证账号身份。
+                  </p>
+                </>
+              ) : (
+                <div className="manual-votes">
+                  {(["approve", "reject", "abstain"] as const).map((vote) => (
+                    <div key={vote}>
+                      <span>
+                        {
+                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
+                            vote
+                          ]
+                        }
+                      </span>
+                      {[-1, 1].map((delta) => (
+                        <Action
+                          key={delta}
+                          onClick={() =>
+                            updateVoting((old) => {
+                              if (old.voteMode === "members")
+                                throw new Error(
+                                  "当前为成员投票，不能手动修改票数。",
+                                );
+                              return {
+                                ...old,
+                                votes: {
+                                  ...voteTotals(old),
+                                  [vote]: Math.max(
+                                    0,
+                                    voteTotals(old)[vote] + delta,
+                                  ),
+                                },
+                              };
+                            })
+                          }
+                        >
+                          {delta < 0 ? "−" : "＋"}
+                        </Action>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Action
+                className="primary full-width"
+                disabled={!Object.values(totals).some((n) => n > 0)}
+                onClick={() =>
+                  updateVoting((old) => ({
+                    ...old,
+                    status: votingResult(old),
+                    votes: voteTotals(old),
+                  }))
+                }
+              >
+                结束表决并保存结果
+              </Action>
+              <p className="workspace-help">
+                平票不通过。规则以实际收到的票数计算，未投票成员不计入分母。
+              </p>
+            </>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
-};
+}
