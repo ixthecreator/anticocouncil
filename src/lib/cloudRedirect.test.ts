@@ -42,6 +42,7 @@ test("a redirect failure reaches the gate and cannot be erased by later token or
 });
 
 test("strict-mode remounts share one redirect consumption including its rejection", async () => {
+  const warning = spyOn(console, "warn").mockImplementation(() => {});
   let rejectResult!: (reason: unknown) => void;
   const pending = new Promise<UserCredential | null>((_resolve, reject) => { rejectResult = reject; });
   const sdk = authentication(() => pending);
@@ -58,6 +59,8 @@ test("strict-mode remounts share one redirect consumption including its rejectio
   expect(abandoned.length).toBe(abandonedCount);
   expect(current.at(-1)?.redirectError).toContain("无法连接登录服务");
   expect(current.at(-1)?.ready).toBe(true);
+  expect(warning).toHaveBeenCalledTimes(1);
+  expect(warning.mock.calls[0]).toEqual(["Firebase Google login diagnostic", { phase: "google-redirect-result", code: "auth/network-request-failed", cause: "no-sdk-message" }]);
   second();
   expect(sdk.stops).toEqual([0, 1]);
 });
@@ -96,4 +99,45 @@ test("a slow token from the previous account cannot replace a newer signed-in id
   expect(states.at(-1)?.identity?.uid).toBe("current");
   expect(states.at(-1)?.ready).toBe(true);
   stop();
+});
+
+test("redirect network diagnostics contain only fixed classifications and never the source error or credentials", async () => {
+  const warning = spyOn(console, "warn").mockImplementation(() => {});
+  const secret = "private-token-example";
+  const cases = [
+    { message: `TypeError: Failed to fetch https://example.com/callback?token=${secret}`, cause: "fetch/network" },
+    { message: `TypeError: NetworkError when attempting to fetch resource. ${secret}`, cause: "fetch/network" },
+    { message: `TypeError: Load failed ${secret}`, cause: "fetch/network" },
+    { message: `SyntaxError: Unexpected token '<', response ${secret} is not valid JSON`, cause: "json-parse" },
+    { message: `SecurityError: localStorage access denied ${secret}`, cause: "storage" },
+    { message: `SecurityError: The operation is insecure. ${secret}`, cause: "other-sdk-exception" },
+    { message: `Unrecognized issue ${secret}`, cause: "other-sdk-exception" },
+    { message: undefined, cause: "no-sdk-message" },
+  ];
+  for (const example of cases) {
+    const failure = { code: "auth/network-request-failed", message: secret, customData: { message: example.message, credential: secret, email: "private@example.com" } };
+    const sdk = authentication(async () => { throw failure; });
+    const caught = await completeGoogleRedirect(sdk.auth).catch(error => error);
+    expect(caught).toBe(failure);
+    expect(warning.mock.calls.at(-1)).toEqual(["Firebase Google login diagnostic", { phase: "google-redirect-result", code: "auth/network-request-failed", cause: example.cause }]);
+  }
+  expect(warning).toHaveBeenCalledTimes(cases.length);
+  expect(JSON.stringify(warning.mock.calls)).not.toContain(secret);
+  expect(JSON.stringify(warning.mock.calls)).not.toContain("private@example.com");
+  expect(JSON.stringify(warning.mock.calls)).not.toContain("https://");
+});
+
+test("non-network redirect failures keep their existing behavior without diagnostic logging", async () => {
+  const warning = spyOn(console, "warn").mockImplementation(() => {});
+  const failure = { code: "auth/unauthorized-domain", customData: { message: "TypeError: Failed to fetch" } };
+  const sdk = authentication(async () => { throw failure; });
+  expect(await completeGoogleRedirect(sdk.auth).catch(error => error)).toBe(failure);
+  expect(warning).not.toHaveBeenCalled();
+});
+
+test("a broken console implementation cannot change the original authentication error", async () => {
+  spyOn(console, "warn").mockImplementation(() => { throw new Error("Console unavailable"); });
+  const failure = { code: "auth/network-request-failed" };
+  const sdk = authentication(async () => { throw failure; });
+  expect(await completeGoogleRedirect(sdk.auth).catch(error => error)).toBe(failure);
 });

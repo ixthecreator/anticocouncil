@@ -55,12 +55,28 @@ export interface CloudAuthenticationState {
   redirectError: string;
 }
 const redirectCompletions = new WeakMap<Auth, Promise<void>>();
+function reportRedirectNetworkFailure(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error) || error.code !== "auth/network-request-failed") return;
+  const details = "customData" in error ? error.customData : null;
+  const message = details && typeof details === "object" && "message" in details && typeof details.message === "string" ? details.message.trim() : "";
+  // Only fixed categories leave this function. Firebase errors can contain URLs,
+  // tokens and account details, so never log the error or its original message.
+  const cause = !message ? "no-sdk-message"
+    : /^SyntaxError:/i.test(message) ? "json-parse"
+    : /^(?:NetworkError:|TypeError: (?:Failed to fetch|NetworkError|Load failed|fetch failed)|Error: Network Error)/i.test(message) ? "fetch/network"
+    : /^(?:QuotaExceededError|SecurityError|InvalidStateError):.*(?:storage|indexeddb)/i.test(message) ? "storage"
+    : "other-sdk-exception";
+  console.warn("Firebase Google login diagnostic", { phase: "google-redirect-result", code: "auth/network-request-failed", cause });
+}
 export function completeGoogleRedirect(auth: Auth): Promise<void> {
   let completion = redirectCompletions.get(auth);
   if (!completion) {
     // Firebase consumes a redirect result once. Share completion across effect
     // remounts; do not keep OAuth credentials or use them as member authorization.
-    completion = Promise.resolve().then(() => getRedirectResult(auth)).then(() => {});
+    completion = Promise.resolve().then(() => getRedirectResult(auth)).then(() => {}, error => {
+      try { reportRedirectNetworkFailure(error); } catch { /* Diagnostics must not replace the original failure. */ }
+      throw error;
+    });
     redirectCompletions.set(auth, completion);
   }
   return completion;
