@@ -6,9 +6,11 @@
 
 2026 年 9 月 8 日：公开开始页、云端 Portal、独立本地试用及 Google 整页登录代码已发布，并同步更新 12 页中文使用说明。Google 与邮箱密码提供方、三个认证域名和成员访问规则已启用；真实登录后的 Portal 访问和业务读写尚未验证成功。
 
+新增密码功能与使用说明已发布：登录页提供邮件找回与 Google 账号的邮件设置入口，已登录账号可直接设置独立的本站密码。本轮通过 TypeScript 检查、62 项测试、315 项断言、诊断构建及 Vercel 标准生产构建；本地浏览器已验证两个入口、返回流程和无效邮箱拦截，生产浏览器已验证忘记密码入口及返回。尚未发送真实密码邮件或实际修改密码。
+
 本轮应用角色调整已发布：新所有者规则已发布并复读确认，原所有者的有效管理员授权记录已写入并 GET 核对。应用版本 `d80798a` 已完成 Vercel 生产构建和发布，通过 TypeScript 检查、46 项测试和 234 项断言；远程 Rules API 的 7 个新角色模拟场景全部通过。这不涉及 Firebase 项目、Google Cloud IAM、GitHub 或 Vercel 的平台所有权转移。
 
-本轮已发布并验收的应用版本为 `d80798a2aaaac50ac91dd4ccf4819745c3a35873`（`d80798a`），[对应 Vercel 生产部署成功](https://vercel.com/ixthecreators-projects/anticocouncil/4rqqBrqy5saWojarorPZQ3K4nE78)。后续文档提交另计，不改变这里记录的应用验收版本。
+本轮已发布并验收的应用版本为 `074c3d2f4468ed50066ce6d528bd37a8106f1fb1`（`074c3d2`），[对应 Vercel 生产部署成功](https://vercel.com/ixthecreators-projects/anticocouncil/4ScCgqDWsT4Mz6ZP6fNGubyCP6AE)。后续文档提交另计，不改变这里记录的应用验收版本。
 
 自有 Firebase Spark 项目 `antico-council`、Web 应用和位于 `asia-east2` 的 Firestore 默认数据库已创建，Vercel 的 7 项 Firebase 环境变量已设置，线上构建已确认对应新 Web 应用，不再默认连接原作者的数据库。
 
@@ -26,7 +28,7 @@ Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anti
 - `/workspace`：保留的旧工作台入口，执行与 `/portal` 相同的云端身份与成员资格检查。
 - `/local`：独立本地试用，不要求登录。使用同一浏览器、同一网站的原本地记录，仅改变页面路径不需要迁移数据。
 - `/blog`：文章栏目预留页，尚未发布文章，也没有文章编辑后台。
-- `/antico-council-guide.pdf`：使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`；本轮已确认线上返回 `application/pdf`，大小和 SHA-256 与最终交付版一致。
+- `/antico-council-guide.pdf`：使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`；新增密码说明已发布，线上文件与本地逐字节一致。
 - 其他路径显示未找到页面。公开页、工作台和文章页支持直接打开、刷新及浏览器返回。
 
 ## 启动与配置
@@ -68,6 +70,16 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 
 登录审批控制的是进入共享工作区的资格。当前业务成员姓名、签到和投票仍按工作区内成员记录操作，尚未逐票绑定登录账号，也不是正式实名投票系统。
 
+## 找回与设置本站密码
+
+登录页提供“忘记密码？”与“给 Google 账号设置本站密码”两个入口。填写原账号邮箱后，点击“发送密码重置邮件”或“发送密码设置邮件”，按邮件中的链接设置密码，再用邮箱与新密码登录；不需要数字验证码。统一提示不会确认邮箱是否已注册，60 秒后可重新发送，链接过期时重新申请。密码设置不会代替邮箱验证或成员审批。
+
+已经能够登录的成员，优先从账号菜单选择“设置本站密码”；已验证但尚待审批的账号也可从页底进入。两次填写至少 8 位的新密码并点击“保存本站密码”。首次添加使用 Firebase 的账号关联功能，保留同一账号、Google 登录方式与成员权限；已有本站密码时直接修改。本密码独立于 Google 或邮箱本身的密码。
+
+如提示需要重新登录，可重新登录后再设置，或使用“向当前邮箱发送重置链接”。邮件重置用于原账号，但其 Google 登录关联可能变化，完成后应使用邮箱与新密码登录；不能承诺该邮件方式始终保留 Google 关联。系统不提供单独的 Google 重新关联入口。
+
+Firebase 默认邮件模板语言已保存并复读确认为简体中文，SDK 发信语言设置为 `zh-CN`；当前发件地址为 `noreply@antico-council.firebaseapp.com`。此项确认配置，不代表已验证真实邮件投递。
+
 ## 本地数据、连接与备份
 
 - 路径决定数据位置：`/portal` 与 `/workspace` 固定使用云端，不会因旧的本地偏好绕过登录审批；`/local` 固定使用本地记录，不要求登录。前往另一入口不会自动上传或合并记录；有未确认的保存时应先处理完成再离开。
@@ -88,6 +100,7 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 | `src/SiteRouter.tsx`、`src/WorkspaceEntry.tsx` | 公开页路由及工作区代码按需加载 |
 | `src/components/LandingPage.tsx` | 公开开始页、文章预留页及未找到页 |
 | `src/components/WorkspaceGateway.tsx` | 云端登录验证、成员申请与管理，以及独立本地模式 |
+| `src/components/AccountPassword.tsx` | 邮件密码找回、Google 账号邮件设置入口与已登录账号的本站密码设置 |
 | `src/lib/cloudAccess.ts`、`firestore.rules` | 身份与角色行为、服务端访问约束 |
 | `src/lib/firebase.ts`、`src/lib/firebaseConnection.ts` | 自有项目配置、惰性连接、快照状态、事务和分批写入 |
 | `src/lib/useWorkspace.ts` | 本地/云端数据隔离、只读缓存、保存反馈与恢复 |
@@ -104,6 +117,10 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 资料库支持 PNG/JPG/WEBP/PDF 附件，单文件最多 400 KB，存入当前工作区业务数据；大文件使用 HTTP(S) 链接。同名作者资料需要自行区分。外部表格仅保留业务入口，未抓取或迁移其内容。
 
 ## 验证与发布
+
+新增密码功能通过 TypeScript 检查、62 项测试、315 项断言及诊断构建。浏览器已验证登录页两个密码入口、进入与返回，以及 HTML 对无效邮箱的拦截；独立模拟页面验证密码不一致、近期登录提示、慢响应时禁用、键盘焦点、手机布局和中性发信提示及 60 秒重发等待，未发送真实邮件。测试包含 Firebase SDK 初始化和同一标签页中较晚返回的 Google 结果不能覆盖当前密码登录的边界；跨标签页 Google 登录取消没有新增覆盖。
+
+应用 `074c3d2` 的 Vercel 标准生产构建与发布已成功。线上产物校验通过，包含三个密码入口和当前 Google 登录逻辑，使用正确的 Firebase Web 应用、新所有者及原管理员正常授权方式，没有旧所有者邮箱放行特例；生产浏览器忘记密码入口及返回正常。实际收信、邮件链接设置、设密后登录及共享业务读写仍待用户验证。
 
 新角色源码 `d80798a` 已通过 TypeScript 检查、46 项测试、234 项断言和构建，覆盖核心业务、备份、连接状态、客户端角色判断及登录诊断；这不是 Firestore 规则模拟或真实账号联调。本轮角色更新已完成 Vercel 标准生产发布，线上代码已确认使用新所有者邮箱、自有 Firebase Web 应用，且没有旧邮箱的身份放行硬编码。真实云端会话与业务读写仍需验收。
 
@@ -125,6 +142,6 @@ OAuth 受众已确认为“外部、正式版”。正式 `www` 的认证 `handl
 
 自有 Vercel 默认域名的 `/portal` 与 `/workspace` 会前往正式 `www` 域名并保留路径、查询参数与模块锚点；公开页与 `/local` 留在原域名，保留其本地数据位置。Google 登录完成后返回发起页面，仍须通过邮箱验证和服务端成员授权检查；回跳失败显示具体原因，等待超时可使用“重新载入登录页”。
 
-正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。本轮 PDF 为 12 页，693,879 字节，中文字体已嵌入，章节跳转与 8 个 Portal 模块链接已验证；线上返回 `application/pdf`，文件大小和 SHA-256 与最终交付版完全一致。网站发布、Firebase 配置和真实登录分别验收。
+正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。密码说明更新后的 PDF 为 12 页、695,020 字节，SHA-256 为 `26cb877ba95ba5bda756210c6efd063d80394dfe4e33e54ca164a036a76d83e1`；中文字体、10 处章节跳转和 8 个 Portal 模块链接已验证，并检查了 4 张变更页渲染。线上新版已与本地文件逐字节核对一致。网站发布、Firebase 配置和真实登录分别验收。
 
 本项目由 [Fiochanqwq/newmeetingapp](https://github.com/Fiochanqwq/newmeetingapp) 延续改进，保留原有仓库历史与代码署名。
