@@ -20,7 +20,7 @@ function browserAt(path: string, preference: "local" | "firebase") {
   const stored = new Map<string, string>([["storage_mode", preference]]);
   const reads: string[] = [];
   const navigations: string[] = [];
-  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { pathname: url.pathname, hash: url.hash, assign: (next: string) => navigations.push(next) } } });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { hostname: url.hostname, pathname: url.pathname, search: url.search, hash: url.hash, assign: (next: string) => navigations.push(next), replace: (next: string) => navigations.push(next) } } });
   Object.defineProperty(globalThis, "document", { configurable: true, value: { title: "" } });
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
     getItem: (key: string) => { reads.push(key); return stored.get(key) ?? null; },
@@ -89,4 +89,32 @@ test("local trial keeps using the existing local store and its legacy fallback",
   browser.stored.delete("antico_workspace_v2");
   browser.stored.set("local_meetings", JSON.stringify([meeting]));
   expect(readLocal().meetings).toEqual([meeting]);
+});
+
+test("only cloud routes on the owned alias move to canonical origin with the full deep link", async () => {
+  for (const path of ["/portal?from=guide#assets", "/workspace/#inventory"]) {
+    const browser = browserAt(`https://anticocouncil-sigma.vercel.app${path}`, "local");
+    const html = await renderRoute();
+    expect(html).toContain(`href="https://www.anticocouncil.com${path}"`);
+    expect(html).not.toContain('class="cloud-gateway"');
+    expect(html).not.toContain('class="council-app');
+    expect(browser.reads).toEqual([]);
+  }
+  browserAt("https://anticocouncil-sigma.vercel.app/local#assets", "firebase");
+  const html = await renderRoute();
+  expect(html).toContain('class="council-app');
+  expect(html).toContain("connection-local");
+  expect(html).not.toContain("正在前往正式协作工作台");
+});
+
+test("canonical cloud entry does not redirect again and public pages remain outside the auth gate", async () => {
+  browserAt("https://www.anticocouncil.com/portal#session", "local");
+  expect(await renderRoute()).toContain('class="cloud-gateway"');
+  for (const path of ["/", "/blog", "/not-a-workspace"]) {
+    const browser = browserAt(`https://www.anticocouncil.com${path}`, "firebase");
+    const html = await renderRoute();
+    expect(html).not.toContain('class="cloud-gateway"');
+    expect(html).not.toContain('class="council-app');
+    expect(browser.reads).toEqual([]);
+  }
 });

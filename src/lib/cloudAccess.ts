@@ -1,7 +1,7 @@
 import {
-  createUserWithEmailAndPassword, getAuth, GoogleAuthProvider, reload,
-  sendEmailVerification, signInWithEmailAndPassword, signInWithPopup,
-  signOut, updateProfile, type User,
+  createUserWithEmailAndPassword, getAuth, getRedirectResult, GoogleAuthProvider, onIdTokenChanged, reload,
+  sendEmailVerification, signInWithEmailAndPassword, signInWithRedirect,
+  signOut, updateProfile, type Auth, type User,
 } from "firebase/auth";
 import { deleteDoc, doc, runTransaction, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getDatabase, getFirebaseApp } from "./firebase";
@@ -47,6 +47,81 @@ export async function identityForUser(user: User): Promise<CloudIdentity> {
   const token = await user.getIdTokenResult();
   return { uid: user.uid, email: typeof token.claims.email === "string" ? token.claims.email : "", name: user.displayName || "", verified: token.claims.email_verified === true };
 }
+
+export interface CloudAuthenticationState {
+  identity: CloudIdentity | null;
+  ready: boolean;
+  error: string;
+  redirectError: string;
+}
+const redirectCompletions = new WeakMap<Auth, Promise<void>>();
+export function completeGoogleRedirect(auth: Auth): Promise<void> {
+  let completion = redirectCompletions.get(auth);
+  if (!completion) {
+    // Firebase consumes a redirect result once. Share completion across effect
+    // remounts; do not keep OAuth credentials or use them as member authorization.
+    completion = Promise.resolve().then(() => getRedirectResult(auth)).then(() => {});
+    redirectCompletions.set(auth, completion);
+  }
+  return completion;
+}
+
+export function observeCloudAuthentication(auth: Auth, onChange: (state: CloudAuthenticationState) => void): () => void {
+  let active = true;
+  let revision = 0;
+  let tokenReady = false;
+  let redirectReady = false;
+  let state: CloudAuthenticationState = { identity: null, ready: false, error: "", redirectError: "" };
+  const publish = (changes: Partial<CloudAuthenticationState>) => {
+    if (!active) return;
+    state = { ...state, ...changes, ready: tokenReady && redirectReady };
+    onChange(state);
+  };
+  publish({});
+  let unsubscribe = () => {};
+  try {
+    unsubscribe = onIdTokenChanged(auth, async user => {
+      if (!active) return;
+      const current = ++revision;
+      if (!user) {
+        tokenReady = true;
+        publish({ identity: null, error: "" });
+        return;
+      }
+      if (state.identity?.uid !== user.uid) {
+        tokenReady = false;
+        publish({ identity: null });
+      }
+      try {
+        const next = await identityForUser(user);
+        if (!active || current !== revision) return;
+        tokenReady = true;
+        const previous = state.identity;
+        publish({ identity: previous && sameAuthorizationIdentity(previous, next) && previous.name === next.name ? previous : next, error: "" });
+      } catch (error) {
+        if (active && current === revision) {
+          tokenReady = true;
+          publish({ identity: null, error: cloudAccessError(error) });
+        }
+      }
+    }, error => {
+      revision++;
+      tokenReady = true;
+      publish({ identity: null, error: cloudAccessError(error) });
+    });
+  } catch (error) {
+    tokenReady = true;
+    publish({ identity: null, error: cloudAccessError(error) });
+  }
+  void completeGoogleRedirect(auth).then(() => {
+    redirectReady = true;
+    publish({});
+  }, error => {
+    redirectReady = true;
+    publish({ redirectError: `Google 登录未完成：${cloudAccessError(error)}` });
+  });
+  return () => { active = false; revision++; unsubscribe(); };
+}
 async function verifiedIdentity() {
   const user = getCloudAuth().currentUser;
   if (!user) throw new Error("请先登录。");
@@ -66,7 +141,7 @@ export async function registerWithEmail(name: string, email: string, password: s
 export function loginWithGoogle() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  return signInWithPopup(getCloudAuth(), provider);
+  return signInWithRedirect(getCloudAuth(), provider);
 }
 export async function resendVerification() {
   const user = getCloudAuth().currentUser;
