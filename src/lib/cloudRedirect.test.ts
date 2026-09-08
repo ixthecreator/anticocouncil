@@ -1,12 +1,38 @@
-import { afterEach, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test";
 import * as firebaseAuth from "firebase/auth";
+import * as firebaseApp from "firebase/app";
+import * as firebaseConfig from "./firebase";
+import type { FirebaseApp } from "firebase/app";
 import type { Auth, User, UserCredential } from "firebase/auth";
-import { completeGoogleRedirect, hasWorkspaceAccess, observeCloudAuthentication, type CloudAuthenticationState } from "./cloudAccess";
+import { completeGoogleRedirect, getCloudAuth, hasWorkspaceAccess, loginWithEmail, loginWithGoogle, logoutCloud, observeCloudAuthentication, requestPasswordReset, type CloudAuthenticationState } from "./cloudAccess";
 
-afterEach(() => mock.restore());
+const originalSessionStorage = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+beforeEach(() => {
+  const values = new Map<string, string>();
+  Object.defineProperty(globalThis, "sessionStorage", { configurable: true, value: {
+    getItem: (key: string) => values.get(key) || null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+  } });
+});
+afterEach(() => {
+  mock.restore();
+  if (originalSessionStorage) Object.defineProperty(globalThis, "sessionStorage", originalSessionStorage);
+  else Reflect.deleteProperty(globalThis, "sessionStorage");
+});
 
-function authentication(readResult: () => Promise<UserCredential | null>) {
-  const auth = {} as Auth;
+let fixtureIndex = 0;
+function authentication(readResult: () => Promise<UserCredential | null>, beginGoogle = true) {
+  const app = { name: `redirect-test-${++fixtureIndex}`, options: {} } as FirebaseApp;
+  const helperApp = { name: `${app.name}-google-login-v2`, options: {} } as FirebaseApp;
+  const auth = { app, currentUser: null } as Auth;
+  const helperAuth = { app: helperApp, currentUser: null } as Auth;
+  spyOn(firebaseConfig, "getFirebaseApp").mockReturnValue(app);
+  spyOn(firebaseApp, "getApps").mockReturnValue([app, helperApp]);
+  const initialize = spyOn(firebaseAuth, "initializeAuth").mockImplementation(candidate => candidate === app ? auth : helperAuth);
+  spyOn(firebaseAuth, "signInWithRedirect").mockResolvedValue(undefined as never);
+  const signOut = spyOn(firebaseAuth, "signOut").mockResolvedValue();
+  const transfer = spyOn(firebaseAuth, "updateCurrentUser").mockResolvedValue();
   const listeners: Array<(user: User | null) => void | Promise<void>> = [];
   const stops: number[] = [];
   const read = spyOn(firebaseAuth, "getRedirectResult").mockImplementation(readResult);
@@ -15,7 +41,8 @@ function authentication(readResult: () => Promise<UserCredential | null>) {
     listeners.push(next as (user: User | null) => void | Promise<void>);
     return () => { stops.push(index); };
   });
-  return { auth, listeners, stops, read };
+  if (beginGoogle) void loginWithGoogle();
+  return { auth, helperAuth, listeners, stops, read, signOut, transfer, initialize };
 }
 
 const user = (uid: string, verified = true): User => ({
@@ -28,7 +55,7 @@ test("a redirect failure reaches the gate and cannot be erased by later token or
   const states: CloudAuthenticationState[] = [];
   const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
   await sdk.listeners[0](null);
-  expect(states.at(-1)?.ready).toBe(false);
+  expect(states.at(-1)?.ready).toBe(true);
   await completeGoogleRedirect(sdk.auth).catch(() => {});
   expect(states.at(-1)?.ready).toBe(true);
   expect(states.at(-1)?.redirectError).toContain("Google 登录未完成");
@@ -71,6 +98,7 @@ test("redirect credentials alone never authenticate the gate or approve a member
   const states: CloudAuthenticationState[] = [];
   const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
   await completeGoogleRedirect(sdk.auth);
+  expect(sdk.transfer).toHaveBeenCalledWith(sdk.auth, applicant);
   expect(states.at(-1)?.ready).toBe(false);
   expect(states.at(-1)?.identity).toBeNull();
   await sdk.listeners[0](null);
@@ -83,6 +111,109 @@ test("redirect credentials alone never authenticate the gate or approve a member
   await sdk.listeners[0](user("applicant", false));
   expect(hasWorkspaceAccess(states.at(-1)!.identity, { uid: "applicant", email: "applicant@example.com", name: "Applicant", role: "member", active: true })).toBe(false);
   stop();
+});
+
+test("pending Google helper leaves the email gate ready and email sign-in invalidates a late Google result", async () => {
+  let finish!: (result: UserCredential | null) => void;
+  const sdk = authentication(() => new Promise(resolve => { finish = resolve; }));
+  const login = spyOn(firebaseAuth, "signInWithEmailAndPassword").mockResolvedValue({ user: user("email") } as UserCredential);
+  const states: CloudAuthenticationState[] = [];
+  const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
+  const pending = completeGoogleRedirect(sdk.auth);
+  await sdk.listeners[0](null);
+  expect(states.at(-1)?.ready).toBe(true);
+  expect(states.at(-1)?.redirectPending).toBe(true);
+  await loginWithEmail(" email@example.com ", "site-password");
+  expect(login).toHaveBeenCalledWith(sdk.auth, "email@example.com", "site-password");
+  expect(states.at(-1)?.redirectPending).toBe(false);
+  finish({ user: user("late-google") } as UserCredential);
+  await pending;
+  expect(sdk.transfer).not.toHaveBeenCalled();
+  expect(sdk.read).toHaveBeenCalledWith(sdk.helperAuth, firebaseAuth.browserPopupRedirectResolver);
+  stop();
+});
+
+test("logout and unsubscribe each prevent a pending Google result from transferring an account", async () => {
+  for (const action of ["logout", "unsubscribe"] as const) {
+    let finish!: (result: UserCredential | null) => void;
+    const sdk = authentication(() => new Promise(resolve => { finish = resolve; }));
+    const states: CloudAuthenticationState[] = [];
+    const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
+    const pending = completeGoogleRedirect(sdk.auth);
+    await sdk.listeners[0](null);
+    if (action === "logout") await logoutCloud();
+    stop();
+    const count = states.length;
+    finish({ user: user("late-google") } as UserCredential);
+    await pending;
+    expect(sdk.transfer).not.toHaveBeenCalled();
+    expect(states.length).toBe(count);
+  }
+});
+
+test("password recovery can run while Google is pending and suppresses an obsolete redirect failure", async () => {
+  let reject!: (error: unknown) => void;
+  const sdk = authentication(() => new Promise((_resolve, fail) => { reject = fail; }));
+  const reset = spyOn(firebaseAuth, "sendPasswordResetEmail").mockResolvedValue();
+  const states: CloudAuthenticationState[] = [];
+  const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
+  const pending = completeGoogleRedirect(sdk.auth);
+  await sdk.listeners[0](null);
+  await requestPasswordReset("member@example.com");
+  expect(reset).toHaveBeenCalledTimes(1);
+  reject({ code: "auth/network-request-failed" });
+  await pending;
+  expect(states.at(-1)?.ready).toBe(true);
+  expect(states.at(-1)?.redirectError).toBe("");
+  stop();
+});
+
+test("an unrequested helper result is never read and existing primary sessions remain the token source", async () => {
+  const sdk = authentication(async () => ({ user: user("unexpected-google") }) as UserCredential, false);
+  expect(getCloudAuth()).toBe(sdk.auth);
+  const states: CloudAuthenticationState[] = [];
+  const stop = observeCloudAuthentication(sdk.auth, state => states.push(state));
+  await sdk.listeners[0](user("persisted-member"));
+  await completeGoogleRedirect(sdk.auth);
+  expect(states.at(-1)?.identity?.uid).toBe("persisted-member");
+  expect(states.at(-1)?.ready).toBe(true);
+  expect(sdk.read).not.toHaveBeenCalled();
+  expect(sdk.transfer).not.toHaveBeenCalled();
+  // Exact same Firebase app and persistence choices as the previous getAuth()
+  // defaults, with no automatic OAuth resolver to block hydration.
+  expect(sdk.initialize.mock.calls[0]).toEqual([sdk.auth.app, {
+    persistence: [firebaseAuth.indexedDBLocalPersistence, firebaseAuth.browserLocalPersistence, firebaseAuth.browserSessionPersistence],
+  }]);
+  expect(sdk.initialize).toHaveBeenCalledTimes(1);
+  stop();
+});
+
+test("the real Firebase primary Auth initializes while the isolated redirect SDK call remains pending", async () => {
+  const app = firebaseApp.initializeApp({ apiKey: "offline-test-key", projectId: "offline-test", appId: "offline-test-app" }, `sdk-init-test-${++fixtureIndex}`);
+  spyOn(firebaseConfig, "getFirebaseApp").mockReturnValue(app);
+  let finish!: (result: UserCredential | null) => void;
+  const read = spyOn(firebaseAuth, "getRedirectResult").mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  spyOn(firebaseAuth, "signInWithRedirect").mockResolvedValue(undefined as never);
+  const auth = getCloudAuth();
+  await loginWithGoogle();
+  const states: CloudAuthenticationState[] = [];
+  const stop = observeCloudAuthentication(auth, state => states.push(state));
+  const pending = completeGoogleRedirect(auth);
+  // authStateReady and onIdTokenChanged are the real SDK implementations here,
+  // not gate mocks. No network request is needed for an anonymous session.
+  await auth.authStateReady();
+  await Promise.resolve();
+  expect(states.at(-1)?.ready).toBe(true);
+  expect(states.at(-1)?.identity).toBeNull();
+  expect(states.at(-1)?.redirectPending).toBe(true);
+  expect(read).toHaveBeenCalledTimes(1);
+  expect(read.mock.calls[0][0]).not.toBe(auth);
+  finish(null);
+  await pending;
+  stop();
+  const helper = firebaseApp.getApps().find(candidate => candidate.name === `${app.name}-google-login-v2`);
+  await firebaseApp.deleteApp(app);
+  if (helper) await firebaseApp.deleteApp(helper);
 });
 
 test("a slow token from the previous account cannot replace a newer signed-in identity", async () => {

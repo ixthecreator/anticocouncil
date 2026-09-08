@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { firebaseConfiguration, getDatabase } from "../lib/firebase";
 import {
-  OWNER_EMAIL, approveWorkspaceRequest, canChangeMemberRole, canManageMember,
+  OWNER_EMAIL, approveWorkspaceRequest, canChangeMemberRole, canManageMember, cancelGoogleLogin,
   cloudAccessError, declineWorkspaceRequest, getCloudAuth, hasWorkspaceAccess,
   isConfirmedAccessSnapshot, isWorkspaceOwner, loginWithEmail, loginWithGoogle, logoutCloud, observeCloudAuthentication,
   readAccessRequest, readWorkspaceAccess, refreshCloudAuthentication,
@@ -10,6 +10,7 @@ import {
   type AccessActor, type AccessRequest, type CloudIdentity, type WorkspaceAccess,
 } from "../lib/cloudAccess";
 import "./cloud-access.css";
+import { PasswordRecoveryForm, PasswordSettingsDialog } from "./AccountPassword";
 
 type StorageMode = "local" | "firebase";
 export interface WorkspaceGatewayProps {
@@ -80,15 +81,17 @@ function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => v
 
 function CloudAccount({ identity, role, onLogout, workspacePending = 0 }: { identity: CloudIdentity; role: "member" | "admin"; onLogout: () => Promise<void>; workspacePending?: number }) {
   const [managing, setManaging] = useState(false);
+  const [passwordSettings, setPasswordSettings] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const actor: AccessActor = { ...identity, role };
   useEffect(() => { setManaging(false); }, [identity.uid, role]);
   return <div className="cloud-account">
     <details><summary><span className="cloud-avatar">{(identity.name || identity.email).slice(0,1)}</span><span>{identity.name || identity.email}<small>{isWorkspaceOwner(identity) ? "所有者" : role === "admin" ? "管理员" : "议会成员"}</small></span></summary>
-      <div className="cloud-account-menu"><strong>{identity.name || "已登录"}</strong><p>{identity.email}</p>{(isWorkspaceOwner(identity) || role === "admin") && <button type="button" className="cloud-button" onClick={() => setManaging(true)}>成员与访问管理</button>}<button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={async () => { if (workspacePending > 0) return; setBusy(true); setError(""); try { await onLogout(); } catch (err) { setError(cloudAccessError(err)); } finally { setBusy(false); } }}>{busy ? "正在退出…" : "退出账号"}</button>{workspacePending > 0 && <p role="status">有记录正在等待保存确认</p>}{error && <p className="cloud-error" role="alert">{error}</p>}</div>
+      <div className="cloud-account-menu"><strong>{identity.name || "已登录"}</strong><p>{identity.email}</p><button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={() => setPasswordSettings(true)}>设置本站密码</button>{(isWorkspaceOwner(identity) || role === "admin") && <button type="button" className="cloud-button" onClick={() => setManaging(true)}>成员与访问管理</button>}<button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={async () => { if (workspacePending > 0) return; setBusy(true); setError(""); try { await onLogout(); } catch (err) { setError(cloudAccessError(err)); } finally { setBusy(false); } }}>{busy ? "正在退出…" : "退出账号"}</button>{workspacePending > 0 && <p role="status">有记录正在等待保存确认</p>}{error && <p className="cloud-error" role="alert">{error}</p>}</div>
     </details>
     {managing && (isWorkspaceOwner(identity) || role === "admin") && <MembersPanel actor={actor} onClose={() => setManaging(false)}/>}
+    {passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </div>;
 }
 
@@ -101,18 +104,23 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   const [accessReady, setAccessReady] = useState(false);
   const [authError, setAuthError] = useState("");
   const [redirectError, setRedirectError] = useState("");
+  const [redirectPending, setRedirectPending] = useState(false);
   const [authDelayed, setAuthDelayed] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [googlePending, setGooglePending] = useState(false);
   const [googleDelayed, setGoogleDelayed] = useState(false);
-  const [screen, setScreen] = useState<"login" | "register">("login");
+  const [screen, setScreen] = useState<"login" | "register" | "reset" | "setup">("login");
+  const [passwordSettings, setPasswordSettings] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const configured = !!firebaseConfiguration.config;
+  const selectEmailScreen = (next: "login" | "register" | "reset" | "setup") => {
+    cancelGoogleLogin(); setScreen(next); setPassword(""); setError(""); setNotice("");
+  };
 
   useEffect(() => {
     if (!googlePending) return;
@@ -140,10 +148,12 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
       return observeCloudAuthentication(getCloudAuth(), state => {
         if (!state.identity || !sameAuthorizationIdentity(identityRef.current, state.identity)) {
           setAccess(null); setAccessReady(false);
+          setPasswordSettings(false);
         }
         identityRef.current = state.identity;
         setIdentity(state.identity); setAuthReady(state.ready); setAuthError(state.error);
         setRedirectError(state.redirectError);
+        setRedirectPending(state.redirectPending);
         if (state.identity) setName(previous => previous || state.identity!.name);
       });
     } catch (err) { setAuthError(cloudAccessError(err)); setAuthReady(true); }
@@ -179,7 +189,8 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     try { await run(loginWithGoogle); }
     finally { setGooglePending(false); setGoogleDelayed(false); }
   };
-  const logout = async () => { await logoutCloud(); identityRef.current = null; setIdentity(null); setAccess(null); setRequest(null); setName(""); setPassword(""); setError(""); setNotice(""); setRedirectError(""); };
+  const returnToEmailLogin = () => { cancelGoogleLogin(); window.location.reload(); };
+  const logout = async () => { await logoutCloud(); identityRef.current = null; setIdentity(null); setAccess(null); setRequest(null); setName(""); setPassword(""); setPasswordSettings(false); setScreen("login"); setError(""); setNotice(""); setRedirectError(""); };
   const owner = isWorkspaceOwner(identity);
   const approved = authReady && (owner || accessReady && hasWorkspaceAccess(identity, access));
 
@@ -189,24 +200,27 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   return <main className="cloud-gateway"><a className="cloud-home" href="/">← 返回议会首页</a><section className="cloud-gate-card">
     <a className="cloud-brand" href="/"><img src="/logo.png" alt=""/><span>安提柯议会<small>ANTICO COUNCIL</small></span></a>
     <span className="cloud-eyebrow">SHARED WORKSPACE</span>
-    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务并确认登录结果…</p>{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</> : !identity ? <>
+    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务并确认登录结果…</p>{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
+    : !identity ? <>
       <h1>{screen === "login" ? "进入共同工作的空间" : "创建你的成员账号"}</h1><p>登录并验证邮箱后，提交加入申请。获得批准即可使用议会共同工作区。</p>
-      <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => { setScreen("login"); setError(""); setPassword(""); }} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => { setScreen("register"); setError(""); setPassword(""); }} disabled={busy}>注册账号</button></div>
+      <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => selectEmailScreen("login")} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => selectEmailScreen("register")} disabled={busy}>注册账号</button></div>
       <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => screen === "login" ? loginWithEmail(email, password) : registerWithEmail(name, email, password), screen === "register" ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
         {screen === "register" && <label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label>}
         <label>邮箱地址<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy}/></label>
         <label>密码<input required type="password" minLength={screen === "register" ? 8 : undefined} autoComplete={screen === "register" ? "new-password" : "current-password"} value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
-        {screen === "register" && <p className="cloud-help">至少 8 位。注册后需要完成邮箱验证和成员审批。</p>}
+        {screen === "register" && <p className="cloud-help">至少 8 位。注册后会收到邮箱验证链接，完成验证及成员审批后即可进入。</p>}
         <button className="cloud-button primary" type="submit" disabled={busy}>{busy ? "正在处理…" : screen === "login" ? "登录" : "注册并发送验证邮件"}</button>
       </form>
-      <div className="cloud-divider"><span>或者</span></div><button type="button" className="cloud-button google" disabled={busy} onClick={() => void startGoogleLogin()}>{googlePending ? "正在前往 Google…" : "使用 Google 账号登录"}</button>
+      <div className="cloud-password-links"><button type="button" disabled={busy} onClick={() => selectEmailScreen("reset")}>忘记密码？</button><button type="button" disabled={busy} onClick={() => selectEmailScreen("setup")}>给 Google 账号设置本站密码</button></div>
+      <div className="cloud-divider"><span>或者</span></div><button type="button" className="cloud-button google" disabled={busy || redirectPending} onClick={() => void startGoogleLogin()}>{googlePending ? "正在前往 Google…" : redirectPending ? "正在确认 Google 登录…" : "使用 Google 账号登录"}</button>
       {googlePending && <div className="cloud-login-wait">
         <p role="status">{googleDelayed ? "本页尚未跳转到 Google，登录服务可能仍在等待网络响应。" : "即将前往 Google 登录页面。选择账号并完成登录后，会自动回到本站确认成员资格。"}</p>
         {googleDelayed && <>
           <p>如果一直没有跳转，请检查网络后重新载入此页。也可以在系统浏览器中打开本站重试，或重新载入后选择邮箱登录。</p>
-          <button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button>
         </>}
+        <button type="button" className="cloud-button" onClick={returnToEmailLogin}>取消 Google 登录，使用邮箱</button>
       </div>}
+      {redirectPending && !googlePending && <div className="cloud-login-wait"><p role="status">正在确认 Google 返回的登录结果。你也可以直接使用邮箱登录或找回密码。</p><button type="button" className="cloud-button" onClick={returnToEmailLogin}>取消 Google 登录，使用邮箱</button></div>}
     </> : !identity.verified ? <>
       <h1>请先验证邮箱</h1><p>当前账号：<strong>{identity.email || "未提供邮箱"}</strong></p><p>打开验证邮件中的链接完成验证，再回到此处刷新认证状态。没有收到时，请检查垃圾邮件文件夹或重新发送。</p>
       <div className="cloud-gate-actions"><button type="button" className="cloud-button primary" disabled={busy} onClick={() => void run(refreshCloudAuthentication)}>已验证，刷新认证状态</button><button type="button" className="cloud-button" disabled={busy} onClick={() => void run(resendVerification, "验证邮件已重新发送，请查看收件箱。")}>重新发送验证邮件</button></div>
@@ -220,7 +234,8 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
       <h1>申请加入议会工作区</h1><p>邮箱已验证：<strong>{identity.email}</strong></p><p>填写成员姓名，让管理员确认你的申请。</p><form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => requestWorkspaceAccess(name), "加入申请已提交。"); }}><label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label><button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在提交…" : "提交加入申请"}</button></form>
     </>}
     {redirectError && <p className="cloud-error" role="alert">{redirectError}</p>}{(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
-    <footer className="cloud-gate-footer">{identity && <button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>本地试用仅保存在当前浏览器，不会加入云端共同工作区。</p></footer>
+    <footer className="cloud-gate-footer">{identity && <><button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>本地试用仅保存在当前浏览器，不会加入云端共同工作区。</p></footer>
+    {identity?.verified && passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </section></main>;
 }
 

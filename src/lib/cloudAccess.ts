@@ -1,8 +1,12 @@
 import {
-  createUserWithEmailAndPassword, getAuth, getRedirectResult, GoogleAuthProvider, onIdTokenChanged, reload,
+  browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver,
+  createUserWithEmailAndPassword, EmailAuthProvider, getRedirectResult, GoogleAuthProvider,
+  indexedDBLocalPersistence, initializeAuth, inMemoryPersistence, linkWithCredential,
+  onIdTokenChanged, reload, sendPasswordResetEmail,
   sendEmailVerification, signInWithEmailAndPassword, signInWithRedirect,
-  signOut, updateProfile, type Auth, type User,
+  signOut, updateCurrentUser, updatePassword, updateProfile, type Auth, type User,
 } from "firebase/auth";
+import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { deleteDoc, doc, runTransaction, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getDatabase, getFirebaseApp } from "./firebase";
 
@@ -42,7 +46,34 @@ export function readAccessRequest(uid: string, value: unknown): AccessRequest | 
   const row = value as Record<string, unknown>;
   return typeof row.name === "string" && typeof row.email === "string" ? { uid, name: row.name, email: row.email } : null;
 }
-export const getCloudAuth = () => getAuth(getFirebaseApp());
+const cloudAuthInstances = new WeakMap<FirebaseApp, Auth>();
+export function getCloudAuth(): Auth {
+  const app = getFirebaseApp();
+  let auth = cloudAuthInstances.get(app);
+  if (!auth) {
+    // Keep the existing app name and persistence hierarchy so existing sessions
+    // survive. Omitting the resolver prevents SDK initialization itself from
+    // waiting for a stalled Google iframe before email auth becomes available.
+    auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
+    auth.languageCode = "zh-CN";
+    cloudAuthInstances.set(app, auth);
+  }
+  return auth;
+}
+const googleAuthInstances = new WeakMap<Auth, Auth>();
+function getGoogleAuth(auth: Auth): Auth {
+  let googleAuth = googleAuthInstances.get(auth);
+  if (!googleAuth) {
+    const name = `${auth.app.name}-google-login-v2`;
+    const app = getApps().find(candidate => candidate.name === name) || initializeApp(auth.app.options, name);
+    // Redirect bookkeeping is managed by the explicit SDK resolver. The
+    // resulting signed-in user remains in memory until it is safely transferred.
+    googleAuth = initializeAuth(app, { persistence: inMemoryPersistence });
+    googleAuth.languageCode = "zh-CN";
+    googleAuthInstances.set(auth, googleAuth);
+  }
+  return googleAuth;
+}
 export async function identityForUser(user: User): Promise<CloudIdentity> {
   const token = await user.getIdTokenResult();
   return { uid: user.uid, email: typeof token.claims.email === "string" ? token.claims.email : "", name: user.displayName || "", verified: token.claims.email_verified === true };
@@ -53,8 +84,50 @@ export interface CloudAuthenticationState {
   ready: boolean;
   error: string;
   redirectError: string;
+  redirectPending: boolean;
 }
-const redirectCompletions = new WeakMap<Auth, Promise<void>>();
+interface RedirectSession {
+  generation: number;
+  pending: boolean;
+  error: string;
+  completion?: Promise<void>;
+  observers: Set<() => void>;
+}
+const redirectSessions = new WeakMap<Auth, RedirectSession>();
+function redirectSession(auth: Auth): RedirectSession {
+  let session = redirectSessions.get(auth);
+  if (!session) {
+    session = { generation: 0, pending: false, error: "", observers: new Set() };
+    redirectSessions.set(auth, session);
+  }
+  return session;
+}
+const redirectMarkerKey = (auth: Auth) => `antico-google-redirect:${auth.app.name}`;
+function readRedirectMarker(auth: Auth): string | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(redirectMarkerKey(auth)) || "null");
+    if (value && typeof value.id === "string" && typeof value.createdAt === "number"
+      && value.createdAt <= Date.now() && Date.now() - value.createdAt < 15 * 60 * 1000) return value.id;
+    sessionStorage.removeItem(redirectMarkerKey(auth));
+  } catch { /* An unavailable store cannot authorize a redirect transfer. */ }
+  return null;
+}
+function clearRedirectMarker(auth: Auth) {
+  try { sessionStorage.removeItem(redirectMarkerKey(auth)); } catch { /* No redirect is accepted without its marker. */ }
+}
+function notifyRedirect(session: RedirectSession) {
+  for (const observer of session.observers) observer();
+}
+function invalidateGoogleRedirect(auth: Auth) {
+  const session = redirectSession(auth);
+  session.generation++;
+  session.pending = false;
+  session.error = "";
+  session.completion = Promise.resolve();
+  clearRedirectMarker(auth);
+  notifyRedirect(session);
+}
+export const cancelGoogleLogin = () => invalidateGoogleRedirect(getCloudAuth());
 function reportRedirectNetworkFailure(error: unknown) {
   if (!error || typeof error !== "object" || !("code" in error) || error.code !== "auth/network-request-failed") return;
   const details = "customData" in error ? error.customData : null;
@@ -69,31 +142,51 @@ function reportRedirectNetworkFailure(error: unknown) {
   console.warn("Firebase Google login diagnostic", { phase: "google-redirect-result", code: "auth/network-request-failed", cause });
 }
 export function completeGoogleRedirect(auth: Auth): Promise<void> {
-  let completion = redirectCompletions.get(auth);
-  if (!completion) {
-    // Firebase consumes a redirect result once. Share completion across effect
-    // remounts; do not keep OAuth credentials or use them as member authorization.
-    completion = Promise.resolve().then(() => getRedirectResult(auth)).then(() => {}, error => {
-      try { reportRedirectNetworkFailure(error); } catch { /* Diagnostics must not replace the original failure. */ }
-      throw error;
-    });
-    redirectCompletions.set(auth, completion);
-  }
-  return completion;
+  const session = redirectSession(auth);
+  if (session.completion) return session.completion;
+  const marker = readRedirectMarker(auth);
+  if (!marker) return session.completion = Promise.resolve();
+  const generation = session.generation;
+  session.pending = true;
+  const googleAuth = getGoogleAuth(auth);
+  const stillCurrent = () => generation === session.generation && readRedirectMarker(auth) === marker;
+  // No resolver runs on the persistent/workspace Auth instance. A late result
+  // can therefore never sign it in implicitly after email login or logout.
+  session.completion = Promise.resolve().then(() => getRedirectResult(googleAuth, browserPopupRedirectResolver)).then(async result => {
+    if (result && stillCurrent() && session.observers.size > 0) {
+      await updateCurrentUser(auth, result.user);
+    }
+  }).catch(error => {
+    if (!stillCurrent()) return;
+    try { reportRedirectNetworkFailure(error); } catch { /* Diagnostics must not replace the original failure. */ }
+    session.error = `Google 登录未完成：${cloudAccessError(error)}`;
+    throw error;
+  }).finally(() => {
+    if (generation === session.generation) {
+      clearRedirectMarker(auth);
+      session.pending = false;
+      notifyRedirect(session);
+    }
+    // The helper never retains a second signed-in session on disk.
+    void signOut(googleAuth).catch(() => {});
+  });
+  return session.completion;
 }
 
 export function observeCloudAuthentication(auth: Auth, onChange: (state: CloudAuthenticationState) => void): () => void {
   let active = true;
   let revision = 0;
   let tokenReady = false;
-  let redirectReady = false;
-  let state: CloudAuthenticationState = { identity: null, ready: false, error: "", redirectError: "" };
+  const session = redirectSession(auth);
+  let state: CloudAuthenticationState = { identity: null, ready: false, error: "", redirectError: "", redirectPending: false };
   const publish = (changes: Partial<CloudAuthenticationState>) => {
     if (!active) return;
-    state = { ...state, ...changes, ready: tokenReady && redirectReady };
+    state = { ...state, ...changes, ready: tokenReady, redirectPending: session.pending, redirectError: session.error };
     onChange(state);
   };
   publish({});
+  const redirectChanged = () => publish({});
+  session.observers.add(redirectChanged);
   let unsubscribe = () => {};
   try {
     unsubscribe = onIdTokenChanged(auth, async user => {
@@ -129,14 +222,9 @@ export function observeCloudAuthentication(auth: Auth, onChange: (state: CloudAu
     tokenReady = true;
     publish({ identity: null, error: cloudAccessError(error) });
   }
-  void completeGoogleRedirect(auth).then(() => {
-    redirectReady = true;
-    publish({});
-  }, error => {
-    redirectReady = true;
-    publish({ redirectError: `Google 登录未完成：${cloudAccessError(error)}` });
-  });
-  return () => { active = false; revision++; unsubscribe(); };
+  void completeGoogleRedirect(auth).catch(() => {});
+  publish({});
+  return () => { active = false; revision++; session.observers.delete(redirectChanged); unsubscribe(); };
 }
 async function verifiedIdentity() {
   const user = getCloudAuth().currentUser;
@@ -145,19 +233,86 @@ async function verifiedIdentity() {
   if (!identity.verified || !identity.email) throw new Error("请先验证邮箱，再刷新认证状态。");
   return identity;
 }
-export const loginWithEmail = (email: string, password: string) => signInWithEmailAndPassword(getCloudAuth(), email.trim(), password);
+function validEmail(email: string): string {
+  const value = email.trim();
+  if (value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new Error("请填写有效的邮箱地址。");
+  return value;
+}
+function validateSitePassword(password: string, confirmation = password) {
+  if (password.length < 8 || password.length > 128 || !password.trim()) throw new Error("请设置 8 至 128 位密码。");
+  if (password !== confirmation) throw new Error("两次输入的密码不一致，请重新输入。");
+}
+export const PASSWORD_RESET_RETURN_URL = "https://www.anticocouncil.com/portal";
+export const PASSWORD_RESET_NOTICE = "如果该邮箱已注册且可接收密码邮件，请查看收件箱或垃圾邮件文件夹，并按邮件说明操作。";
+export async function requestPasswordReset(email: string): Promise<void> {
+  const address = validEmail(email);
+  const auth = getCloudAuth();
+  invalidateGoogleRedirect(auth);
+  auth.languageCode = "zh-CN";
+  try {
+    await sendPasswordResetEmail(auth, address, { url: PASSWORD_RESET_RETURN_URL, handleCodeInApp: false });
+  } catch (error) {
+    // Keep the same response with and without email enumeration protection.
+    if (!(typeof error === "object" && error && "code" in error && error.code === "auth/user-not-found")) throw error;
+  }
+}
+export async function setSitePassword(password: string, confirmation: string, expectedIdentity: Pick<CloudIdentity, "uid" | "email">): Promise<void> {
+  validateSitePassword(password, confirmation);
+  const auth = getCloudAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error("请先登录，再设置本站密码。");
+  if (!expectedIdentity || user.uid !== expectedIdentity.uid || user.email !== expectedIdentity.email) throw new Error("账号已变更，请关闭此窗口后重新设置密码。");
+  await reload(user);
+  const token = await user.getIdTokenResult(true);
+  if (auth.currentUser !== user || user.uid !== expectedIdentity.uid || user.email !== expectedIdentity.email) throw new Error("账号已变更，请重新登录后再设置密码。");
+  if (!user.email || token.claims.email !== user.email || token.claims.email_verified !== true) throw new Error("请先验证当前账号的邮箱，再设置密码。");
+  const authenticatedAt = token.claims.auth_time;
+  if (typeof authenticatedAt !== "number" || Date.now() / 1000 - authenticatedAt > 5 * 60 || authenticatedAt > Date.now() / 1000 + 60) {
+    throw Object.assign(new Error("请重新登录后再设置密码。"), { code: "auth/requires-recent-login" });
+  }
+  invalidateGoogleRedirect(auth);
+  if (user.providerData.some(provider => provider.providerId === EmailAuthProvider.PROVIDER_ID)) {
+    await updatePassword(user, password);
+  } else {
+    // Link to the current verified identity. Never register a second account or
+    // take an editable email address for this operation.
+    await linkWithCredential(user, EmailAuthProvider.credential(user.email, password));
+  }
+}
+export const loginWithEmail = (email: string, password: string) => {
+  const address = validEmail(email);
+  const auth = getCloudAuth();
+  invalidateGoogleRedirect(auth);
+  return signInWithEmailAndPassword(auth, address, password);
+};
 export async function registerWithEmail(name: string, email: string, password: string) {
   const cleanName = name.trim();
   if (!cleanName || cleanName.length > 80) throw new Error("请填写 1 至 80 字的成员姓名。");
-  if (password.length < 8) throw new Error("请设置至少 8 位密码。");
-  const credential = await createUserWithEmailAndPassword(getCloudAuth(), email.trim(), password);
+  validateSitePassword(password);
+  const address = validEmail(email);
+  const auth = getCloudAuth();
+  invalidateGoogleRedirect(auth);
+  const credential = await createUserWithEmailAndPassword(auth, address, password);
   await updateProfile(credential.user, { displayName: cleanName });
   await sendEmailVerification(credential.user);
 }
 export function loginWithGoogle() {
+  const auth = getCloudAuth();
+  invalidateGoogleRedirect(auth);
+  const session = redirectSession(auth);
+  session.completion = undefined;
+  const generation = session.generation;
+  try {
+    sessionStorage.setItem(redirectMarkerKey(auth), JSON.stringify({ id: crypto.randomUUID(), createdAt: Date.now() }));
+  } catch {
+    throw new Error("浏览器无法保存 Google 登录返回状态，请允许本站存储，或使用邮箱登录。");
+  }
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  return signInWithRedirect(getCloudAuth(), provider);
+  return signInWithRedirect(getGoogleAuth(auth), provider, browserPopupRedirectResolver).catch(error => {
+    if (generation === session.generation) invalidateGoogleRedirect(auth);
+    throw error;
+  });
 }
 export async function resendVerification() {
   const user = getCloudAuth().currentUser;
@@ -170,7 +325,11 @@ export async function refreshCloudAuthentication() {
   await reload(user);
   await user.getIdToken(true);
 }
-export const logoutCloud = () => signOut(getCloudAuth());
+export const logoutCloud = () => {
+  const auth = getCloudAuth();
+  invalidateGoogleRedirect(auth);
+  return signOut(auth);
+};
 export async function requestWorkspaceAccess(name: string) {
   const identity = await verifiedIdentity();
   const cleanName = name.trim();
@@ -224,6 +383,11 @@ export function cloudAccessError(error: unknown): string {
     "auth/too-many-requests": "操作过于频繁，请稍后重试。",
     "auth/user-disabled": "此登录账号已被停用，请联系管理员。",
     "auth/requires-recent-login": "请退出并重新登录后再操作。",
+    "auth/provider-already-linked": "此账号已有本站密码，请使用更新密码或邮件找回密码。",
+    "auth/credential-already-in-use": "此登录凭据已关联其他账号，请使用原登录方式，不要重复注册。",
+    "auth/invalid-continue-uri": "密码邮件返回地址配置有误，请联系管理员。",
+    "auth/unauthorized-continue-uri": "密码邮件返回域名尚未授权，请联系管理员。",
+    "auth/password-does-not-meet-requirements": "密码未满足账号服务的安全要求，请换用更长且不易猜测的密码。",
     "permission-denied": "没有执行此操作的权限。成员资格可能已变更，请刷新认证状态或联系管理员。",
     "firestore/permission-denied": "没有执行此操作的权限，请联系管理员。",
     "unavailable": "暂时无法连接成员服务，请检查网络后重试。",
