@@ -14,11 +14,8 @@ import "./cloud-access.css";
 
 type StorageMode = "local" | "firebase";
 export interface WorkspaceGatewayProps {
+  mode?: StorageMode;
   children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode }) => ReactNode;
-}
-function initialMode(): StorageMode {
-  try { return localStorage.getItem("storage_mode") === "local" ? "local" : "firebase"; }
-  catch { return "firebase"; }
 }
 
 function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => void }) {
@@ -96,8 +93,7 @@ function CloudAccount({ identity, role, onLogout, workspacePending = 0 }: { iden
   </div>;
 }
 
-export function WorkspaceGateway({ children }: WorkspaceGatewayProps) {
-  const [mode, setMode] = useState<StorageMode>(initialMode);
+export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatewayProps) {
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
   const identityRef = useRef<CloudIdentity | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -116,14 +112,12 @@ export function WorkspaceGateway({ children }: WorkspaceGatewayProps) {
   const configured = !!firebaseConfiguration.config;
 
   const onModeChange = (next: StorageMode) => {
-    if (next === mode) return;
-    try { localStorage.setItem("storage_mode", next); } catch { /* The workspace reports browser storage errors. */ }
-    identityRef.current = null;
-    setIdentity(null); setAccess(null); setAccessReady(false); setAuthReady(false);
-    setMode(next); setError(""); setNotice(""); setPassword("");
+    if (next === mode || busy) return;
+    // The workspace calls this only after its pending-save guard has passed.
+    // A new route also discards all in-memory data belonging to the old mode.
+    window.location.assign(`${next === "local" ? "/local" : "/portal"}${window.location.hash}`);
   };
   useEffect(() => {
-    try { localStorage.setItem("storage_mode", mode); } catch { /* Keep the entry page usable. */ }
     if (mode !== "firebase" || !configured) return;
     let active = true;
     let revision = 0;
@@ -194,7 +188,7 @@ export function WorkspaceGateway({ children }: WorkspaceGatewayProps) {
   return <main className="cloud-gateway"><a className="cloud-home" href="/">← 返回议会首页</a><section className="cloud-gate-card">
     <a className="cloud-brand" href="/"><img src="/logo.png" alt=""/><span>安提柯议会<small>ANTICO COUNCIL</small></span></a>
     <span className="cloud-eyebrow">SHARED WORKSPACE</span>
-    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地工作区。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务…</p></> : !identity ? <>
+    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务…</p></> : !identity ? <>
       <h1>{screen === "login" ? "进入共同工作的空间" : "创建你的成员账号"}</h1><p>登录并验证邮箱后，提交加入申请。获得批准即可使用议会共同工作区。</p>
       <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => { setScreen("login"); setError(""); setPassword(""); }} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => { setScreen("register"); setError(""); setPassword(""); }} disabled={busy}>注册账号</button></div>
       <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => screen === "login" ? loginWithEmail(email, password) : registerWithEmail(name, email, password), screen === "register" ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
@@ -218,7 +212,7 @@ export function WorkspaceGateway({ children }: WorkspaceGatewayProps) {
       <h1>申请加入议会工作区</h1><p>邮箱已验证：<strong>{identity.email}</strong></p><p>填写成员姓名，让管理员确认你的申请。</p><form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => requestWorkspaceAccess(name), "加入申请已提交。"); }}><label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label><button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在提交…" : "提交加入申请"}</button></form>
     </>}
     {(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
-    <footer className="cloud-gate-footer">{identity && <button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>先使用本地工作区</button><p>本地数据仅保存在当前浏览器，与云端分别保存。</p></footer>
+    <footer className="cloud-gate-footer">{identity && <button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>本地试用仅保存在当前浏览器，不会加入云端共同工作区。</p></footer>
   </section></main>;
 }
 

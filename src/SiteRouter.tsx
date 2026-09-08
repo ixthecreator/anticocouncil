@@ -5,13 +5,14 @@ const Workspace = lazy(() => import("./WorkspaceEntry"));
 
 export default function SiteRouter() {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
-  if (path === "/workspace") {
-    document.title = "协作工作台 · 安提柯议会";
+  if (path === "/portal" || path === "/workspace" || path === "/local") {
+    const localOnly = path === "/local";
+    document.title = `${localOnly ? "本地试用" : "协作工作台"} · 安提柯议会`;
     return (
       <Suspense
-        fallback={<div className="route-loading">正在打开协作工作台…</div>}
+        fallback={<div className="route-loading">正在打开{localOnly ? "本地试用" : "协作工作台"}…</div>}
       >
-        <Workspace />
+        <Workspace localOnly={localOnly} />
       </Suspense>
     );
   }

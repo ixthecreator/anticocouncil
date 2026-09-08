@@ -195,12 +195,12 @@ export function WorkspaceShell({
         <div className="sidebar-footer">
           <div className="storage-note">
             <ModeIcon size={20} aria-hidden="true" />
-            <strong>{mode === "local" ? "本地工作区" : "云端工作区"}</strong>
+            <strong>{mode === "local" ? "本地试用" : "云端工作区"}</strong>
             <span className={`connection-dot connection-${connection}`} />
           </div>
           <p>
             {mode === "local"
-              ? "数据保存在此浏览器。定期导出备份，让记录安心留存。"
+              ? "试用数据只保存在此浏览器。团队协作请进入 Portal；已有记录可导出备份。"
               : "议会成员共享此工作区。请按分工维护资料，等待保存完成后离开。"}
           </p>
           <span className="sidebar-signature">
@@ -212,7 +212,7 @@ export function WorkspaceShell({
       <div className="council-main">
         <header className="workspace-topbar">
           <div className="breadcrumb">
-            <span>工作台</span>
+            <span>{mode === "local" ? "本地试用" : "Portal"}</span>
             <ChevronRight size={14} aria-hidden="true" />
             <strong>{current.title}</strong>
           </div>
@@ -267,12 +267,12 @@ export function WorkspaceShell({
                       onModeChange(event.target.value as "local" | "firebase")
                     }
                   >
-                    <option value="local">此浏览器 · 本地存储</option>
-                    <option value="firebase">云端协作 · Firebase</option>
+                    <option value="local">本地试用 · 此浏览器</option>
+                    <option value="firebase">Portal · 团队云端</option>
                   </select>
                 </label>
                 <p className="workspace-help">
-                  本地和云端分别保存，切换后显示对应工作区。
+                  本地试用与团队云端分别保存。进入 Portal 需要登录并获得成员批准，切换不会迁移记录。
                 </p>
                 <div className="settings-backup">
                   <button
@@ -316,7 +316,7 @@ export function WorkspaceShell({
             <div className="workspace-presence">
               <span className="mode-label">
                 <ModeIcon size={15} />
-                {mode === "local" ? "本地工作区" : "云端工作区"}
+                {mode === "local" ? "本地试用" : "云端工作区"}
               </span>
               <span
                 className={`save-status ${pending || !ready ? "is-pending" : ""} connection-${connection}`}
