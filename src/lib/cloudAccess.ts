@@ -6,7 +6,7 @@ import {
 import { deleteDoc, doc, runTransaction, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getDatabase, getFirebaseApp } from "./firebase";
 
-export const OWNER_EMAIL = "ez4eason@gmail.com";
+export const OWNER_EMAIL = "yulun8964@gmail.com";
 export type AccessRole = "member" | "admin";
 export interface CloudIdentity { uid: string; email: string; name: string; verified: boolean; }
 export interface WorkspaceAccess { uid: string; name: string; email: string; role: AccessRole; active: boolean; }

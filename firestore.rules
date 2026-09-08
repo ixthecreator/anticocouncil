@@ -7,7 +7,7 @@ service cloud.firestore {
         && request.auth.token.email is string;
     }
     function owner() {
-      return verified() && request.auth.token.email == 'ez4eason@gmail.com';
+      return verified() && request.auth.token.email == 'yulun8964@gmail.com';
     }
     function accessPath(uid) {
       return /databases/$(database)/documents/workspaceAccess/$(uid);
@@ -31,7 +31,7 @@ service cloud.firestore {
         && data.keys().hasOnly(['name', 'email', 'role', 'active'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.email is string && data.email.size() > 0
-        && data.email != 'ez4eason@gmail.com'
+        && data.email != 'yulun8964@gmail.com'
         && data.role in ['member', 'admin'] && data.active is bool;
     }
     function validRequest(data) {
@@ -39,7 +39,7 @@ service cloud.firestore {
         && data.keys().hasOnly(['name', 'email', 'requestedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 80
         && data.email == request.auth.token.email
-        && data.email != 'ez4eason@gmail.com'
+        && data.email != 'yulun8964@gmail.com'
         && data.requestedAt is timestamp;
     }
     match /workspaceAccess/{uid} {
@@ -52,7 +52,7 @@ service cloud.firestore {
         && (owner() || request.resource.data.role == 'member');
       allow update: if administrator()
         && uid != request.auth.uid
-        && resource.data.email != 'ez4eason@gmail.com'
+        && resource.data.email != 'yulun8964@gmail.com'
         && validAccess(request.resource.data)
         && request.resource.data.email == resource.data.email
         && (owner() || (resource.data.role == 'member' && request.resource.data.role == 'member'));

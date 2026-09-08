@@ -19,9 +19,37 @@ describe("cloud access boundaries", () => {
     expect(isConfirmedAccessSnapshot({ fromCache: true, hasPendingWrites: true })).toBe(false);
   });
   test("verified owner can initialize an empty council without a membership document", () => {
+    expect(OWNER_EMAIL).toBe("yulun8964@gmail.com");
     expect(hasWorkspaceAccess(identity({ email: OWNER_EMAIL }), null)).toBe(true);
     expect(isWorkspaceOwner(identity({ email: OWNER_EMAIL, verified: false }))).toBe(false);
     expect(hasWorkspaceAccess(identity({ email: OWNER_EMAIL, verified: false }), null)).toBe(false);
+  });
+  test("the former owner needs an active matching membership and is never a permanent administrator", () => {
+    const previousOwner = identity({ uid: "previous-owner", email: "ez4eason@gmail.com" });
+    const administrator = access({ uid: previousOwner.uid, email: previousOwner.email, role: "admin" });
+    const memberToManage = access({ uid: "other-member" });
+    expect(isWorkspaceOwner(previousOwner)).toBe(false);
+    expect(hasWorkspaceAccess(previousOwner, null)).toBe(false);
+    expect(hasWorkspaceAccess(previousOwner, administrator)).toBe(true);
+    expect(hasWorkspaceAccess(previousOwner, { ...administrator, active: false })).toBe(false);
+    expect(hasWorkspaceAccess(previousOwner, { ...administrator, uid: "someone-else" })).toBe(false);
+    expect(hasWorkspaceAccess(previousOwner, { ...administrator, email: "different@example.com" })).toBe(false);
+    expect(hasWorkspaceAccess({ ...previousOwner, verified: false }, administrator)).toBe(false);
+    expect(canManageMember({ ...previousOwner, role: administrator.role }, memberToManage)).toBe(true);
+    expect(canManageMember({ ...previousOwner, role: "member" }, memberToManage)).toBe(false);
+    expect(canManageMember({ ...previousOwner, role: "admin" }, { ...memberToManage, role: "admin" })).toBe(false);
+  });
+  test("only the new verified owner can change administrator roles, including the former owner's role", () => {
+    const newOwner = actor({ uid: "new-owner", email: "yulun8964@gmail.com" });
+    const previousAdministrator = access({ uid: "previous-owner", email: "ez4eason@gmail.com", role: "admin" });
+    const anotherMember = access({ uid: "other-member" });
+    expect(isWorkspaceOwner(newOwner)).toBe(true);
+    expect(canChangeMemberRole(newOwner, previousAdministrator)).toBe(true);
+    expect(canManageMember(newOwner, previousAdministrator)).toBe(true);
+    expect(canChangeMemberRole({ ...newOwner, verified: false }, previousAdministrator)).toBe(false);
+    expect(canChangeMemberRole({ ...identity({ uid: previousAdministrator.uid, email: previousAdministrator.email }), role: "admin" }, anotherMember)).toBe(false);
+    expect(canChangeMemberRole(actor({ uid: "other-administrator" }), anotherMember)).toBe(false);
+    expect(canManageMember(actor({ uid: previousAdministrator.uid, email: previousAdministrator.email }), access({ uid: newOwner.uid, email: newOwner.email, role: "admin" }))).toBe(false);
   });
   test("sign-in, email verification and approval are separate requirements", () => {
     expect(hasWorkspaceAccess(null, access())).toBe(false);
