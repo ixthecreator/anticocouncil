@@ -4,13 +4,15 @@
 
 ## 本轮状态
 
-2026 年 9 月 8 日：本轮将公开开始页、云端 Portal 与独立本地试用分开，并同步更新 12 页中文使用说明。以下路由描述对应本轮源码，最终部署及云端开通结果仍在核对。
+2026 年 9 月 8 日：公开开始页、云端 Portal、独立本地试用及 Google 整页登录代码已发布，并同步更新 12 页中文使用说明。Google 与邮箱密码提供方、三个认证域名和成员访问规则已启用；真实登录后的 Portal 访问和业务读写尚未验证成功。
 
-上一轮已发布并验收的代码版本为 `4ee54d82d43f76836b6840eae108a8c3e9af2840`，[对应 Vercel 部署](https://vercel.com/ixthecreators-projects/anticocouncil/HfinYsxQexQDcLop2uwt35b3JzcC)。
+本轮已发布并验收的应用版本为 `13e52962cf1ef059acbd88972f71373fafb27935`（`13e5296`），[对应 Vercel 生产部署成功](https://vercel.com/ixthecreators-projects/anticocouncil/DM1qLzMQkMjBoEv2hqUgEXZZ3LsN)。后续文档提交另计，不改变这里记录的应用验收版本。
 
 自有 Firebase Spark 项目 `antico-council`、Web 应用和位于 `asia-east2` 的 Firestore 默认数据库已创建，Vercel 的 7 项 Firebase 环境变量已设置，线上构建已确认对应新 Web 应用，不再默认连接原作者的数据库。
 
-用户已明确授权启用 Google 与邮箱密码登录、添加正式域名和 Vercel 域名，并发布成员权限规则。实际启用与发布结果待本轮验证后记录；真实登录、邮箱验证、申请审批和成员停用的完整联调结果需单独说明。
+Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anticocouncil.com` 和 `anticocouncil-sigma.vercel.app` 三个认证域名已添加。`firestore.rules` 已发布，并已重新读取确认持久化；匿名 REST 请求返回 HTTP 403，四个规则模拟场景通过。
+
+内置浏览器中，Google 账号选择和用户授权后已能返回本站，Firebase Authentication 用户列表也已有所有者 Google 账号记录，但回到网站后仍出现 `network-request-failed`，未实际进入 Portal。普通浏览器对新版的验证反馈仍待确认；真实业务读写、邮箱注册验证、申请审批与成员停用的完整联调尚未完成。
 
 ## 页面入口
 
@@ -43,9 +45,9 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 
 ## 云端共同使用设计
 
-本节描述已实现的代码行为；正式可用性以登录提供方、部署配置和 Firestore 规则均完成启用后的验收为准。
+登录提供方与成员访问规则已启用。本节描述使用流程；真实账号登录、邮件验证、完整审批和成员停用的端到端结果仍需分别验收。
 
-1. 使用邮箱密码注册/登录，或使用 Google 登录。邮箱注册者须先完成邮件验证。
+1. 使用邮箱密码注册/登录，或使用 Google 登录。Google 登录使用当前页面前往 Google，完成后返回网站；邮箱注册者须先完成邮件验证。
 2. 邮箱验证后提交成员姓名及加入申请，等待所有者或管理员批准；初始所有者经验证后无需申请。
 3. 获批且未停用的成员进入同一议会工作区，共同维护八类业务记录；没有个人分库或自动隔离的多组织空间。
 4. 管理员可审批申请、停用或恢复其他普通成员。所有者可调整其他成员的管理员角色。用户不能审批自己或修改自己的授权，管理员不能修改其他管理员或所有者。
@@ -92,14 +94,22 @@ Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制
 
 ## 验证与发布
 
-上一轮 TypeScript 检查及 30 项测试、97 项断言通过，覆盖核心业务、备份、日期、导出、连接状态和客户端权限判断；当时公开页、工作台入口及文章预留页已实际浏览确认，标准 Vercel 生产构建成功。本轮路由与云端配置变更需重新验收。
+本轮最终源码的 TypeScript 检查及 44 项测试、216 项断言通过，覆盖核心业务、备份、日期、导出、连接状态、客户端权限判断和登录错误诊断脱敏。已验收应用版本 `13e5296` 完成 Vercel 标准生产构建，公开开始页和整页登录代码已发布；后续增加的固定类别诊断随下一次提交发布。真实云端会话与业务读写仍需验收。
 
-此前 Firebase 控制台对草稿规则完成 4 项实际模拟：未登录拒绝、已验证但未获批成员拒绝、已验证所有者允许、所有者邮箱未验证时拒绝。模拟当时没有写入业务数据或发布规则。这 4 项模拟及客户端权限逻辑测试均不能代替完整登录审批或成员停用的端到端验证。
+线上已确认公开开始页和 Blog 内容及桌面布局正常；自有 Vercel 默认域名的 `/portal?check=entry#members` 完整跳至 `www` 并保留查询和锚点，`/local` 保留原域名且无需登录即可进入本地工作区。
+
+Firebase 成员规则已发布并确认持久化，匿名业务数据 REST 请求返回 HTTP 403。Firebase 控制台完成 4 项实际模拟：未登录拒绝、已验证但未获批成员拒绝、已验证所有者允许、所有者邮箱未验证时拒绝。这些检查和客户端权限逻辑测试均不能代替完整登录审批或成员停用的端到端验证。
 
 Windows 本地验证环境对 esbuild 子进程管道有限制，因此曾使用进程内 TypeScript/Bun 转换配合 Vite/Rollup 和 Tailwind 生成验证产物。项目标准构建配置保持 Vite；正式发布以 Vercel 对源码的标准生产构建为准。
 
-自有私有仓库为 [ixthecreator/anticocouncil](https://github.com/ixthecreator/anticocouncil)，关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。生产分支为 `main`，推送后由 Vercel 自动构建。安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build`，输出目录为 `dist`；`vercel.json` 保留单页应用路径重写。
+自有私有仓库为 [ixthecreator/anticocouncil](https://github.com/ixthecreator/anticocouncil)，关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。生产分支为 `main`，推送后由 Vercel 自动构建。安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build`，输出目录为 `dist`。
 
-正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。本轮 PDF 为 12 页，693,911 字节，中文字体已嵌入，章节跳转与 8 个 Portal 模块链接已验证；发布后需检查在线 PDF 与本地交付文件一致。网站发布与 Firebase 开通分别验收。
+Google 整页登录使用正式 `www` 域名作为 Firebase `authDomain`。Google OAuth 已保存 `https://www.anticocouncil.com` 来源及 `https://www.anticocouncil.com/__/auth/handler` 返回地址。`vercel.json` 须保留 Firebase `/__/auth/:path*` 与 `/__/firebase/init.json` 同源代理和单页应用路径重写，代理须优先于页面兜底；静态包也须携带完整配置，不能只复制首页重写。变更认证域名、代理或环境变量后，应重新构建并验收真实登录返回流程。
+
+OAuth 受众已确认为“外部、正式版”。正式 `www` 的认证 `handler`、`iframe`、`handler.js` 均返回 HTTP 200 和 `no-store`，响应与 Firebase 原文一致，无 HTTP 302；`createAuthUri` 公共配置检查返回 HTTP 200，并生成正确的 Google 客户端和 `www` 回调。这些检查未登录或记录凭据，也不代表已完成真实登录和数据读写。
+
+自有 Vercel 默认域名的 `/portal` 与 `/workspace` 会前往正式 `www` 域名并保留路径、查询参数与模块锚点；公开页与 `/local` 留在原域名，保留其本地数据位置。Google 登录完成后返回发起页面，仍须通过邮箱验证和服务端成员授权检查；回跳失败显示具体原因，等待超时可使用“重新载入登录页”。
+
+正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。本轮 PDF 为 12 页，693,879 字节，中文字体已嵌入，章节跳转与 8 个 Portal 模块链接已验证；发布后需检查在线 PDF 与本地交付文件一致。网站发布与 Firebase 开通分别验收。
 
 本项目由 [Fiochanqwq/newmeetingapp](https://github.com/Fiochanqwq/newmeetingapp) 延续改进，保留原有仓库历史与代码署名。
