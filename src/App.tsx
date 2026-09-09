@@ -24,14 +24,14 @@ import { ArchiveView } from "./components/ArchiveView";
 import { SupervisionView } from "./components/SupervisionView";
 import { ActivityView } from "./components/ActivityView";
 import { OperationsView } from "./components/OperationsView";
-import { latexDocument } from "./lib/latex";
+import { buildMeetingExport, exportMeetingFileName, renderMeetingLatex, type MeetingExportKind } from "./lib/meetingExport";
+import { renameMeeting } from "./lib/meetingRename";
+import { downloadBlob } from "./lib/downloadBlob";
 import { useWorkspace } from "./lib/useWorkspace";
 import {
   downloadText,
-  meetingBrief,
   localDate,
   weekday,
-  statusLabels,
   advanceIssue,
 } from "./lib/workspace";
 import {
@@ -54,8 +54,6 @@ import {
   Upload,
   Database,
 } from "lucide-react";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 import { motion, AnimatePresence } from "motion/react";
 
 // Import GitHub Sync helpers
@@ -135,14 +133,16 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     useState<Issue | null>(null);
   const [isAddingNew, setIsAddingNew] = useState<boolean>(false);
 
-  const [selectedMeetingIdsForExport, setSelectedMeetingIdsForExport] =
-    useState<string[]>([]);
-
-  const [isCompiling, setIsCompiling] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
+  const [exportError, setExportError] = useState("");
+  const exporting = useRef(false);
+  const exportContext = useRef(0);
   useEffect(() => {
     setActiveIssueForDetail(null);
-    setSelectedMeetingIdsForExport([]);
+    exportContext.current++;
+    setExportError("");
   }, [storageMode]);
+  useEffect(() => () => { exportContext.current++; }, []);
   const handleStartAddIssue = () => {
     setActiveIssueForDetail({
       id: crypto.randomUUID(),
@@ -160,13 +160,6 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     } as any);
     setIsAddingNew(true);
   };
-
-  // Populate default export selections when meetings are synchronized
-  useEffect(() => {
-    if (meetings.length > 0 && selectedMeetingIdsForExport.length === 0) {
-      setSelectedMeetingIdsForExport(meetings.map((m) => m.id));
-    }
-  }, [meetings]);
 
   const handleSaveIssue = (updated: Issue) =>
     workspace.change("issues", updated.id, (old) => {
@@ -208,6 +201,8 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     await save("meetings", meeting);
     setCurrentMeetingId(meeting.id);
   };
+  const handleRenameMeeting = (id: string, expectedTitle: string, title: string) =>
+    workspace.change("meetings", id, (latest) => renameMeeting(latest, expectedTitle, title));
   const handleUpdateMeetingSummary = (id: string, summary: string) =>
     workspace.change("meetings", id, (old) => {
       if (!old) throw new Error("会议不存在");
@@ -251,79 +246,43 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     event.target.value = "";
   };
 
-  // --- EXPORT AND COMPILATION SYSTEMS (PDF & LaTeX) ---
-
-  const handleToggleMeetingExportSelection = (id: string) => {
-    setSelectedMeetingIdsForExport((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id],
-    );
-  };
-
-  // 1. One-click LaTeX Download
-  const handleExportLatex = () => {
-    if (selectedMeetingIdsForExport.length === 0) {
-      alert("请至少选择一个周期例会进行导出。");
-      return;
-    }
-
-    downloadText(
-      latexDocument(data, selectedMeetingIdsForExport),
-      `例会纪要_${localDate()}.tex`,
-    );
-  };
-
-  // 2. High-Fidelity PDF Exporter using jsPDF and html2canvas
-  const handleExportPDF = async () => {
-    if (selectedMeetingIdsForExport.length === 0) {
-      alert("请至少选择一个周期例会进行导出。");
-      return;
-    }
-
-    setIsCompiling(true);
-    // Tiny delay to ensure DOM is fully computed and painted
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
+  const handleExportMeeting = async (
+    ids: string[],
+    kind: MeetingExportKind,
+    format: "pdf" | "docx" | "latex",
+  ) => {
+    if (exporting.current) return;
+    exporting.current = true;
+    const context = exportContext.current;
+    setExportError("");
+    setExportStatus("正在准备会议文档…");
     try {
-      const element = document.getElementById("pdf-compile-preview");
-      if (!element) {
-        throw new Error("未找到编译预览区域");
+      if (!workspace.dataLoaded) throw new Error("会议数据尚未加载完成，请稍后重试。");
+      const snapshot = buildMeetingExport(data, [...ids], format === "latex" ? "minutes" : kind, new Date());
+      let blob: Blob;
+      if (format === "pdf") {
+        setExportStatus("正在加载 PDF 和中文字体…");
+        const { renderMeetingPdf } = await import("./lib/meetingPdf");
+        blob = await renderMeetingPdf(snapshot, () => {
+          if (context === exportContext.current) setExportStatus("正在生成 PDF…");
+        });
+      } else if (format === "docx") {
+        setExportStatus("正在生成 Word 文档…");
+        const { renderMeetingDocx } = await import("./lib/meetingDocx");
+        blob = await renderMeetingDocx(snapshot);
+      } else {
+        blob = new Blob([renderMeetingLatex(snapshot)], { type: "application/x-tex;charset=utf-8" });
       }
-
-      // Render canvas with maximum crispness and direct element width
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        width: 800, // Forces the rendering canvas to be exactly 800px wide
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210; // A4 standard width in mm
-      const pageHeight = 295; // A4 standard height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Handles paging cleanly for larger multi-meeting compilations
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      if (context === exportContext.current) {
+        downloadBlob(blob, exportMeetingFileName(snapshot, format === "latex" ? "tex" : format));
       }
-
-      pdf.save(`assembly_report_${Date.now()}.pdf`);
     } catch (err) {
-      console.error("PDF导出失败:", err);
-      alert("PDF编译导出中遇到意外错误。");
+      if (context === exportContext.current) {
+        setExportError(err instanceof Error ? err.message : "文档生成失败，请重试。");
+      }
     } finally {
-      setIsCompiling(false);
+      exporting.current = false;
+      setExportStatus("");
     }
   };
 
@@ -535,6 +494,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
             currentMeetingId={currentMeetingId}
             onSelectMeeting={setCurrentMeetingId}
             onAddMeeting={handleAddMeeting}
+            onRenameMeeting={handleRenameMeeting}
             onUpdateMeetingSummary={handleUpdateMeetingSummary}
             onDeleteMeeting={handleDeleteMeeting}
           />
@@ -620,29 +580,23 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
               ) : (
                 <Empty>创建或选择一场例会，即可跟进授权与执行事项。</Empty>
               ))}
-            {activeTab === "archive" &&
-              (globalSearch && !searchedMeetings.length ? (
-                <Empty>
-                  没有匹配的会议。试试其他关键词，或清除搜索查看全部档案。
-                </Empty>
-              ) : (
-                <ArchiveView
-                  meetings={searchedMeetings}
-                  issues={issues}
-                  onOpenDetail={(issue) => {
-                    setIsAddingNew(false);
-                    setActiveIssueForDetail(issue);
-                  }}
-                  onDeleteMeeting={handleDeleteMeeting}
-                  selectedMeetingIdsForExport={selectedMeetingIdsForExport}
-                  onToggleMeetingExportSelection={
-                    handleToggleMeetingExportSelection
-                  }
-                  onExportLatex={handleExportLatex}
-                  onExportPDF={handleExportPDF}
-                  isCompiling={isCompiling}
-                />
-              ))}
+            {activeTab === "archive" && (
+              <ArchiveView
+                key={storageMode}
+                meetings={searchedMeetings}
+                allMeetings={meetings}
+                dataLoaded={workspace.dataLoaded}
+                issues={issues}
+                onOpenDetail={(issue) => {
+                  setIsAddingNew(false);
+                  setActiveIssueForDetail(issue);
+                }}
+                onDeleteMeeting={handleDeleteMeeting}
+                onExport={handleExportMeeting}
+                exportStatus={exportStatus}
+                exportError={exportError}
+              />
+            )}
             {activeTab === "supervision" && (
               <SupervisionView
                 meetings={meetings}
@@ -698,182 +652,6 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
         />
       )}
 
-      {/* 6. HIGH-FIDELITY PRINT-READY VISIBLE-BUT-OFFSCREEN CONTAINER FOR PDF GENERATION */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: "-9999px",
-          top: 0,
-          width: "800px",
-        }}
-      >
-        <div
-          id="pdf-compile-preview"
-          className="w-[800px] bg-white p-12 text-neutral-950 font-sans space-y-10"
-        >
-          {/* Cover Header */}
-          <div className="text-center border-b-4 border-neutral-950 pb-8 space-y-4">
-            <h1 className="font-serif text-4xl font-bold tracking-widest uppercase">
-              议事会议纪要与决议公报
-            </h1>
-            <p className="font-mono text-xs uppercase tracking-widest text-neutral-400">
-              Assembly Compilation & Resolution Bulletin
-            </p>
-            <div className="flex justify-center gap-8 text-xs font-mono text-neutral-500 pt-4 border-t border-neutral-100 max-w-md mx-auto">
-              <div>发布日期: {new Date().toLocaleDateString("zh-CN")}</div>
-              <div>
-                包含周期:{" "}
-                {
-                  meetings.filter((m) =>
-                    selectedMeetingIdsForExport.includes(m.id),
-                  ).length
-                }{" "}
-                期
-              </div>
-            </div>
-          </div>
-
-          {/* Compilation Contents */}
-          <div className="space-y-10">
-            {meetings
-              .filter((m) => selectedMeetingIdsForExport.includes(m.id))
-              .map((m, idx) => {
-                const mIssues = issues.filter((i) => i.meetingId === m.id);
-                return (
-                  <div
-                    key={m.id}
-                    className="space-y-6 pb-8 border-b-2 border-neutral-200 last:border-b-0 last:pb-0"
-                  >
-                    <div className="flex justify-between items-end border-b border-neutral-950 pb-2">
-                      <h2 className="font-serif text-xl font-bold text-neutral-950">
-                        {idx + 1}. {m.title} ({m.week})
-                      </h2>
-                      <span className="font-mono text-xs text-neutral-500">
-                        召开日期: {m.date}
-                      </span>
-                    </div>
-
-                    <div className="whitespace-pre-wrap text-sm">
-                      {meetingBrief(data, m.id).split("议程与执行")[0]}
-                    </div>
-                    {/* Regular report */}
-                    <div className="space-y-2">
-                      <h3 className="font-sans text-xs font-bold text-neutral-700 uppercase tracking-widest">
-                        【常规报告】
-                      </h3>
-                      <div className="text-xs text-neutral-800 leading-relaxed font-serif bg-neutral-50 p-4 border border-neutral-200 whitespace-pre-wrap">
-                        {m.regularReport || "暂无常规报告。"}
-                      </div>
-                    </div>
-
-                    {/* Issues List */}
-                    <div className="space-y-3">
-                      <h3 className="font-sans text-xs font-bold text-neutral-700 uppercase tracking-widest">
-                        【会商决议明细】
-                      </h3>
-                      {mIssues.length === 0 ? (
-                        <p className="text-xs text-neutral-400 font-mono italic p-2 border border-dashed border-neutral-200">
-                          本期例会无关联的议题。
-                        </p>
-                      ) : (
-                        <div className="border border-neutral-950 divide-y divide-neutral-950">
-                          {mIssues.map((issue, issueIdx) => (
-                            <div
-                              key={issue.id}
-                              className="p-4 bg-white space-y-2.5"
-                            >
-                              <div className="flex justify-between items-baseline">
-                                <div className="font-bold font-serif text-neutral-950 text-sm">
-                                  ({issueIdx + 1}) 《{issue.title}》
-                                </div>
-                                <span className="font-mono text-[9px] uppercase border border-neutral-950 px-2 py-0.5 bg-neutral-100">
-                                  {statusLabels[issue.status]}
-                                </span>
-                              </div>
-
-                              {issue.description && (
-                                <p className="text-neutral-700 font-sans text-xs leading-normal">
-                                  <span className="font-bold text-neutral-500">
-                                    事项描述:
-                                  </span>{" "}
-                                  {issue.description}
-                                </p>
-                              )}
-
-                              {issue.discussion && (
-                                <div className="bg-neutral-50 p-3 border border-neutral-200 font-serif text-xs leading-normal">
-                                  <span className="font-bold font-sans text-[10px] text-neutral-500 block mb-1">
-                                    会商结论:
-                                  </span>
-                                  {issue.discussion}
-                                </div>
-                              )}
-
-                              <div className="text-[10px] font-mono text-neutral-500 flex justify-between pt-1 border-t border-neutral-100">
-                                <div>
-                                  类别:{" "}
-                                  <span className="text-neutral-800">
-                                    {issue.category}
-                                  </span>
-                                </div>
-                                <div>
-                                  负责人/经办人:{" "}
-                                  <span className="font-bold text-neutral-950">
-                                    {issue.signature || "待指派"}
-                                  </span>
-                                </div>
-                                <div>
-                                  优先级:{" "}
-                                  <span
-                                    className={
-                                      issue.priority === "urgent"
-                                        ? "text-red-600 font-bold"
-                                        : "text-neutral-800"
-                                    }
-                                  >
-                                    {issue.priority === "urgent"
-                                      ? "紧急"
-                                      : issue.priority === "high"
-                                        ? "高"
-                                        : issue.priority === "medium"
-                                          ? "中"
-                                          : "低"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-
-          {/* Autograph / Handstamp area */}
-          <div className="pt-10 border-t-4 border-neutral-950 space-y-6">
-            <p className="text-xs text-neutral-400 font-mono text-center">
-              * 全体成员鉴章：见公报如面，各尽其职，对以上所列各项决议负责。
-            </p>
-            <div className="grid grid-cols-3 gap-8 pt-10 text-center text-xs font-serif text-neutral-800">
-              <div className="space-y-14">
-                <div className="border-b border-neutral-300 w-44 mx-auto" />
-                <div className="font-bold tracking-wider">主事人鉴字盖章</div>
-              </div>
-              <div className="space-y-14">
-                <div className="border-b border-neutral-300 w-44 mx-auto" />
-                <div className="font-bold tracking-wider">监察委员鉴字盖章</div>
-              </div>
-              <div className="space-y-14">
-                <div className="border-b border-neutral-300 w-44 mx-auto" />
-                <div className="font-bold tracking-wider">经办代表鉴字盖章</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
