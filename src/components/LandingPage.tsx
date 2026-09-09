@@ -26,6 +26,7 @@ function PublicLayout({ page, children }: { page: PublicPage; children: ReactNod
         <span>© {new Date().getFullYear()} Antico Council</span>
         <nav aria-label="帮助与其他入口">
           <a href="/antico-council-guide.pdf" target="_blank" rel="noreferrer"><FileText size={15} aria-hidden="true" />使用说明<span className="start-pdf-label">PDF</span><span className="start-sr-only">，在新窗口打开</span></a>
+          <a href="/preview/">新 UI 试用<ArrowUpRight size={15} aria-hidden="true" /></a>
           <a href="/local">本地试用<ArrowUpRight size={15} aria-hidden="true" /></a>
         </nav>
       </footer>

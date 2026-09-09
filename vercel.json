@@ -8,14 +8,54 @@
     {
       "source": "/__/auth/:path*",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" },
-        { "key": "x-vercel-enable-rewrite-caching", "value": "0" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/preview/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/__/auth/:path*", "destination": "https://antico-council.firebaseapp.com/__/auth/:path*" },
-    { "source": "/__/firebase/init.json", "destination": "https://antico-council.firebaseapp.com/__/firebase/init.json" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/preview",
+      "destination": "/preview/index.html"
+    },
+    {
+      "source": "/preview/",
+      "destination": "/preview/index.html"
+    },
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://antico-council.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/init.json",
+      "destination": "https://antico-council.firebaseapp.com/__/firebase/init.json"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
