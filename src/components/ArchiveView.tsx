@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Meeting, Issue, Status } from "../types";
+import React, { useEffect, useRef, useState } from "react";
+import { Meeting, Issue } from "../types";
 import {
   Folder,
   FileText,
@@ -11,31 +11,42 @@ import {
 
 interface ArchiveViewProps {
   meetings: Meeting[];
+  allMeetings: Meeting[];
+  dataLoaded: boolean;
   issues: Issue[];
   onOpenDetail: (issue: Issue) => void;
-  selectedMeetingIdsForExport: string[];
-  isCompiling: boolean;
-  onToggleMeetingExportSelection: (id: string) => void;
-  onExportLatex: () => void;
-  onExportPDF: () => void;
+  onExport: (
+    ids: string[],
+    kind: "agenda" | "minutes",
+    format: "pdf" | "docx" | "latex",
+  ) => Promise<void>;
+  exportStatus: string;
+  exportError: string;
   onDeleteMeeting: (id: string) => Promise<void>;
 }
 
 export const ArchiveView: React.FC<ArchiveViewProps> = ({
   meetings,
+  allMeetings,
+  dataLoaded,
   issues,
   onOpenDetail,
-  selectedMeetingIdsForExport,
-  isCompiling,
-  onToggleMeetingExportSelection,
-  onExportLatex,
-  onExportPDF,
+  onExport,
+  exportStatus,
+  exportError,
   onDeleteMeeting,
 }) => {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(
     meetings.length > 0 ? meetings[0].id : null,
   );
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [documentKind, setDocumentKind] = useState<"agenda" | "minutes">("minutes");
+  const [exportScope, setExportScope] = useState<"current" | "selected">("current");
+  const [selectedExportIds, setSelectedExportIds] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportInFlight = useRef(false);
+  const exportBusy = isExporting || !!exportStatus;
+
   useEffect(() => {
     setSelectedMeetingId((previous) =>
       meetings.some((m) => m.id === previous)
@@ -44,8 +55,46 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
     );
   }, [meetings]);
 
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const availableIds = new Set(allMeetings.map((meeting) => meeting.id));
+    setSelectedExportIds((previous) => {
+      const remaining = previous.filter((id) => availableIds.has(id));
+      return remaining.length === previous.length ? previous : remaining;
+    });
+  }, [allMeetings, dataLoaded]);
+
   const selectedMeeting =
     meetings.find((m) => m.id === selectedMeetingId) || null;
+  const selectedExportMeetings = allMeetings.filter((meeting) =>
+    selectedExportIds.includes(meeting.id),
+  );
+  const currentExportMeeting = selectedMeeting
+    ? allMeetings.find((meeting) => meeting.id === selectedMeeting.id) || null
+    : null;
+  const meetingsToExport = exportScope === "current"
+    ? currentExportMeeting ? [currentExportMeeting] : []
+    : selectedExportMeetings;
+  const exportDisabled = !dataLoaded || exportBusy || meetingsToExport.length === 0;
+
+  const handleExport = async (format: "pdf" | "docx" | "latex") => {
+    if (exportDisabled || exportInFlight.current) return;
+    exportInFlight.current = true;
+    setIsExporting(true);
+    try {
+      await onExport(
+        meetingsToExport.map((meeting) => meeting.id),
+        format === "latex" ? "minutes" : documentKind,
+        format,
+      );
+    } catch {
+      // The parent supplies the export error; keep the user's selection for retry.
+    } finally {
+      exportInFlight.current = false;
+      setIsExporting(false);
+    }
+  };
+
   const meetingIssues = selectedMeeting
     ? issues.filter((i) => i.meetingId === selectedMeeting.id)
     : [];
@@ -58,18 +107,6 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
       i.status === "completed",
   );
   const rejectedIssues = meetingIssues.filter((i) => i.status === "rejected");
-
-  if (meetings.length === 0) {
-    return (
-      <div className="text-center py-16 bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md border-2 border-dashed border-[var(--theme-border,#171717)] flex flex-col items-center justify-center gap-3 text-[var(--theme-text-primary,#171717)]">
-        <Folder className="w-8 h-8 text-[var(--theme-text-secondary,#525252)]" />
-        <h3 className="font-sans text-lg font-bold">档案库为空</h3>
-        <p className="text-xs font-sans text-[var(--theme-text-secondary,#525252)] max-w-sm">
-          尚无任何例会记录。
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -86,8 +123,10 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
             {meetings.map((m) => (
               <button
                 key={m.id}
+                type="button"
+                disabled={exportBusy}
                 onClick={() => setSelectedMeetingId(m.id)}
-                className={`w-full text-left p-3 border-2 transition-all ${
+                className={`w-full text-left p-3 border-2 transition-all disabled:cursor-wait ${
                   selectedMeetingId === m.id
                     ? "border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)]"
                     : "border-[var(--theme-border)]/20 bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary)] hover:border-[var(--theme-border,#171717)]"
@@ -99,64 +138,138 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                 </p>
               </button>
             ))}
+            {meetings.length === 0 && (
+              <p className="p-3 text-xs font-sans text-[var(--theme-text-secondary,#525252)]">
+                {!dataLoaded
+                  ? "正在载入会议档案…"
+                  : allMeetings.length > 0
+                    ? "未找到匹配会议，可调整搜索条件。"
+                    : "档案库为空，尚无任何例会记录。"}
+              </p>
+            )}
           </div>
         </div>
 
         {/* EXPORTER PANEL */}
-        <div className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-4 space-y-4 text-[var(--theme-text-primary,#171717)]">
+        <section aria-labelledby="archive-export-heading" aria-busy={exportBusy} className="border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-panel-bg,rgba(255,255,255,0.75))] backdrop-blur-md p-4 space-y-4 text-[var(--theme-text-primary,#171717)]">
           <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-            <h3 className="font-sans text-sm font-bold tracking-normal uppercase text-[var(--theme-text-primary,#171717)] flex items-center gap-2">
+            <h3 id="archive-export-heading" className="font-sans text-sm font-bold tracking-normal uppercase text-[var(--theme-text-primary,#171717)] flex items-center gap-2">
               导出会议档案
             </h3>
           </div>
 
           <div className="space-y-3">
-            <div className="space-y-1.5 max-h-[110px] overflow-y-auto pr-1">
-              <label className="block text-xs font-sans text-[var(--theme-text-secondary,#525252)] uppercase">
-                选择导出周期 ({selectedMeetingIdsForExport.length} 期)
+            <div className="space-y-1.5">
+              <label htmlFor="archive-document-kind" className="block text-xs font-sans font-bold">
+                文档类型
               </label>
-              {meetings.map((m) => {
-                const isSelected = selectedMeetingIdsForExport.includes(m.id);
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => onToggleMeetingExportSelection(m.id)}
-                    className="flex items-center gap-2 p-1.5 border border-neutral-200 hover:border-[var(--theme-border,#171717)] transition-colors cursor-pointer text-xs font-sans bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)]"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}}
-                      className="cursor-pointer"
-                    />
-                    <span className="truncate">{m.title}</span>
-                  </div>
-                );
-              })}
+              <select
+                id="archive-document-kind"
+                value={documentKind}
+                onChange={(event) => setDocumentKind(event.target.value as "agenda" | "minutes")}
+                disabled={!dataLoaded || exportBusy}
+                className="w-full border border-[var(--theme-border,#171717)] p-2 text-sm font-sans bg-[var(--theme-card-bg,#ffffff)] disabled:opacity-50"
+              >
+                <option value="minutes">完整会议纪要</option>
+                <option value="agenda">会议议程</option>
+              </select>
+            </div>
+
+            <fieldset disabled={!dataLoaded || exportBusy} className="space-y-2 disabled:opacity-60">
+              <legend className="mb-1.5 text-xs font-sans font-bold">导出范围</legend>
+              <label className="flex items-center gap-2 text-xs font-sans cursor-pointer">
+                <input type="radio" name="archive-export-scope" value="current" checked={exportScope === "current"} onChange={() => setExportScope("current")} />
+                <span>当前查看会议</span>
+              </label>
+              <label className="flex items-center gap-2 text-xs font-sans cursor-pointer">
+                <input type="radio" name="archive-export-scope" value="selected" checked={exportScope === "selected"} onChange={() => setExportScope("selected")} />
+                <span>手动选择会议</span>
+              </label>
+            </fieldset>
+
+            {exportScope === "selected" && (
+              <fieldset disabled={!dataLoaded || exportBusy} className="space-y-1.5 disabled:opacity-60">
+                <legend className="mb-1.5 text-xs font-sans font-bold">从全部会议中选择</legend>
+                <p className="text-xs font-sans text-[var(--theme-text-secondary,#525252)]">手动选择会保留，不受搜索结果影响。</p>
+                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                  {allMeetings.map((meeting) => (
+                    <label key={meeting.id} className="flex items-start gap-2 p-2 border border-neutral-200 hover:border-[var(--theme-border,#171717)] transition-colors cursor-pointer text-xs font-sans bg-[var(--theme-card-bg,#ffffff)]">
+                      <input
+                        type="checkbox"
+                        checked={selectedExportIds.includes(meeting.id)}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setSelectedExportIds((previous) => checked
+                            ? previous.includes(meeting.id) ? previous : [...previous, meeting.id]
+                            : previous.filter((id) => id !== meeting.id));
+                        }}
+                        className="mt-0.5 shrink-0 cursor-pointer"
+                      />
+                      <span className="min-w-0 break-words">
+                        <span className="block font-bold">{meeting.title}</span>
+                        <span className="block mt-1 text-[var(--theme-text-secondary,#525252)]">{meeting.date} · {meeting.week}</span>
+                      </span>
+                    </label>
+                  ))}
+                  {allMeetings.length === 0 && <p className="text-xs font-sans text-[var(--theme-text-secondary,#525252)]">暂无可选会议。</p>}
+                </div>
+              </fieldset>
+            )}
+
+            <div className="border border-neutral-200 p-3 space-y-2 text-xs font-sans bg-[var(--theme-card-bg,#ffffff)]">
+              <p className="font-bold">{exportScope === "current" ? "当前导出会议" : `已选择 ${meetingsToExport.length} 场会议`}</p>
+              {meetingsToExport.length > 0 ? (
+                <ul className="space-y-2">
+                  {meetingsToExport.map((meeting) => (
+                    <li key={meeting.id} className="break-words">
+                      <span className="block">{meeting.title}</span>
+                      <span className="block mt-0.5 text-[var(--theme-text-secondary,#525252)]">{meeting.date} · {meeting.week}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[var(--theme-text-secondary,#525252)]">
+                  {!dataLoaded ? "会议数据载入后即可导出。" : exportScope === "current" ? "请先在会议目录中选择一场会议。" : "请选择至少一场会议。"}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-200">
               <button
-                onClick={onExportLatex}
-                className="py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs font-bold hover:bg-[var(--theme-accent-light,rgba(0,0,0,0.05))] transition-colors cursor-pointer text-center flex items-center justify-center gap-1"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>编译 LaTeX</span>
-              </button>
-              <button
-                onClick={onExportPDF}
-                disabled={isCompiling}
-                className="py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)] font-sans text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer text-center flex items-center justify-center gap-1 disabled:opacity-50"
+                type="button"
+                onClick={() => void handleExport("pdf")}
+                disabled={exportDisabled}
+                className="py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)] font-sans text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer text-center flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>{isCompiling ? "PDF 编译中..." : "导出 PDF"}</span>
+                <span>导出 PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleExport("docx")}
+                disabled={exportDisabled}
+                className="py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs font-bold hover:bg-[var(--theme-accent-light,rgba(0,0,0,0.05))] transition-colors cursor-pointer text-center flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>导出 Word</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleExport("latex")}
+                disabled={exportDisabled}
+                className="col-span-2 py-2 border border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs font-bold hover:bg-[var(--theme-accent-light,rgba(0,0,0,0.05))] transition-colors cursor-pointer text-center flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>导出完整纪要 LaTeX</span>
               </button>
             </div>
             <p className="text-xs text-[var(--theme-text-secondary,#525252)] font-sans leading-normal">
-              * 导出功能将合并生成所选周期例会之常规报告与绑定的议题会商决议。
+              PDF 和 Word 使用所选文档类型；LaTeX 始终导出完整会议纪要。
             </p>
+            {exportBusy && <p role="status" aria-live="polite" className="text-xs font-sans">{exportStatus || "正在生成文件…"}</p>}
+            {exportError && <p role="alert" className="border border-red-300 bg-red-50 p-3 text-xs font-sans text-red-800">{exportError}</p>}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Right Column: Meeting Detail */}
@@ -174,6 +287,8 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
                 </div>
               </div>
               <button
+                type="button"
+                disabled={exportBusy}
                 onClick={async () => {
                   if (confirmDeleteId === selectedMeeting.id) {
                     try {
