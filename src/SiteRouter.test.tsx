@@ -36,7 +36,7 @@ async function renderRoute() {
 }
 
 test("portal and legacy workspace routes never mount local data behind a saved local preference", async () => {
-  for (const path of ["/portal#assets", "/workspace#inventory", "/portal/", "/workspace/"]) {
+  for (const path of ["/portal#overview", "/portal#proposals", "/portal#assets", "/workspace#inventory", "/portal/", "/workspace/"]) {
     const browser = browserAt(path, "local");
     browser.stored.set("antico_workspace_v2", "private local data must remain untouched");
     const html = await renderRoute();
@@ -67,7 +67,7 @@ test("an unspecified gateway remains closed rather than trusting browser prefere
 });
 
 test("switching the local workspace navigates to cloud authentication and preserves each module", () => {
-  for (const module of ["session", "post", "archive", "supervision", "activity", "editorial", "assets", "inventory"]) {
+  for (const module of ["overview", "proposals", "session", "post", "archive", "supervision", "activity", "editorial", "assets", "inventory"]) {
     const browser = browserAt(`/local#${module}`, "local");
     let switchMode: (mode: "local" | "firebase") => void = () => { throw new Error("workspace not rendered"); };
     renderToStaticMarkup(<WorkspaceGateway mode="local">{props => { switchMode = props.onModeChange; return <p>{props.mode}</p>; }}</WorkspaceGateway>);

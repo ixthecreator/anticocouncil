@@ -14,6 +14,14 @@ import {
   ActivityEvent,
 } from "./types";
 import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
+import {
+  workspacePageFromHash,
+  workspaceTheme,
+  type WorkspaceTheme,
+} from "./lib/workspaceNavigation";
+import { CouncilOverview } from "./components/CouncilOverview";
+import { ProposalIndex } from "./components/ProposalIndex";
+import "./components/parliament.css";
 import { Empty } from "./components/WorkspaceForms";
 import { Users, ListChecks, CircleCheck } from "lucide-react";
 import { MeetingManager } from "./components/MeetingManager";
@@ -60,10 +68,8 @@ import { motion, AnimatePresence } from "motion/react";
 
 // Import GitHub Sync helpers
 
-const workspacePages = new Set<WorkspacePage>(["session", "post", "archive", "supervision", "activity", "editorial", "assets", "inventory"]);
 function pageFromHash(): WorkspacePage {
-  const page = window.location.hash.slice(1) as WorkspacePage;
-  return workspacePages.has(page) ? page : "session";
+  return workspacePageFromHash(window.location.hash);
 }
 
 export default function App(props: {mode: "local" | "firebase"; onModeChange: (mode: "local" | "firebase") => void; account?: React.ReactNode}) {
@@ -98,18 +104,35 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   const [globalSearch, setGlobalSearch] = useState<string>("");
   const [selectedSignatureFilter, setSelectedSignatureFilter] =
     useState<string>("");
-  const [activeTab, setActiveTab] = useState<
-    | "session"
-    | "post"
-    | "archive"
-    | "supervision"
-    | "activity"
-    | "editorial"
-    | "assets"
-    | "inventory"
-  >(pageFromHash);
+  const navigationSearch = useRef<string | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkspacePage>(pageFromHash);
+  const [today, setToday] = useState(localDate);
   useEffect(() => {
-    const navigate = () => { setActiveTab(pageFromHash()); setGlobalSearch(""); };
+    const timer = window.setInterval(() => setToday(localDate()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const navigateTo = (page: WorkspacePage, nextSearch = "") => {
+    navigationSearch.current =
+      window.location.hash === `#${page}` ? null : nextSearch;
+    window.location.hash = page;
+    setActiveTab(page);
+    setGlobalSearch(nextSearch);
+    window.scrollTo({ top: 0 });
+  };
+  const openMeeting = (meeting: Meeting) => {
+    setCurrentMeetingId(meeting.id);
+    navigateTo("session");
+  };
+  const openIssue = (issue: Issue) => {
+    setIsAddingNew(false);
+    setActiveIssueForDetail(issue);
+  };
+  useEffect(() => {
+    const navigate = () => {
+      setActiveTab(pageFromHash());
+      setGlobalSearch(navigationSearch.current ?? "");
+      navigationSearch.current = null;
+    };
     window.addEventListener("hashchange", navigate);
     return () => window.removeEventListener("hashchange", navigate);
   }, []);
@@ -124,10 +147,12 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     useState<string>("all");
 
   // Theme State
-  const [theme, setTheme] = useState<
-    "classic" | "prussian" | "burgundy" | "latenight"
-  >(() => {
-    return (localStorage.getItem("app_theme") as any) || "prussian";
+  const [theme, setTheme] = useState<WorkspaceTheme>(() => {
+    try {
+      return workspaceTheme(localStorage.getItem("app_theme"));
+    } catch {
+      return "parliament";
+    }
   });
 
   // Modal State
@@ -449,19 +474,18 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   );
 
   return (
-    <div className={`council-app theme-${theme}`}>
+    <div className={`council-app parliament-app theme-${theme}`}>
       <WorkspaceShell
         page={activeTab}
-        onNavigate={(page) => {
-          window.location.hash = page;
-          setActiveTab(page);
-          setGlobalSearch("");
-          window.scrollTo({ top: 0 });
-        }}
+        onNavigate={navigateTo}
         theme={theme}
         onThemeChange={(next) => {
           setTheme(next);
-          localStorage.setItem("app_theme", next);
+          try {
+            localStorage.setItem("app_theme", next);
+          } catch {
+            // Keep the selected theme for this session.
+          }
         }}
         mode={storageMode}
         onModeChange={setStorageMode}
@@ -591,6 +615,27 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
         )}
         {workspace.dataLoaded && (
           <fieldset className="page-body workspace-editable" disabled={!ready}>
+            {activeTab === "overview" && (
+              <CouncilOverview
+                data={data}
+                today={today}
+                search={globalSearch}
+                onNavigate={navigateTo}
+                onOpenMeeting={openMeeting}
+                onOpenIssue={openIssue}
+                onOpenEditorial={(title) => navigateTo("editorial", title)}
+              />
+            )}
+            {activeTab === "proposals" && (
+              <ProposalIndex
+                issues={searchedIssues}
+                data={data}
+                today={today}
+                onOpenIssue={openIssue}
+                onOpenMeeting={openMeeting}
+              />
+            )}
+
             {activeTab === "session" && (
               <SessionView
                 key={`${storageMode}-${currentMeetingId}`}
@@ -645,6 +690,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
               ))}
             {activeTab === "supervision" && (
               <SupervisionView
+                members={data.members}
                 meetings={meetings}
                 issues={searchedIssues}
                 onOpenDetail={(issue) => {

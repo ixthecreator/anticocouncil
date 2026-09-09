@@ -1,8 +1,16 @@
 # 安提柯议会 · Antico Council
 
-安提柯议会协作网站，基于 React 19、Vite、TypeScript、Tailwind 和 Firebase。公开开始页提供 Portal 与 Blog 两个入口；Portal 是登录后使用的操作面板，涵盖例会签到、汇报表决、会后执行、编辑排期和后勤资料管理，支持手机布局及四种配色。
+安提柯议会协作网站，基于 React 19、Vite、TypeScript、Tailwind 和 Firebase。公开开始页提供 Portal 与 Blog 两个入口；Portal 是登录后使用的操作面板，涵盖例会签到、汇报表决、会后执行、编辑排期和后勤资料管理，支持手机布局及五种配色。
 
-## 本轮状态
+## UI 更新分支（待审阅）
+
+`feat/parliament-portal-ui` 将已确认的议会委员会 / GOV.UK 风格原型接入现有 React 工作台：深紫页眉、横向导航、清晰的表格与状态标签，新增真实数据概览及议题索引。每个未完成事项按自身截止日期显示靠右的「今日截止」或「已逾期」，长标题正常换行；生产数据中不注入原型示例。
+
+首次使用默认「议会紫」，已有四种主题偏好继续保留；可在设置中切换。原有八个业务模块与锚点、登录审批、云端保存、投票签到和导入导出继续沿用。此分支通过草稿 PR 审阅，尚未合并至生产分支；下文既有发布记录仍对应此前版本。
+
+本地查看：运行下方开发命令后打开 `/local#overview`；已有数据仍使用当前浏览器与域名的本地存储，新端口可能显示空工作区。云端 `/portal#overview` 与 `/portal#proposals` 均须通过原有身份和成员资格检查。当前 12 页 PDF 使用说明仍对应旧导航，菜单位置以本分支 UI 与此 README 为准。
+
+## 既有发布状态
 
 2026 年 9 月 8 日：公开开始页、云端 Portal、独立本地试用及 Google 整页登录代码已发布，并同步更新 12 页中文使用说明。Google 与邮箱密码提供方、三个认证域名和成员访问规则已启用；真实登录后的 Portal 访问和业务读写尚未验证成功。
 
@@ -24,6 +32,8 @@ Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anti
 
 - `/`：独立公开开始页，提供 Portal 与 Blog 两个选项；没有模块搜索或八模块公开卡，不读取会议或成员数据。
 - `/portal`：云端操作面板。须登录、验证邮箱并取得成员批准；当前指定的所有者完成邮箱验证后无需申请。
+- `/portal#overview`：默认议会概览，汇总真实会议、待议事项、执行进展和编辑排期。
+- `/portal#proposals`：议题索引，按状态筛选并进入现有议题详情或所属会议。
 - `/portal#session`：例会现场。其余工作模块使用 `post`、`supervision`、`archive`、`activity`、`editorial`、`assets`、`inventory` 锚点直达。
 - `/workspace`：保留的旧工作台入口，执行与 `/portal` 相同的云端身份与成员资格检查。
 - `/local`：独立本地试用，不要求登录。使用同一浏览器、同一网站的原本地记录，仅改变页面路径不需要迁移数据。
@@ -105,6 +115,8 @@ Firebase 默认邮件模板语言已保存并复读确认为简体中文，SDK �
 | `src/lib/firebase.ts`、`src/lib/firebaseConnection.ts` | 自有项目配置、惰性连接、快照状态、事务和分批写入 |
 | `src/lib/useWorkspace.ts` | 本地/云端数据隔离、只读缓存、保存反馈与恢复 |
 | `src/components/WorkspaceShell.tsx`、`src/App.tsx` | 工作台导航、主题、搜索、数据状态及导入导出 |
+| `CouncilOverview`、`ProposalIndex`、`src/lib/councilOverview.ts` | 概览汇总、截止标签与议题索引 |
+| `src/lib/workspaceNavigation.ts`、`src/components/parliament.css` | 新旧模块锚点、五种主题及议会风格样式 |
 | `AttendanceView`、`SessionView` | 成员登记、签到汇报、议题与表决 |
 | `PostMeetingView`、`SupervisionView`、`ArchiveView` | 会后执行、跨会议督办及历史纪要 |
 | `ActivityView`、`OperationsView` | 月度沙龙、编辑安排、资料库与文创库存 |
@@ -117,6 +129,8 @@ Firebase 默认邮件模板语言已保存并复读确认为简体中文，SDK �
 资料库支持 PNG/JPG/WEBP/PDF 附件，单文件最多 400 KB，存入当前工作区业务数据；大文件使用 HTTP(S) 链接。同名作者资料需要自行区分。外部表格仅保留业务入口，未抓取或迁移其内容。
 
 ## 验证与发布
+
+UI 更新分支已通过 TypeScript 检查、68 项测试（379 项断言）与 Vite 标准生产构建；覆盖新旧路由的云端身份边界、截止标签、两条同日待办、空数据和历史记录筛选。构建仍报告工作区包超过 500 kB 的体积提示。此次未进行真实云端登录、写入或 PDF 导出的端到端验收；此前这些流程的已知待验证事项继续保留。
 
 新增密码功能通过 TypeScript 检查、62 项测试、315 项断言及诊断构建。浏览器已验证登录页两个密码入口、进入与返回，以及 HTML 对无效邮箱的拦截；独立模拟页面验证密码不一致、近期登录提示、慢响应时禁用、键盘焦点、手机布局和中性发信提示及 60 秒重发等待，未发送真实邮件。测试包含 Firebase SDK 初始化和同一标签页中较晚返回的 Google 结果不能覆盖当前密码登录的边界；跨标签页 Google 登录取消没有新增覆盖。
 
