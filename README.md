@@ -1,6 +1,6 @@
 # 安提柯议会 · Antico Council
 
-安提柯议会协作网站，基于 React 19、Vite、TypeScript、Tailwind 和 Firebase。公开开始页提供 Portal 与 Blog 两个入口；Portal 是登录后使用的操作面板，涵盖例会签到、汇报表决、会后执行、编辑排期和后勤资料管理，支持手机布局及五种配色。
+安提柯议会协作网站，基于 React 19、Vite、TypeScript、Tailwind 和 Firebase。公开首页与档案馆提供按届次整理的文章和资料；协作工作台是登录后使用的操作面板，涵盖例会签到、汇报表决、会后执行、编辑排期和后勤资料管理，支持手机布局及五种配色。
 
 ## UI 更新分支（待审阅）
 
@@ -9,6 +9,14 @@
 首次使用默认「议会紫」，已有四种主题偏好继续保留；可在设置中切换。原有八个业务模块与锚点、登录审批、云端保存、投票签到和导入导出继续沿用。此分支通过草稿 PR 审阅，尚未合并至生产分支；下文既有发布记录仍对应此前版本。
 
 本地查看：运行下方开发命令后打开 `/local#overview`；已有数据仍使用当前浏览器与域名的本地存储，新端口可能显示空工作区。云端 `/portal#overview` 与 `/portal#proposals` 均须通过原有身份和成员资格检查。当前 12 页 PDF 使用说明仍对应旧导航，菜单位置以本分支 UI 与此 README 为准。
+
+## 公开首页与档案馆（待审阅）
+
+同一 UI 草稿 PR 现包含统一的深紫页眉、公开首页、按届次排列的档案馆和静态文章页。首页保留协作工作台及 `/preview/` 入口；`/blog` 兼容旧地址。当前届次和文章均明确标为设计示例，没有真实往届材料，也不读取内部会议、成员或选票。
+
+公开页面在构建时生成独立 HTML，不运行应用脚本，不加载 Google 字体。真实稿件可在仓库中维护，无需新后台。内容规范、静态构建和路由说明见 [公开档案馆维护说明](docs/public-archive.md)。审阅路径：`/`、`/archive`、`/archive/sample-working-records`。
+
+功能 PR #4（PDF 修复、Word 导出、会议改名）已合并至 main；本 UI 分支已同步该版本。UI PR #1 继续保持草稿，等待审核，未合并或发布到生产。
 
 ## 既有发布状态
 
@@ -32,9 +40,9 @@ Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anti
 
 `/preview/` 是公开的独立静态试用区，使用虚构成员与示例记录，可体验会议签到、表决、执行更新、纪要查询与下载。演示基准日固定为 2026 年 9 月 9 日，以保留两条「今日截止」及长标题效果。首页页脚提供「新 UI 试用」入口，试用区页脚可返回网站首页。
 
-试用操作仅保存到独立的 `antico-ui-preview-v1` 浏览器存储；重置只清除此键。该页面不加载 Firebase、不读写正式工作区数据，网络连接受独立页面策略禁止。`/portal`、`/workspace` 和 `/local` 继续使用原正式 UI；React 新 UI 接入仍保留在单独的草稿 PR 中。
+试用操作仅保存到独立的 `antico-ui-preview-v1` 浏览器存储；重置只清除此键。该页面不加载 Firebase、不读写正式工作区数据，网络连接受独立页面策略禁止。生产上的 `/portal`、`/workspace` 和 `/local` 仍使用原正式 UI；本草稿分支中的相同路径使用待审的新 React UI。
 
-试用文件位于 `public/preview/`，构建时复制到 `dist/preview/`。`vercel.json` 在单页应用兜底前为试用入口指定独立 HTML，静态文件使用 `/preview/` 绝对路径以兼容有无尾斜线的入口。
+试用文件位于 `public/preview/`，构建时复制到 `dist/preview/`。`vercel.json` 为试用入口指定独立 HTML，静态文件使用 `/preview/` 绝对路径以兼容有无尾斜线的入口。
 
 ## 会议文档与改名
 
@@ -49,14 +57,16 @@ Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anti
 
 ## 页面入口
 
-- `/`：独立公开开始页，提供 Portal 与 Blog 两个选项；没有模块搜索或八模块公开卡，不读取会议或成员数据。
+- `/`：公开首页，提供馆藏选读、历届目录和工作台入口，不读取会议或成员数据。
+- `/archive`：按届次整理的公开档案馆。
+- `/archive/<slug>`：独立静态文章，包含正文目录与同届文章。
 - `/portal`：云端操作面板。须登录、验证邮箱并取得成员批准；当前指定的所有者完成邮箱验证后无需申请。
 - `/portal#overview`：默认议会概览，汇总真实会议、待议事项、执行进展和编辑排期。
 - `/portal#proposals`：议题索引，按状态筛选并进入现有议题详情或所属会议。
 - `/portal#session`：例会现场。其余工作模块使用 `post`、`supervision`、`archive`、`activity`、`editorial`、`assets`、`inventory` 锚点直达。
 - `/workspace`：保留的旧工作台入口，执行与 `/portal` 相同的云端身份与成员资格检查。
 - `/local`：独立本地试用，不要求登录。使用同一浏览器、同一网站的原本地记录，仅改变页面路径不需要迁移数据。
-- `/blog`：文章栏目预留页，尚未发布文章，也没有文章编辑后台。
+- `/blog`：保留旧入口，呈现公开档案目录；无需文章编辑后台。
 - `/antico-council-guide.pdf`：使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`；新增密码说明已发布，线上文件与本地逐字节一致。
 - 其他路径显示未找到页面。公开页、工作台和文章页支持直接打开、刷新及浏览器返回。
 
@@ -70,6 +80,7 @@ bun run dev
 bun run lint
 bun test
 bun run build
+bun run check:public
 ```
 
 开发地址为 `http://localhost:3000`，生产输出为 `dist/`。当前界面不调用 Gemini，本地使用不需要 Gemini API 密钥。

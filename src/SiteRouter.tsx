@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
-import LandingPage, { BlogPage, NotFoundPage } from "./components/LandingPage";
+import { getPublicRoute } from "./publicRoutes";
+import "./components/landing.css";
 
 const Workspace = lazy(() => import("./WorkspaceEntry"));
 const cloudAliases = new Set(["anticocouncil-sigma.vercel.app"]);
@@ -27,11 +28,7 @@ export default function SiteRouter() {
       </Suspense>
     );
   }
-  if (path === "/blog") {
-    document.title = "文字与记录 · 安提柯议会";
-    return <BlogPage />;
-  }
-  if (path === "/") return <LandingPage />;
-  document.title = "页面未找到 · 安提柯议会";
-  return <NotFoundPage />;
+  const route = getPublicRoute(path);
+  document.title = route.title;
+  return route.page;
 }

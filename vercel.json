@@ -71,8 +71,52 @@
       "destination": "https://antico-council.firebaseapp.com/__/firebase/init.json"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/archive",
+      "destination": "/archive/index.html"
+    },
+    {
+      "source": "/archive/",
+      "destination": "/archive/index.html"
+    },
+    {
+      "source": "/archive/:slug",
+      "destination": "/archive/:slug/index.html"
+    },
+    {
+      "source": "/archive/:slug/",
+      "destination": "/archive/:slug/index.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/blog/",
+      "destination": "/blog/index.html"
+    },
+    {
+      "source": "/portal",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/portal/",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/workspace",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/workspace/",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/local",
+      "destination": "/workspace.html"
+    },
+    {
+      "source": "/local/",
+      "destination": "/workspace.html"
     }
   ]
 }

@@ -5,6 +5,7 @@ import SiteRouter from "./SiteRouter";
 import "./WorkspaceEntry";
 import { WorkspaceGateway } from "./components/WorkspaceGateway";
 import { readLocal } from "./lib/useWorkspace";
+import { archiveRecords, archiveTerms } from "./content/archive";
 
 const originalGlobals = new Map(["window", "document", "localStorage"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 
@@ -115,6 +116,54 @@ test("canonical cloud entry does not redirect again and public pages remain outs
     const html = await renderRoute();
     expect(html).not.toContain('class="cloud-gateway"');
     expect(html).not.toContain('class="council-app');
+    expect(browser.reads).toEqual([]);
+  }
+});
+
+test("public archive routes render complete example articles without touching workspace storage", async () => {
+  for (const record of archiveRecords) {
+    const browser = browserAt(`/archive/${record.slug}/`, "firebase");
+    browser.stored.set("antico_workspace_v2", "private meeting record");
+    const html = await renderRoute();
+    expect(html).toContain(record.title);
+    expect(html).toContain("排版示例 · 非真实历史记录");
+    expect(html).toContain('aria-label="本文目录"');
+    expect(html).toContain(`href="/archive#${record.termId}"`);
+    for (const section of record.sections) {
+      expect(html).toContain(section.title);
+      for (const paragraph of section.paragraphs)
+        expect(html).toContain(paragraph);
+    }
+    expect(document.title).toBe(`${record.title}（示例） · 安提柯议会`);
+    expect(html).not.toContain("private meeting record");
+    expect(html).not.toContain('class="cloud-gateway"');
+    expect(browser.reads).toEqual([]);
+  }
+});
+
+test("archive and legacy blog provide the same term index with working article links", async () => {
+  for (const path of ["/archive", "/archive/", "/blog", "/blog/"]) {
+    const browser = browserAt(path, "local");
+    const html = await renderRoute();
+    for (const term of archiveTerms) expect(html).toContain(`id="${term.id}"`);
+    for (const record of archiveRecords)
+      expect(html).toContain(`href="/archive/${record.slug}"`);
+    expect(html).toContain("尚未收录真实往届档案");
+    expect(browser.reads).toEqual([]);
+  }
+});
+
+test("unknown or nested archive slugs show not found rather than an article or workspace", async () => {
+  for (const path of [
+    "/archive/missing",
+    `/archive/${archiveRecords[0].slug}/extra`,
+    "/archive/%2Fportal",
+  ]) {
+    const browser = browserAt(path, "firebase");
+    const html = await renderRoute();
+    expect(html).toContain("没有找到这一页");
+    expect(html).not.toContain('aria-label="本文目录"');
+    expect(html).not.toContain('class="cloud-gateway"');
     expect(browser.reads).toEqual([]);
   }
 });
