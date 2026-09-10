@@ -23,6 +23,7 @@ import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
 import "./components/parliament.css";
 import { Empty } from "./components/WorkspaceForms";
+import { AuthLoadingContent } from "./components/AuthPageFrame";
 import { Users, ListChecks, CircleCheck } from "lucide-react";
 import { MeetingManager } from "./components/MeetingManager";
 import { IssueDetailModal } from "./components/IssueDetailModal";
@@ -568,9 +569,8 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
           </div>
         )}
         {!ready && !error && !workspace.connectionError && (
-          <div className="workspace-loading" role="status">
-            <span />
-            正在准备工作区…
+          <div className="workspace-loading">
+            <AuthLoadingContent headingLevel={2} title="正在准备工作区" description="正在读取会议和工作记录，请稍候。" />
           </div>
         )}
         {workspace.dataLoaded && (

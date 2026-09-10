@@ -36,6 +36,31 @@ async function renderRoute() {
   return new Response(stream).text();
 }
 
+test("workspace loading pages retain the public header, footer and route-specific title", () => {
+  for (const [path, title] of [
+    ["/portal", "正在打开协作工作台"],
+    ["/workspace", "正在打开协作工作台"],
+    ["/local", "正在打开本地试用"],
+  ]) {
+    const browser = browserAt(path, "local");
+    // Render the pending UI directly so this remains independent of lazy module caching.
+    const html = renderToStaticMarkup(SiteRouter().props.fallback);
+    expect(html).toContain(title);
+    expect(html).toContain('class="public-masthead"');
+    expect(html).toContain('class="public-footer"');
+    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/archive"');
+    expect(html).not.toContain('class="council-app');
+    if (path === "/local") {
+      expect(html).toContain("试用数据仅保存在当前浏览器，不会同步到云端。");
+      expect(html).not.toContain("注册账号");
+    } else {
+      expect(html).toContain("注册账号");
+    }
+    expect(browser.reads).toEqual([]);
+  }
+});
+
 test("portal and legacy workspace routes never mount local data behind a saved local preference", async () => {
   for (const path of ["/portal#overview", "/portal#proposals", "/portal#assets", "/workspace#inventory", "/portal/", "/workspace/"]) {
     const browser = browserAt(path, "local");
@@ -97,6 +122,9 @@ test("only cloud routes on the owned alias move to canonical origin with the ful
     const browser = browserAt(`https://anticocouncil-sigma.vercel.app${path}`, "local");
     const html = await renderRoute();
     expect(html).toContain(`href="https://www.anticocouncil.com${path}"`);
+    expect(html).toContain("正在前往正式协作工作台");
+    expect(html).toContain('class="public-masthead"');
+    expect(html).toContain('class="public-footer"');
     expect(html).not.toContain('class="cloud-gateway"');
     expect(html).not.toContain('class="council-app');
     expect(browser.reads).toEqual([]);

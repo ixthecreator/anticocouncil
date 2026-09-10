@@ -7,7 +7,7 @@ import {
   type ArchiveRecord,
 } from "../content/archive";
 
-type PublicPage = "home" | "archive" | "not-found";
+type PublicPage = "home" | "archive" | "workspace" | "not-found";
 export function PublicLayout({
   page,
   children,
@@ -47,7 +47,7 @@ export function PublicLayout({
           >
             公开档案馆
           </a>
-          <a className="public-portal-link" href="/portal">
+          <a className="public-portal-link" href="/portal" aria-current={page === "workspace" ? "page" : undefined}>
             协作工作台 <span>成员登录</span>
             <ArrowUpRight size={17} aria-hidden="true" />
           </a>
