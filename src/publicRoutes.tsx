@@ -14,14 +14,14 @@ export function getPublicRoute(path: string) {
   if (normalized === "/")
     return {
       title: "安提柯议会 · 公开档案馆",
-      description: "按届次查阅安提柯议会的工作回顾、议事记录与文章。",
+      description: "按届次查阅安提柯议会的工作报告、会议记录和交接资料。",
       noindex: hasArchiveExamples,
       page: <LandingPage />,
     };
   if (normalized === "/archive" || normalized === "/blog")
     return {
       title: "公开档案馆 · 安提柯议会",
-      description: "历届议会的记录与文章，按届次独立成卷。",
+      description: "安提柯议会各届公开档案目录。",
       noindex: hasArchiveExamples || normalized === "/blog",
       page: <PublicArchive />,
     };

@@ -34,7 +34,7 @@ export function PublicArchive() {
           PUBLIC ARCHIVE
         </p>
         <h1 id="archive-title">公开档案馆</h1>
-        <p className="public-lead">按届次查阅工作回顾、议事记录与文章。</p>
+        <p className="public-lead">查阅各届工作报告、会议记录和交接资料。</p>
       </section>
       <div className="public-archive-grid">
         <aside className="public-archive-nav" id="terms">
@@ -49,9 +49,9 @@ export function PublicArchive() {
             </ol>
           </nav>
           <div className="public-reading-note">
-            <h3>关于馆藏</h3>
+            <h3>收录说明</h3>
             <p>
-              这里收录供公众阅读的文章与资料。成员会议和日常事务请前往
+              本页收录公开资料。例会和日常事务请前往
               <a href="/portal">协作工作台</a>。
             </p>
           </div>
@@ -108,7 +108,7 @@ export function ArchiveArticle({ record }: { record: ArchiveRecord }) {
           <p className="public-lead">{record.summary}</p>
           <dl className="public-article-metadata">
             <div>
-              <dt>馆藏编号</dt>
+              <dt>档案编号</dt>
               <dd>
                 {record.isExample === true ? "SAMPLE" : "AC"}-{record.number}
               </dd>
@@ -122,7 +122,7 @@ export function ArchiveArticle({ record }: { record: ArchiveRecord }) {
             {record.isExample === true ? (
               <div>
                 <dt>文档状态</dt>
-                <dd>排版示例 · 非真实历史记录</dd>
+                <dd>示例文稿</dd>
               </div>
             ) : (
               <>
@@ -145,7 +145,7 @@ export function ArchiveArticle({ record }: { record: ArchiveRecord }) {
         <div className="public-article-grid">
           <aside className="public-article-contents">
             <nav aria-label="本文目录">
-              <h2>本篇目录</h2>
+              <h2>本文目录</h2>
               <ol>
                 {record.sections.map((section, index) => (
                   <li key={section.title}>
@@ -173,12 +173,6 @@ export function ArchiveArticle({ record }: { record: ArchiveRecord }) {
               </section>
             ))}
             <div className="public-article-end">
-              <span aria-hidden="true">——</span>
-              <p>
-                {record.isExample === true
-                  ? "示例文稿，仅供本次设计审核。"
-                  : "本文收录于安提柯议会公开档案馆。"}
-              </p>
               <a href={`/archive#${record.termId}`}>
                 返回{term?.title}
                 <ArrowRight size={17} aria-hidden="true" />
