@@ -66,6 +66,11 @@ export function recordBallot(
   if (issue.status !== "voting" || issue.voteMode !== "members")
     throw new Error("表决已结束或尚未开启，请刷新后重试。");
   if (!memberId) throw new Error("请先选择签到成员。");
+  if (!["approve", "reject", "abstain"].includes(choice)) throw new Error("选票无效。");
+  if (Object.hasOwn(issue.ballots || {}, memberId)) {
+    if (issue.ballots![memberId] === choice) return issue;
+    throw new Error("选票已提交，不能修改。");
+  }
   return {
     ...issue,
     ballots: { ...issue.ballots, [memberId]: choice },
@@ -184,7 +189,7 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
         throw new Error(`${key} 存在缺失或无效字段。`);
       const optionalStrings: Record<CollectionName, string[]> = {
         meetings: ["regularReport"],
-        issues: ["dueDate", "archivedAt", "serialNumber"],
+        issues: ["dueDate", "archivedAt", "serialNumber", "voteRoundId", "voteClosedAt"],
         activities: ["location", "description"],
         members: [],
         attendance: ["reportedAt"],
@@ -230,7 +235,7 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
       if (
         key === "issues" &&
         ((row.voteMode !== undefined &&
-          !["manual", "members"].includes(row.voteMode)) ||
+          !["manual", "members", "private", "legacy"].includes(row.voteMode)) ||
           (row.voteRule !== undefined &&
             !["simple", "absolute"].includes(row.voteRule)))
       )
@@ -255,8 +260,8 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
         throw new Error("议题格式无效。");
       if (
         key === "issues" &&
-        row.ballots &&
-        (typeof row.ballots !== "object" ||
+        row.ballots !== undefined &&
+        (!row.ballots || Array.isArray(row.ballots) || typeof row.ballots !== "object" ||
           Object.values(row.ballots).some(
             (v) => !["approve", "reject", "abstain"].includes(v as string),
           ))
@@ -300,7 +305,7 @@ export function meetingBrief(data: WorkspaceData, meetingId: string) {
       issues
         .map((i, n) => {
           const votes = voteTotals(i);
-          return `${n + 1}. ${i.title}｜${statusLabels[i.status]}\n负责人：${i.signature || "待安排"}　截止：${i.dueDate || "未设定"}\n${i.description}\n结论与执行记录：${i.discussion || "暂无"}${i.votes || i.ballots ? `\n表决：赞成 ${votes.approve} / 反对 ${votes.reject} / 弃权 ${votes.abstain}` : ""}`;
+          return `${n + 1}. ${i.title}｜${statusLabels[i.status]}\n负责人：${i.signature || "待安排"}　截止：${i.dueDate || "未设定"}\n${i.description}\n结论与执行记录：${i.discussion || "暂无"}${!["agenda", "voting"].includes(i.status) && (i.votes || i.ballots) ? `\n表决：赞成 ${votes.approve} / 反对 ${votes.reject} / 弃权 ${votes.abstain}` : ""}`;
         })
         .join("\n\n") || "暂无议题"
     }`,

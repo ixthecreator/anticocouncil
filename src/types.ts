@@ -35,7 +35,9 @@ export interface Issue {
     abstain: number;
   };
   voteRule?: 'simple' | 'absolute'; // 简单多数 or 绝对多数
-  voteMode?: 'manual' | 'members';
+  voteMode?: 'manual' | 'members' | 'private' | 'legacy';
+  voteRoundId?: string;
+  voteClosedAt?: string;
   ballots?: Record<string, 'approve' | 'reject' | 'abstain'>;
   dueDate?: string;
 }
@@ -130,4 +132,3 @@ export const DEFAULT_DEPARTMENTS: string[] = [
   '拉美小组',
   '其他'
 ];
-

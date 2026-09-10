@@ -15,7 +15,7 @@ import { PasswordRecoveryForm, PasswordSettingsDialog } from "./AccountPassword"
 type StorageMode = "local" | "firebase";
 export interface WorkspaceGatewayProps {
   mode?: StorageMode;
-  children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode }) => ReactNode;
+  children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode; actor?: AccessActor }) => ReactNode;
 }
 
 function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => void }) {
@@ -195,7 +195,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   const approved = authReady && (owner || accessReady && hasWorkspaceAccess(identity, access));
 
   if (mode === "local") return <Fragment key="local">{children({ mode, onModeChange })}</Fragment>;
-  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
+  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, actor: { ...identity, role: owner ? "admin" : access!.role }, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
 
   return <main className="cloud-gateway"><a className="cloud-home" href="/">← 返回议会首页</a><section className="cloud-gate-card">
     <a className="cloud-brand" href="/"><img src="/logo.png" alt=""/><span>安提柯议会<small>ANTICO COUNCIL</small></span></a>

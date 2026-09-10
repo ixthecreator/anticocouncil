@@ -34,6 +34,9 @@ import { ActivityView } from "./components/ActivityView";
 import { OperationsView } from "./components/OperationsView";
 import { buildMeetingExport, exportMeetingFileName, renderMeetingLatex, type MeetingExportKind } from "./lib/meetingExport";
 import { renameMeeting } from "./lib/meetingRename";
+import { mergeIssueEdit } from "./lib/issueEditing";
+import { votingRequest } from "./lib/privateVoting";
+import type { AccessActor } from "./lib/cloudAccess";
 import { downloadBlob } from "./lib/downloadBlob";
 import { useWorkspace } from "./lib/useWorkspace";
 import {
@@ -70,7 +73,7 @@ function pageFromHash(): WorkspacePage {
   return workspacePageFromHash(window.location.hash);
 }
 
-export default function App(props: {mode: "local" | "firebase"; onModeChange: (mode: "local" | "firebase") => void; account?: React.ReactNode}) {
+export default function App(props: {mode: "local" | "firebase"; onModeChange: (mode: "local" | "firebase") => void; account?: React.ReactNode; actor?: AccessActor}) {
   const workspace = useWorkspace(props);
   const {
     data,
@@ -187,28 +190,22 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   };
 
   const handleSaveIssue = (updated: Issue) =>
-    workspace.change("issues", updated.id, (old) => {
-      if (!old) return { ...updated, updatedAt: new Date().toISOString() };
-      const originalStatus =
-        activeIssueForDetail?.id === updated.id
-          ? activeIssueForDetail.status
-          : old.status;
-      if (updated.status !== originalStatus && old.status !== originalStatus)
-        throw new Error("议题状态已被其他成员修改。请重新打开后再调整状态。");
-      return {
-        ...old,
-        title: updated.title,
-        description: updated.description,
-        category: updated.category,
-        priority: updated.priority,
-        discussion: updated.discussion,
-        signature: updated.signature,
-        dueDate: updated.dueDate || "",
-        status: updated.status === originalStatus ? old.status : updated.status,
-        updatedAt: new Date().toISOString(),
-      };
+    workspace.change("issues", updated.id, (latest) =>
+      mergeIssueEdit(latest, isAddingNew ? null : activeIssueForDetail, updated),
+    );
+  const handleDeleteIssue = (id: string) => {
+    const issue = issues.find(item => item.id === id);
+    if (issue && (issue.status === "voting" || issue.voteRoundId || issue.voteMode === "legacy")) {
+      return Promise.reject(new Error("为保留表决历史，此议题不能删除。"));
+    }
+    if (storageMode === "local") return workspace.localMutation(latest => {
+      const current = latest.issues.find(item => item.id === id);
+      if (!current) throw new Error("议题已被删除。");
+      if (current.status === "voting" || current.voteRoundId || current.voteMode === "legacy") throw new Error("为保留表决历史，此议题不能删除。");
+      return { ...latest, issues: latest.issues.filter(item => item.id !== id) };
     });
-  const handleDeleteIssue = (id: string) => remove("issues", id);
+    return remove("issues", id);
+  };
   const handleAdvanceIssue = (updated: Issue) =>
     workspace.change("issues", updated.id, (old) => {
       if (!old) throw new Error("议题不存在。");
@@ -242,17 +239,18 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
       return { ...old, regularReport };
     });
   const handleDeleteMeeting = async (id: string) => {
-    if (
-      issues.some((i) => i.meetingId === id) ||
-      data.attendance.some((r) => r.meetingId === id)
-    ) {
-      setError("会议仍有关联议题或签到记录，请保留档案。");
-      return;
-    }
-    try {
-      await remove("meetings", id);
-    } catch {
-      /* displayed in workspace */
+    if (storageMode === "firebase") {
+      await workspace.runOperation(async assertCurrent => {
+        await votingRequest({ action: "delete-meeting", meetingId: id }, { expectedUid: props.actor?.uid, assertCurrent });
+      });
+    } else {
+      await workspace.localMutation(latest => {
+        if (latest.issues.some(issue => issue.meetingId === id) || latest.attendance.some(row => row.meetingId === id)) {
+          throw new Error("会议仍有关联议题或签到记录，请保留档案。");
+        }
+        if (!latest.meetings.some(meeting => meeting.id === id)) throw new Error("会议已被删除。");
+        return { ...latest, meetings: latest.meetings.filter(meeting => meeting.id !== id) };
+      });
     }
   };
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -448,13 +446,13 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
         }}
         mode={storageMode}
         onModeChange={setStorageMode}
-        pending={pending}
+        pending={pending + Number(importing)}
         ready={ready}
         notice={notice}
         connection={workspace.connection}
         connectionError={workspace.connectionError}
         onReconnect={workspace.reconnect}
-        account={React.isValidElement(props.account) ? React.cloneElement(props.account as React.ReactElement<{workspacePending?: number}>, {workspacePending: pending}) : props.account}
+        account={React.isValidElement(props.account) ? React.cloneElement(props.account as React.ReactElement<{workspacePending?: number}>, {workspacePending: pending + Number(importing)}) : props.account}
         search={globalSearch}
         onSearchChange={setGlobalSearch}
         onExport={handleExportJSON}
@@ -473,6 +471,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
             <p>
               将「{importFile.name}
               」合并到当前工作区。同编号记录会更新，其余记录保留。建议先导出备份。
+              {storageMode === "firebase" && "云端已有议题的状态、关联会议、归档状态与表决记录保持不变；已进入表决的议题保留原命题内容。新记录中的选票不能通过普通 JSON 导入恢复。"}
               {!ready &&
                 storageMode === "local" &&
                 "当前数据不可读，恢复将以此备份重建工作区，损坏的原始数据另行保留。"}
@@ -491,9 +490,14 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
                 onClick={async () => {
                   setImporting(true);
                   try {
-                    await workspace.importBackup(
-                      JSON.parse(await importFile.text()),
-                    );
+                    const context = exportContext.current;
+                    const file = importFile;
+                    await workspace.runOperation(async assertCurrent => {
+                      const parsed = JSON.parse(await file.text());
+                      assertCurrent();
+                      if (context !== exportContext.current) throw new Error("工作区已切换，已取消导入。");
+                      await workspace.importBackup(parsed);
+                    }, storageMode === "local");
                     setImportFile(null);
                   } catch (err) {
                     setError(err instanceof Error ? err.message : "导入失败");
@@ -601,6 +605,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
                 key={`${storageMode}-${currentMeetingId}`}
                 currentMeeting={selectedMeeting}
                 workspace={workspace}
+                actor={props.actor}
                 search={globalSearch}
                 onAddIssue={handleStartAddIssue}
                 onOpenDetail={(issue) => {
@@ -687,6 +692,8 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
         <IssueDetailModal
           key={activeIssueForDetail.id}
           issue={activeIssueForDetail}
+          ballotUid={storageMode === "firebase" ? props.actor?.uid : undefined}
+          isNew={isAddingNew}
           members={members}
           categories={DEFAULT_DEPARTMENTS}
           onClose={() => {

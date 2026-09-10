@@ -1,2 +1,8 @@
-/* Legacy workspace fonts. Public archive pages use installed system fonts. */
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+/* Installed fonts keep the workspace usable without Google Fonts requests.
+   Document exports load their bundled Chinese fonts separately, on demand. */
+:root {
+  --font-serif: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+  --font-display: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+  --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}

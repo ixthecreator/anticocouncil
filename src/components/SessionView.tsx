@@ -5,12 +5,12 @@ import {
   downloadText,
   advanceIssue,
   meetingBrief,
-  recordBallot,
   statusLabels,
-  voteTotals,
-  votingResult,
 } from "../lib/workspace";
-import { ParliamentChart } from "./ParliamentChart";
+import { VotingPanel } from "./VotingPanel";
+import { votingRequest } from "../lib/privateVoting";
+import type { AccessActor } from "../lib/cloudAccess";
+import { mergeEditedRecord } from "../lib/editRecord";
 import { AttendanceView } from "./AttendanceView";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 
@@ -20,16 +20,20 @@ export function SessionView({
   search,
   onAddIssue,
   onOpenDetail,
+  actor,
 }: {
   currentMeeting: Meeting | null;
   workspace: Workspace;
   search: string;
+  actor?: AccessActor;
   onAddIssue: () => void;
   onOpenDetail: (issue: Issue) => void;
 }) {
   const { data, change } = workspace;
   const [activeId, setActiveId] = useState("");
-  const [memberId, setMemberId] = useState("");
+  const [startRule, setStartRule] = useState<"simple" | "absolute">("simple");
+  const canHost = workspace.mode === "local" || actor?.role === "admin";
+  const [notesOriginal, setNotesOriginal] = useState<Meeting | null>(null);
   const [report, setReport] = useState(currentMeeting?.regularReport || "");
   const [summary, setSummary] = useState(currentMeeting?.summary || "");
   const [editingNotes, setEditingNotes] = useState(false);
@@ -47,18 +51,6 @@ export function SessionView({
   );
   const voting = allIssues.filter((i) => i.status === "voting");
   const active = voting.find((i) => i.id === activeId) || voting[0];
-  const totals = active
-    ? voteTotals(active)
-    : { approve: 0, reject: 0, abstain: 0 };
-  const checked = data.attendance.filter(
-    (r) => r.meetingId === currentMeeting.id,
-  );
-  const updateVoting = (update: (issue: Issue) => Issue) =>
-    active &&
-    change("issues", active.id, (old) => {
-      if (!old || old.status !== "voting") throw new Error("此表决已结束。");
-      return { ...update(old), updatedAt: new Date().toISOString() };
-    });
   return (
     <div className="session-workspace">
       <AttendanceView meeting={currentMeeting} workspace={workspace} />
@@ -76,6 +68,7 @@ export function SessionView({
                 ＋ 新增议题
               </button>
             </div>
+            {canHost && allIssues.some(issue => issue.status === "agenda") && <Field label="新表决通过规则"><select value={startRule} onChange={event => setStartRule(event.target.value as "simple" | "absolute")}><option value="simple">赞成多于反对</option><option value="absolute">赞成超过已投票数的一半</option></select></Field>}
             {!issues.length ? (
               <Empty>
                 {search
@@ -111,26 +104,23 @@ export function SessionView({
                       </button>
                       {i.status === "agenda" && (
                         <>
-                          <Action
+                          {canHost && <Action
                             onClick={async () => {
-                              await change("issues", i.id, (old) => {
-                                if (!old || old.status !== "agenda")
-                                  throw new Error("议题状态已改变，请重试。");
-                                return {
-                                  ...old,
-                                  status: "voting",
-                                  voteMode: "members",
-                                  voteRule: "simple",
-                                  ballots: {},
-                                  votes: { approve: 0, reject: 0, abstain: 0 },
-                                  updatedAt: new Date().toISOString(),
-                                };
-                              });
+                              if (workspace.mode === "firebase") {
+                                await workspace.runOperation(async assertCurrent => {
+                                  assertCurrent();
+                                  await votingRequest({ action: "start", issueId: i.id, rule: startRule }, { expectedUid: actor?.uid, assertCurrent });
+                                });
+                              } else {
+                                await change("issues", i.id, old => {
+                                  if (!old || old.status !== "agenda") throw new Error("议题状态已改变，请重试。");
+                                  if (old.voteRoundId || old.ballots || old.votes) throw new Error("已有表决记录，请新建议题，保留原有历史。");
+                                  return { ...old, status: "voting", voteMode: "members", voteRule: startRule, ballots: {}, updatedAt: new Date().toISOString() };
+                                });
+                              }
                               setActiveId(i.id);
                             }}
-                          >
-                            发起表决
-                          </Action>
+                          >发起表决</Action>}
                           <Action
                             onClick={() =>
                               change("issues", i.id, (old) => {
@@ -179,6 +169,7 @@ export function SessionView({
                 <button
                   className="workspace-button"
                   onClick={() => {
+                    setNotesOriginal(structuredClone(currentMeeting));
                     setReport(currentMeeting.regularReport || "");
                     setSummary(currentMeeting.summary || "");
                     setEditingNotes(true);
@@ -193,7 +184,7 @@ export function SessionView({
                 onSave={async () => {
                   await change("meetings", currentMeeting.id, (old) => {
                     if (!old) throw new Error("会议不存在");
-                    return { ...old, regularReport: report, summary };
+                    return mergeEditedRecord(old, notesOriginal, { ...notesOriginal!, regularReport: report, summary }, ["regularReport", "summary"]);
                   });
                   setEditingNotes(false);
                 }}
@@ -216,192 +207,7 @@ export function SessionView({
             )}
           </section>
         </div>
-        <section className="workspace-panel voting-panel">
-          <div className="workspace-heading">
-            <div>
-              <span className="eyebrow">LIVE / VOTING</span>
-              <h2>会议表决</h2>
-            </div>
-            <span className="workspace-badge">
-              {voting.length ? "表决进行中" : "尚未开始"}
-            </span>
-          </div>
-          {!active ? (
-            <Empty>从议程中发起表决。成员签到后，可选择姓名投票。</Empty>
-          ) : (
-            <>
-              {voting.length > 1 && (
-                <Field label="切换表决议题">
-                  <select
-                    value={active.id}
-                    onChange={(e) => setActiveId(e.target.value)}
-                  >
-                    {voting.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.title}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-              <h3 className="voting-title">{active.title}</h3>
-              <p>{active.description}</p>
-              <div className="workspace-fields">
-                <Field label="计票方式">
-                  <select
-                    value={active.voteMode || "manual"}
-                    disabled={
-                      Object.keys(active.ballots || {}).length > 0 ||
-                      Object.values(totals).some((n) => n > 0)
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value as "members" | "manual";
-                      void updateVoting((old) => {
-                        if (
-                          Object.keys(old.ballots || {}).length ||
-                          Object.values(voteTotals(old)).some((n) => n > 0)
-                        )
-                          throw new Error("已有投票，不能切换计票方式。");
-                        return { ...old, voteMode: value };
-                      }).catch(() => {});
-                    }}
-                  >
-                    <option value="members">成员投票</option>
-                    <option value="manual">主持人录票</option>
-                  </select>
-                </Field>
-                <Field label="通过规则">
-                  <select
-                    value={active.voteRule || "simple"}
-                    onChange={(e) => {
-                      const value = e.target.value as "simple" | "absolute";
-                      void updateVoting((old) => ({
-                        ...old,
-                        voteRule: value,
-                      })).catch(() => {});
-                    }}
-                  >
-                    <option value="simple">赞成多于反对</option>
-                    <option value="absolute">赞成超过已投票数的一半</option>
-                  </select>
-                </Field>
-              </div>
-              <ParliamentChart
-                approve={totals.approve}
-                reject={totals.reject}
-                abstain={totals.abstain}
-              />
-              <div className="vote-totals">
-                <div>
-                  <strong>{totals.approve}</strong>赞成
-                </div>
-                <div>
-                  <strong>{totals.reject}</strong>反对
-                </div>
-                <div>
-                  <strong>{totals.abstain}</strong>弃权
-                </div>
-              </div>
-              {active.voteMode === "members" ? (
-                <>
-                  <Field label="投票成员">
-                    <select
-                      value={memberId}
-                      onChange={(e) => setMemberId(e.target.value)}
-                    >
-                      <option value="">选择本次已签到成员</option>
-                      {checked.map((r) => (
-                        <option key={r.memberId} value={r.memberId}>
-                          {r.memberName}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <div className="workspace-actions vote-buttons">
-                    {(["approve", "reject", "abstain"] as const).map((vote) => (
-                      <Action
-                        key={vote}
-                        className={
-                          active.ballots?.[memberId] === vote ? "primary" : ""
-                        }
-                        disabled={!checked.some((r) => r.memberId === memberId)}
-                        onClick={() =>
-                          updateVoting((old) =>
-                            recordBallot(old, memberId, vote),
-                          )
-                        }
-                      >
-                        {
-                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
-                            vote
-                          ]
-                        }
-                      </Action>
-                    ))}
-                  </div>
-                  <p className="workspace-help">
-                    每个成员计一票，结束前可改票。姓名由成员自行选择，请仅代表本人操作；此处不验证账号身份。
-                  </p>
-                </>
-              ) : (
-                <div className="manual-votes">
-                  {(["approve", "reject", "abstain"] as const).map((vote) => (
-                    <div key={vote}>
-                      <span>
-                        {
-                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
-                            vote
-                          ]
-                        }
-                      </span>
-                      {[-1, 1].map((delta) => (
-                        <Action
-                          key={delta}
-                          onClick={() =>
-                            updateVoting((old) => {
-                              if (old.voteMode === "members")
-                                throw new Error(
-                                  "当前为成员投票，不能手动修改票数。",
-                                );
-                              return {
-                                ...old,
-                                votes: {
-                                  ...voteTotals(old),
-                                  [vote]: Math.max(
-                                    0,
-                                    voteTotals(old)[vote] + delta,
-                                  ),
-                                },
-                              };
-                            })
-                          }
-                        >
-                          {delta < 0 ? "−" : "＋"}
-                        </Action>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Action
-                className="primary full-width"
-                disabled={!Object.values(totals).some((n) => n > 0)}
-                onClick={() =>
-                  updateVoting((old) => ({
-                    ...old,
-                    status: votingResult(old),
-                    votes: voteTotals(old),
-                  }))
-                }
-              >
-                结束表决并保存结果
-              </Action>
-              <p className="workspace-help">
-                平票不通过。规则以实际收到的票数计算，未投票成员不计入分母。
-              </p>
-            </>
-          )}
-        </section>
+        <div>{voting.length > 1 && <Field label="切换表决议题"><select value={active.id} onChange={event => setActiveId(event.target.value)}>{voting.map(issue => <option key={issue.id} value={issue.id}>{issue.title}</option>)}</select></Field>}<VotingPanel key={active?.id || "empty"} active={active} workspace={workspace} actor={actor} meeting={currentMeeting} /></div>
       </div>
     </div>
   );
