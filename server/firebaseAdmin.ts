@@ -4,9 +4,9 @@ import { getAuth } from "firebase-admin/auth";
 import type { Auth } from "firebase-admin/auth";
 import { FieldPath, FieldValue, getFirestore } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
-import { createVotingService, VotingError } from "./votingService";
-import type { VotingStore } from "./votingService";
-import type { VotingHttpDependencies } from "./votingHttp";
+import { createVotingService, VotingError } from "./votingService.js";
+import type { VotingStore } from "./votingService.js";
+import type { VotingHttpDependencies } from "./votingHttp.js";
 
 function unavailable(): never {
   throw new VotingError(503, "service-unavailable", "投票服务暂未就绪，请联系管理员。");

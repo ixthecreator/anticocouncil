@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { VotingError, validVoteChoice, validVoteRule, validVotingId } from "./votingService";
-import type { VotingIdentity, VotingService } from "./votingService";
+import { VotingError, validVoteChoice, validVoteRule, validVotingId } from "./votingService.js";
+import type { VotingIdentity, VotingService } from "./votingService.js";
 
 export const MAX_VOTING_BODY_BYTES = 8192;
 

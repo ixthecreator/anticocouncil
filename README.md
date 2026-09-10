@@ -87,6 +87,8 @@ bun install --frozen-lockfile
 bun run dev
 bun run lint
 bun test
+bun run test:server-runtime
+bun run test:rules
 bun run build
 bun run check:public
 ```

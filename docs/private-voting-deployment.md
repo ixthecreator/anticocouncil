@@ -25,6 +25,8 @@
 
 `firebase-admin@14.3.0` 的安装包要求 Node `>=22`。根 `package.json` 应固定 `"engines": { "node": "22.x" }`，或选择经过验证的更高版本。构建命令使用 Bun，不代表线上 Node 函数也使用 Bun。
 
+服务端相对模块导入使用编译后 `.js` 扩展名；不要仅靠 Vite/打包器验证模块可加载。`test:server-runtime` 会独立编译入口，再由原生 Node 加载验证，避免“构建成功、函数启动失败”。
+
 根目录 `api/voting.ts` 会作为 Vercel Node 函数单独构建，支持当前默认导出的 Node `request/response` handler。无需把它复制到 `dist`，也无需添加 Edge runtime。现有 Vite 静态输出与该函数可以共存；保留 `/__/auth/*` Firebase 代理、`/preview/` 演示和静态归档路由，避免新增覆盖 `/api/*` 的 SPA catch-all。[Vercel Node 运行时](https://vercel.com/docs/functions/runtimes/node-js)、[Node 版本设置](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)。
 
 在无生产凭据的环境执行仓库验证：
@@ -33,6 +35,8 @@
 bun install --frozen-lockfile
 bun run lint
 bun test
+bun run test:server-runtime
+bun run test:rules
 bun run build
 bun run check:public
 ```
