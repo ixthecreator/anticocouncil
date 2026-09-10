@@ -1,234 +1,189 @@
-import React, { useState } from "react";
-import { Meeting, Issue, Status } from "../types";
-import { Eye, Clock, Calendar, CheckCircle } from "lucide-react";
+import { useState } from "react";
+import type { Meeting, Issue, Member } from "../types";
+import { localDate, statusLabels } from "../lib/workspace";
+import { DeadlineTag } from "./CouncilOverview";
+import { Empty } from "./WorkspaceForms";
 
 interface SupervisionViewProps {
   meetings: Meeting[];
   issues: Issue[];
+  members?: Member[];
   onOpenDetail: (issue: Issue) => void;
 }
 
-export const SupervisionView: React.FC<SupervisionViewProps> = ({
+export function SupervisionView({
   meetings,
   issues,
+  members = [],
   onOpenDetail,
-}) => {
-  const [subTab, setSubTab] = useState<"current" | "overview">("current");
-  const [recentN, setRecentN] = useState<number>(3);
-
-  // For "当前活动": Issues that are in 'authorization' (未执行), 'passed', or 'execution' (执行中)
-  const supervisionIssues = issues.filter(
-    (i) =>
-      i.status === "passed" ||
-      i.status === "authorization" ||
-      i.status === "execution",
+}: SupervisionViewProps) {
+  const [scope, setScope] = useState<"current" | "overview">("current");
+  const [recentN, setRecentN] = useState(3);
+  const current = issues.filter((issue) =>
+    ["passed", "authorization", "execution"].includes(issue.status),
   );
-
-  const pendingAuth = supervisionIssues.filter(
-    (i) => i.status === "passed" || i.status === "authorization",
-  );
-  const executing = supervisionIssues.filter((i) => i.status === "execution");
-
-  // For "活动总览": Select recent N meetings, show all "passed" or "completed" or "execution" or "authorization"
-  // "所有通过的活动": meaning anything that is not rejected or agenda/voting?
-  // Let's assume passed, authorization, execution, completed.
-  const sortedMeetings = [...meetings].sort(
+  const recentMeetings = [...meetings]
+    .sort(
+      (a, b) =>
+        b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+    )
+    .slice(0, recentN);
+  const recentIds = new Set(recentMeetings.map((meeting) => meeting.id));
+  const records = (
+    scope === "current"
+      ? current
+      : issues.filter(
+          (issue) =>
+            recentIds.has(issue.meetingId || "") &&
+            ["passed", "authorization", "execution", "completed"].includes(
+              issue.status,
+            ),
+        )
+  ).sort(
     (a, b) =>
-      b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+      (a.dueDate || "9999").localeCompare(b.dueDate || "9999") ||
+      a.createdAt.localeCompare(b.createdAt),
   );
-  const overviewMeetings = sortedMeetings.slice(0, recentN);
-  const overviewMeetingIds = overviewMeetings.map((m) => m.id);
-  const overviewIssues = issues.filter(
-    (i) =>
-      overviewMeetingIds.includes(i.meetingId || "") &&
-      (i.status === "passed" ||
-        i.status === "authorization" ||
-        i.status === "execution" ||
-        i.status === "completed"),
-  );
+  const today = localDate();
 
   return (
-    <div className="supervision-layout">
-      {/* Left Column: Sub-navigation */}
-      <div className="supervision-tabs">
-        <button
-          onClick={() => setSubTab("current")}
-          className={`w-full text-left p-3 border-2 transition-all font-sans font-bold text-sm ${
-            subTab === "current"
-              ? "border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)]"
-              : "border-transparent bg-transparent text-[var(--theme-text-primary)] hover:border-[var(--theme-border,#171717)]"
-          }`}
-        >
-          当前议程
-        </button>
-        <button
-          onClick={() => setSubTab("overview")}
-          className={`w-full text-left p-3 border-2 transition-all font-sans font-bold text-sm ${
-            subTab === "overview"
-              ? "border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-[var(--theme-accent-text,#ffffff)]"
-              : "border-transparent bg-transparent text-[var(--theme-text-primary)] hover:border-[var(--theme-border,#171717)]"
-          }`}
-        >
-          议程总览
-        </button>
+    <section aria-label="执行事项">
+      <div className="council-stat-strip">
+        <div>
+          <strong>
+            {current.filter((issue) => issue.status !== "execution").length}
+          </strong>
+          <span>待授权 / 待执行</span>
+        </div>
+        <div>
+          <strong>
+            {current.filter((issue) => issue.status === "execution").length}
+          </strong>
+          <span>执行中</span>
+        </div>
+        <div>
+          <strong>
+            {issues.filter((issue) => issue.status === "completed").length}
+          </strong>
+          <span>已完成</span>
+        </div>
       </div>
-
-      {/* Right Column: Content */}
-      <div className="workspace-panel">
-        {subTab === "current" && (
-          <div className="space-y-6">
-            <h2 className="font-sans text-2xl font-bold border-b-2 border-[var(--theme-border)] pb-2 flex items-center gap-2 text-[var(--theme-text-primary)]">
-              <Clock className="w-5 h-5" /> 当前议程督办
-            </h2>
-            <p className="text-xs font-sans text-[var(--theme-text-secondary)]">
-              统一跟进等待授权与执行中的议题，完成后可在对应会议档案中回顾。
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h3 className="font-sans text-sm font-bold tracking-normal uppercase bg-[var(--theme-accent-light)] px-3 py-1.5 border border-[var(--theme-border)] text-red-700">
-                  待执行 / 待授权 ({pendingAuth.length})
-                </h3>
-                {pendingAuth.map((issue) => (
-                  <div
-                    key={issue.id}
-                    onClick={() => onOpenDetail(issue)}
-                    className="p-3 border-2 border-neutral-200 bg-[var(--theme-card-bg)] hover:border-[var(--theme-border)] cursor-pointer transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-sans text-xs px-1 bg-red-100 text-red-800 border border-red-300">
-                        {issue.category}
-                      </span>
-                      <span className="font-sans text-xs text-[var(--theme-text-secondary)]">
-                        经办: {issue.signature || "待定"}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-sm text-[var(--theme-text-primary)]">
-                      {issue.serialNumber ? `[${issue.serialNumber}] ` : ""}
-                      {issue.title}
-                    </h4>
-                    <p className="text-xs text-[var(--theme-text-secondary)] mt-1 line-clamp-2">
-                      {issue.description || "无详细描述"}
-                    </p>
-                  </div>
-                ))}
-                {pendingAuth.length === 0 && (
-                  <p className="text-xs font-sans opacity-50 italic">
-                    暂无记录
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-sans text-sm font-bold tracking-normal uppercase bg-[var(--theme-accent-light)] px-3 py-1.5 border border-[var(--theme-border)] text-blue-700">
-                  执行中 ({executing.length})
-                </h3>
-                {executing.map((issue) => (
-                  <div
-                    key={issue.id}
-                    onClick={() => onOpenDetail(issue)}
-                    className="p-3 border-2 border-neutral-200 bg-[var(--theme-card-bg)] hover:border-[var(--theme-border)] cursor-pointer transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-sans text-xs px-1 bg-blue-100 text-blue-800 border border-blue-300">
-                        {issue.category}
-                      </span>
-                      <span className="font-sans text-xs text-[var(--theme-text-secondary)]">
-                        经办: {issue.signature || "待定"}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-sm text-[var(--theme-text-primary)]">
-                      {issue.serialNumber ? `[${issue.serialNumber}] ` : ""}
-                      {issue.title}
-                    </h4>
-                    <p className="text-xs text-[var(--theme-text-secondary)] mt-1 line-clamp-2">
-                      {issue.description || "无详细描述"}
-                    </p>
-                  </div>
-                ))}
-                {executing.length === 0 && (
-                  <p className="text-xs font-sans opacity-50 italic">
-                    暂无记录
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+      <div className="council-filter-toolbar">
+        <label htmlFor="supervision-scope">查看范围</label>
+        <select
+          id="supervision-scope"
+          value={scope}
+          onChange={(event) => setScope(event.target.value as typeof scope)}
+        >
+          <option value="current">待完成事项</option>
+          <option value="overview">按近期会议回顾</option>
+        </select>
+        {scope === "overview" && (
+          <label className="council-recent-count">
+            最近
+            <input
+              aria-label="回顾会议数量"
+              type="number"
+              min="1"
+              max="20"
+              value={recentN}
+              onChange={(event) =>
+                setRecentN(
+                  Math.min(
+                    20,
+                    Math.max(1, Math.floor(Number(event.target.value)) || 1),
+                  ),
+                )
+              }
+            />
+            次会议
+          </label>
         )}
-
-        {subTab === "overview" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-end border-b-2 border-[var(--theme-border)] pb-2">
-              <h2 className="font-sans text-2xl font-bold flex items-center gap-2 text-[var(--theme-text-primary)]">
-                <Eye className="w-5 h-5" /> 议程总览
-              </h2>
-              <div className="flex items-center gap-2 text-sm font-sans text-[var(--theme-text-primary)]">
-                <label>追溯近</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={recentN}
-                  onChange={(e) => setRecentN(Number(e.target.value))}
-                  className="w-12 text-center border-b-2 border-[var(--theme-border)] bg-transparent outline-none focus:border-[var(--theme-accent)] transition-colors"
-                />
-                <label>次会议</label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
-              {overviewIssues.length === 0 ? (
-                <p className="text-xs font-sans opacity-50 italic col-span-full">
-                  暂无通过的活动
-                </p>
-              ) : (
-                overviewIssues.map((issue) => {
-                  const issueMeeting = meetings.find(
-                    (m) => m.id === issue.meetingId,
-                  );
-                  return (
-                    <div
-                      key={issue.id}
-                      onClick={() => onOpenDetail(issue)}
-                      className="p-3 border-2 border-neutral-200 bg-[var(--theme-card-bg)] hover:border-[var(--theme-border)] cursor-pointer transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <span
-                            className={`font-sans text-xs px-1.5 py-0.5 border ${
-                              issue.status === "completed"
-                                ? "border-green-600 bg-green-50 text-green-700"
-                                : issue.status === "execution"
-                                  ? "border-blue-600 bg-blue-50 text-blue-700"
-                                  : "border-neutral-600 bg-neutral-50 text-neutral-700"
-                            }`}
-                          >
-                            {issue.status === "completed"
-                              ? "归档"
-                              : issue.status === "execution"
-                                ? "执行"
-                                : "未执行"}
-                          </span>
-                          <span className="font-sans text-xs text-[var(--theme-text-secondary)]">
-                            {issueMeeting ? issueMeeting.date : "无周期"}
-                          </span>
-                        </div>
-                        <h4 className="font-bold text-sm text-[var(--theme-text-primary)] mb-1">
-                          {issue.serialNumber ? `[${issue.serialNumber}] ` : ""}
-                          {issue.title}
-                        </h4>
-                      </div>
-                      <p className="font-sans text-xs text-[var(--theme-text-secondary)] mt-2">
-                        {issue.category} | {issue.signature || "待定"}
+        <span>{records.length} 项事项</span>
+      </div>
+      {records.length === 0 ? (
+        <Empty>
+          {scope === "current"
+            ? "目前没有待授权或执行中的事项。"
+            : "所选会议中暂无通过的事项。"}
+        </Empty>
+      ) : (
+        <div className="council-table-wrap">
+          <table className="council-table">
+            <caption className="sr-only">
+              {scope === "current"
+                ? "待完成的执行事项"
+                : `最近 ${recentN} 次会议的执行记录`}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">执行事项</th>
+                <th scope="col">负责人</th>
+                <th scope="col">截止日期</th>
+                <th scope="col">状态</th>
+                <th scope="col">
+                  <span className="sr-only">操作</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((issue) => {
+                const meeting = meetings.find(
+                  (item) => item.id === issue.meetingId,
+                );
+                const responsible =
+                  members.find((member) => member.id === issue.signature)
+                    ?.name ||
+                  issue.signature ||
+                  "待安排";
+                return (
+                  <tr key={issue.id}>
+                    <th scope="row">
+                      <button
+                        className="council-link"
+                        onClick={() => onOpenDetail(issue)}
+                      >
+                        {issue.serialNumber ? `${issue.serialNumber} · ` : ""}
+                        {issue.title}
+                      </button>
+                      <p className="council-meta">
+                        {issue.category}
+                        {meeting ? ` · ${meeting.title}` : ""}
                       </p>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                    </th>
+                    <td>{responsible}</td>
+                    <td>
+                      <div className="council-due-date">
+                        <span>{issue.dueDate || "未设置"}</span>
+                        {!issue.archived && issue.status !== "completed" && (
+                          <DeadlineTag dueDate={issue.dueDate} today={today} />
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`council-tag ${issue.status === "completed" ? "green" : issue.status === "execution" ? "blue" : "grey"}`}
+                      >
+                        {statusLabels[issue.status]}
+                      </span>
+                      {issue.archived && <p className="council-meta">已归档</p>}
+                    </td>
+                    <td>
+                      <button
+                        className="council-link council-nowrap"
+                        onClick={() => onOpenDetail(issue)}
+                        aria-label={`查看与更新：${issue.title}`}
+                      >
+                        查看与更新
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
-};
+}

@@ -1,0 +1,1053 @@
+/* Parliament-inspired working surfaces. All rules are scoped away from public pages. */
+.parliament-app.theme-parliament {
+  --theme-bg: #fff;
+  --theme-panel-bg: #fff;
+  --theme-card-bg: #fff;
+  --theme-border: #cdd0d4;
+  --theme-text-primary: #17181c;
+  --theme-text-secondary: #5b616c;
+  --theme-accent: #4d2768;
+  --theme-accent-light: #f5f3f7;
+  --theme-accent-text: #fff;
+  --theme-sidebar: #2b173d;
+  --theme-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+}
+.parliament-app {
+  --council-link: #1459a1;
+}
+.parliament-shell {
+  font-family: var(--theme-font, var(--font-sans));
+  font-size: 16px;
+  line-height: 1.65;
+}
+.parliament-app.theme-latenight {
+  --council-link: #99c7f6;
+}
+.parliament-app .parliament-shell {
+  display: block;
+}
+.parliament-app .parliament-container,
+.parliament-app .workspace-content {
+  width: min(1200px, calc(100% - 64px));
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.parliament-masthead {
+  background: var(--theme-sidebar);
+  color: #fff;
+  border-bottom: 5px solid #83529f;
+}
+.parliament-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 104px;
+}
+.parliament-brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #fff;
+  text-decoration: none;
+}
+.parliament-brand:hover {
+  color: #fff;
+}
+.parliament-monogram {
+  border: 1px solid #a995b7;
+  padding: 3px 9px;
+  font:
+    700 34px/1.4 Georgia,
+    serif;
+  letter-spacing: -3px;
+}
+.parliament-monogram > span {
+  color: #d4bbdf;
+  margin-inline: 3px;
+}
+.parliament-brand strong {
+  display: block;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: 3px;
+  line-height: 1.4;
+}
+.parliament-brand small {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #ded4e7;
+  margin-top: 3px;
+}
+.parliament-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.parliament-header-label {
+  font-size: 14px;
+  padding-right: 28px;
+  border-right: 1px solid #8c759e;
+  color: #e0d7e6;
+}
+.parliament-local-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.parliament-masthead .cloud-account > details > summary {
+  color: #fff;
+  font-size: 15px;
+}
+.parliament-masthead .cloud-account > details > summary small {
+  color: #ded4e7;
+  font-size: 12px;
+}
+.parliament-masthead .cloud-avatar {
+  background: #685177;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+}
+.parliament-app .cloud-account-menu {
+  border-radius: 0;
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-navigation-bar {
+  border-bottom: 1px solid var(--theme-border);
+}
+.parliament-navigation {
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  min-height: 65px;
+}
+.parliament-navigation > button,
+.parliament-more > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 17px 0;
+  font: 600 16px/1.65 var(--theme-font, var(--font-sans));
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  white-space: nowrap;
+}
+.parliament-navigation > button[aria-current="page"],
+.parliament-more > summary.has-active-page {
+  color: var(--theme-accent);
+}
+.parliament-navigation > button[aria-current="page"]::after,
+.parliament-more > summary.has-active-page::after {
+  content: "";
+  position: absolute;
+  height: 4px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  background: var(--theme-accent);
+}
+.parliament-more {
+  position: relative;
+  margin-left: auto;
+}
+.parliament-more summary {
+  list-style: none;
+}
+.parliament-more summary::-webkit-details-marker {
+  display: none;
+}
+.parliament-more-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 230px;
+  background: var(--theme-card-bg);
+  border: 1px solid var(--theme-border);
+  border-top: 4px solid var(--theme-accent);
+  padding: 8px 0;
+  box-shadow: 0 8px 18px #17181c20;
+  z-index: 50;
+}
+.parliament-more-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 12px 18px;
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  font-size: 15px;
+}
+.parliament-more-menu button:hover,
+.parliament-more-menu button[aria-current="page"] {
+  background: var(--theme-accent-light);
+  color: var(--theme-accent);
+}
+.parliament-service-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 13px;
+  border-bottom: 1px solid var(--theme-border);
+  font-size: 13px;
+}
+.parliament-service-strip p {
+  margin: 0;
+  color: var(--theme-text-secondary);
+}
+.parliament-service-strip .save-status {
+  margin-left: auto;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.parliament-app .workspace-topbar {
+  height: auto;
+  min-height: 76px;
+  padding: 16px 0;
+  border: 0;
+  background: transparent;
+}
+.parliament-app .breadcrumb {
+  font-size: 14px;
+  white-space: normal;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.parliament-app .topbar-tools {
+  gap: 18px;
+}
+.parliament-app .workspace-search {
+  width: 280px;
+}
+.parliament-app .workspace-search input {
+  height: 40px;
+  min-height: 40px;
+  font-size: 14px;
+  padding: 8px 36px;
+  background: var(--theme-accent-light);
+  border: 1px solid var(--theme-border);
+}
+.parliament-app .shell-settings summary {
+  font-size: 14px;
+  border-radius: 0;
+}
+.parliament-app .settings-popover {
+  border-radius: 0;
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-app .settings-popover .workspace-field,
+.parliament-app .settings-popover .workspace-field select,
+.parliament-app .settings-popover .workspace-help,
+.parliament-app .settings-backup button {
+  font-size: 14px;
+}
+.parliament-app .workspace-content {
+  padding: 14px 0 28px;
+}
+.parliament-app .page-heading {
+  margin-bottom: 36px;
+}
+.parliament-app .page-kicker {
+  color: var(--theme-accent);
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.parliament-app .page-heading h1 {
+  font: 700 38px/1.35 var(--theme-font, var(--font-sans));
+  letter-spacing: 1px;
+}
+.parliament-app .page-heading p {
+  font-size: 16px;
+  margin-top: 12px;
+}
+.parliament-date {
+  font-size: 15px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.parliament-date small {
+  display: block;
+  color: var(--theme-text-secondary);
+  margin-top: 5px;
+  font-size: 13px;
+}
+.parliament-footer {
+  background: var(--theme-accent-light);
+  border-top: 1px solid var(--theme-border);
+  margin-top: 36px;
+  padding: 30px 0;
+  font-size: 13px;
+  color: var(--theme-text-secondary);
+}
+.parliament-footer > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.parliament-footer strong {
+  display: block;
+  font-size: 16px;
+  color: var(--theme-text-primary);
+  margin-bottom: 4px;
+}
+.parliament-footer a {
+  color: var(--council-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.parliament-app .skip-link {
+  left: 20px;
+  border-radius: 0;
+  background: #ffdd00;
+  color: #17181c;
+  z-index: 1100;
+}
+.parliament-app :is(a, button, summary, input, select, textarea):focus-visible {
+  outline: 3px solid #ffdd00;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #17181c;
+}
+.parliament-app :is(input, select, textarea) {
+  border-radius: 0;
+  border-color: var(--theme-text-secondary);
+}
+.parliament-app .workspace-field input,
+.parliament-app .workspace-field select,
+.parliament-app .workspace-field textarea {
+  min-height: 44px;
+  font-size: 16px;
+  border-width: 2px;
+}
+.parliament-app .workspace-field > span {
+  font-size: 15px;
+}
+.parliament-app .workspace-button {
+  border-radius: 0;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.parliament-app .workspace-button.primary {
+  border-color: var(--theme-accent);
+  box-shadow: 0 2px 0 var(--theme-sidebar);
+}
+.parliament-app .workspace-panel,
+.parliament-app .meeting-toolbar {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--theme-card-bg);
+}
+.parliament-app .workspace-panel {
+  border: 0;
+  border-top: 4px solid var(--theme-accent);
+  padding: 22px 0;
+}
+.parliament-app .workspace-heading h2 {
+  font: 700 23px/1.5 var(--theme-font, var(--font-sans));
+}
+.parliament-app .workspace-help {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.parliament-app .workspace-empty {
+  background: var(--theme-accent-light);
+  border: 0;
+  border-left: 4px solid var(--theme-border);
+  border-radius: 0;
+  padding: 22px;
+  font-size: 15px;
+}
+.parliament-app .workspace-empty .empty-icon {
+  display: none;
+}
+.parliament-app .workspace-badge {
+  border: 0;
+  border-radius: 0;
+  font-size: 14px;
+  padding: 3px 8px;
+}
+.parliament-app .workspace-error,
+.parliament-app .workspace-connection-error,
+.parliament-app .workspace-notice {
+  border-radius: 0;
+  font-size: 15px;
+}
+.parliament-app .workspace-error {
+  border: 3px solid #ad2329;
+}
+.parliament-app .meeting-toolbar {
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-app .meeting-toolbar .meeting-icon {
+  border-radius: 0;
+}
+.parliament-app .meeting-stats {
+  gap: 20px;
+}
+.parliament-app .stat-card {
+  border: 0;
+  border-left: 3px solid var(--theme-border);
+  border-radius: 0;
+  padding: 8px 18px;
+  background: transparent;
+  box-shadow: none;
+}
+.parliament-app .stat-icon {
+  display: none;
+}
+.parliament-app .stat-card strong {
+  font-size: 28px;
+}
+.parliament-app .stat-card span,
+.parliament-app .stat-card small {
+  font-size: 14px;
+}
+.parliament-app .agenda-list > article {
+  border: 0;
+  border-bottom: 1px solid var(--theme-border);
+  border-radius: 0;
+  padding: 20px 0;
+  background: transparent;
+}
+.parliament-app .agenda-title {
+  color: var(--council-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-size: 18px;
+}
+.parliament-app .attendance-table {
+  font-size: 15px;
+}
+.parliament-app .workspace-editable {
+  min-width: 0;
+}
+.parliament-app .workspace-editable:disabled {
+  opacity: 0.8;
+}
+.parliament-app .council-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  color: var(--council-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border: 0;
+}
+.parliament-app .council-link:hover {
+  text-decoration-thickness: 2px;
+}
+.council-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 326px;
+  gap: 48px;
+}
+.council-meeting-feature {
+  background: var(--theme-accent-light);
+  border-top: 5px solid var(--theme-accent);
+  padding: 23px 28px 25px;
+}
+.council-section-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--theme-accent);
+  font-size: 14px;
+  font-weight: 650;
+  margin-bottom: 22px;
+}
+.council-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: nowrap;
+  border-radius: 0;
+}
+.council-tag.purple {
+  background: #e6ddef;
+  color: #51266c;
+}
+.council-tag.blue {
+  background: #dcebf6;
+  color: #144d77;
+}
+.council-tag.green {
+  background: #dcece3;
+  color: #195b3b;
+}
+.council-tag.grey {
+  background: #e9eaec;
+  color: #454b55;
+}
+.council-tag.amber {
+  background: #fff0c2;
+  color: #755004;
+}
+.council-tag.red {
+  background: #fbe2e2;
+  color: #9d2329;
+}
+.council-meeting-title-row {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+.council-meeting-title-row > div:last-child {
+  min-width: 0;
+}
+.council-date-block {
+  background: var(--theme-card-bg);
+  border: 1px solid var(--theme-border);
+  border-top: 3px solid var(--theme-accent);
+  width: 78px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1.4;
+  padding: 7px 0;
+}
+.council-date-block > span {
+  display: block;
+  font-size: 12px;
+  color: var(--theme-accent);
+}
+.council-date-block > strong {
+  display: block;
+  font:
+    600 36px/1.2 Georgia,
+    serif;
+  color: var(--theme-text-primary);
+}
+.council-date-block > small {
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+}
+.parliament-app .council-meta {
+  font-size: 14px;
+  color: var(--theme-text-secondary);
+  margin: 0;
+  font-weight: 400;
+}
+.council-meeting-title-row h2 {
+  margin: 5px 0 8px;
+  font-size: 27px;
+  line-height: 1.4;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.council-title-link {
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.council-title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.council-feature-description {
+  margin: 22px 0;
+  font-size: 16px;
+  color: var(--theme-text-secondary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.council-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.council-feature-bottom .workspace-button {
+  gap: 20px;
+}
+.council-section {
+  margin-top: 34px;
+}
+.council-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.council-section-title h2,
+.council-side-section h2 {
+  font-size: 23px;
+  line-height: 1.4;
+  font-weight: 700;
+  margin: 0;
+}
+.council-section-title > .council-link {
+  font-size: 14px;
+}
+.council-issue-row {
+  display: flex;
+  gap: 20px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--theme-border);
+}
+.council-issue-row > div {
+  min-width: 0;
+}
+.council-issue-row h3 {
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.council-row-number {
+  font:
+    400 22px/1.3 Georgia,
+    serif;
+  color: var(--theme-text-secondary);
+  margin-top: 3px;
+  min-width: 28px;
+}
+.council-row-arrow {
+  margin-left: auto;
+  align-self: center;
+  color: var(--theme-accent);
+  flex-shrink: 0;
+}
+.council-action-panel {
+  border-top: 5px solid var(--theme-accent);
+  padding-top: 19px;
+}
+.council-number-label {
+  font:
+    400 24px/1.3 Georgia,
+    serif;
+  color: var(--theme-accent);
+}
+.council-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--theme-border);
+  cursor: pointer;
+}
+.council-action-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+}
+.council-action-heading strong {
+  min-width: 0;
+  color: var(--council-link);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+.council-action-heading > .council-tag {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.council-action-item:hover strong {
+  text-decoration-thickness: 2px;
+}
+.council-action-item > .council-meta {
+  overflow-wrap: anywhere;
+}
+.council-side-section h2 {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.council-side-section > .council-link {
+  font-size: 14px;
+}
+.council-progress-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--theme-text-secondary);
+  gap: 12px;
+}
+.council-progress-line strong {
+  font-weight: 500;
+}
+.council-progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 7px;
+  border: 0;
+  background: var(--theme-border);
+  margin: 12px 0 16px;
+}
+.council-progress::-webkit-progress-bar {
+  background: var(--theme-border);
+}
+.council-progress::-webkit-progress-value {
+  background: var(--theme-accent);
+}
+.council-progress::-moz-progress-bar {
+  background: var(--theme-accent);
+}
+.council-recent-record {
+  margin-bottom: 16px;
+}
+.council-recent-record h3 {
+  margin-top: 7px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.council-empty-note {
+  color: var(--theme-text-secondary);
+  font-size: 15px;
+  padding-top: 20px;
+}
+.parliament-app .council-spaced {
+  margin-top: 22px;
+}
+.council-filter-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
+  border-block: 1px solid var(--theme-border);
+}
+.council-filter-toolbar label {
+  font-size: 15px;
+  font-weight: 600;
+}
+.council-filter-toolbar select {
+  font-size: 15px;
+  padding: 9px;
+  border: 2px solid var(--theme-text-secondary);
+  min-height: 44px;
+}
+.council-filter-toolbar > .council-meta {
+  margin-left: auto;
+}
+.council-proposal-item {
+  padding: 26px 0;
+  border-bottom: 1px solid var(--theme-border);
+}
+.council-proposal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.council-tag-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.council-proposal-item h2 {
+  font-size: 24px;
+  font-weight: 650;
+  margin: 13px 0;
+  overflow-wrap: anywhere;
+}
+.council-proposal-description {
+  color: var(--theme-text-secondary);
+  font-size: 16px;
+  max-width: 850px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.council-proposal-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.council-proposal-facts > div {
+  display: flex;
+  gap: 10px;
+}
+.council-proposal-facts dt {
+  color: var(--theme-text-secondary);
+  flex-shrink: 0;
+}
+.council-proposal-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.council-table-wrap {
+  overflow-x: auto;
+}
+.council-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 15px;
+}
+.council-table th {
+  font-weight: 600;
+}
+.council-table thead th {
+  border-bottom: 2px solid var(--theme-text-primary);
+  padding: 16px 16px 16px 0;
+  white-space: nowrap;
+}
+.council-table td,
+.council-table tbody th {
+  padding: 21px 16px 21px 0;
+  border-bottom: 1px solid var(--theme-border);
+  vertical-align: top;
+}
+.council-table tbody th {
+  width: 44%;
+  overflow-wrap: anywhere;
+}
+.council-table tbody th .council-meta {
+  display: block;
+  margin-top: 6px;
+}
+.council-table td:last-child {
+  padding-right: 0;
+}
+.council-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 56px;
+  margin-bottom: 30px;
+}
+.council-stat-strip > div {
+  border-left: 3px solid var(--theme-border);
+  padding-left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.council-stat-strip strong {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--theme-accent);
+  font-weight: 600;
+}
+.council-stat-strip span {
+  font-size: 14px;
+  color: var(--theme-text-secondary);
+}
+@media (max-width: 1000px) {
+  .council-overview-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 28px;
+  }
+  .council-meeting-feature {
+    padding: 20px;
+  }
+  .council-meeting-title-row {
+    gap: 15px;
+  }
+  .council-meeting-title-row h2 {
+    font-size: 24px;
+  }
+  .parliament-navigation {
+    gap: 22px;
+  }
+  .parliament-date,
+  .parliament-header-label {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .parliament-app .parliament-container,
+  .parliament-app .workspace-content {
+    width: calc(100% - 36px);
+  }
+  .parliament-header-inner {
+    min-height: 88px;
+    gap: 12px;
+  }
+  .parliament-brand {
+    gap: 12px;
+  }
+  .parliament-brand strong {
+    font-size: 21px;
+    letter-spacing: 1px;
+  }
+  .parliament-brand small {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+  }
+  .parliament-monogram {
+    font-size: 26px;
+    padding: 2px 7px;
+  }
+  .parliament-local-account {
+    font-size: 13px;
+  }
+  .parliament-masthead .cloud-account > details > summary > span:last-child {
+    display: none;
+  }
+  .parliament-navigation {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 16px;
+  }
+  .parliament-navigation > button,
+  .parliament-more > summary {
+    font-size: 14px;
+    padding: 12px 0;
+    justify-content: center;
+  }
+  .parliament-more {
+    margin: 0;
+  }
+  .parliament-more-menu {
+    width: 225px;
+  }
+  .parliament-service-strip {
+    flex-wrap: wrap;
+    gap: 7px 10px;
+    font-size: 12px;
+  }
+  .parliament-service-strip > p {
+    flex: 1;
+  }
+  .parliament-service-strip .save-status {
+    font-size: 12px;
+    width: 100%;
+    margin-left: 0;
+  }
+  .parliament-app .workspace-topbar {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    padding-block: 19px;
+  }
+  .parliament-app .topbar-tools {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .parliament-app .workspace-search {
+    flex: 1;
+    width: auto;
+  }
+  .parliament-app .workspace-content {
+    padding-top: 4px;
+  }
+  .parliament-app .page-heading {
+    margin-bottom: 26px;
+  }
+  .parliament-app .page-heading h1 {
+    font-size: 31px;
+  }
+  .parliament-app .page-heading p {
+    font-size: 15px;
+  }
+  .parliament-app .page-kicker {
+    font-size: 11px;
+  }
+  .council-overview-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .council-meeting-title-row h2 {
+    font-size: 23px;
+  }
+  .council-date-block {
+    width: 66px;
+  }
+  .council-section-title h2 {
+    font-size: 21px;
+  }
+  .council-issue-row {
+    gap: 13px;
+  }
+  .council-issue-row h3 {
+    font-size: 17px;
+  }
+  .council-row-number {
+    min-width: 22px;
+    font-size: 20px;
+  }
+  .council-filter-toolbar {
+    gap: 10px;
+  }
+  .council-filter-toolbar select {
+    max-width: 100%;
+  }
+  .council-proposal-item h2 {
+    font-size: 21px;
+  }
+  .council-proposal-meta {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .council-proposal-facts {
+    display: grid;
+    gap: 10px;
+  }
+  .council-table {
+    min-width: 640px;
+  }
+  .council-stat-strip {
+    gap: 18px;
+    justify-content: space-between;
+  }
+  .council-stat-strip > div {
+    padding-left: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .council-stat-strip strong {
+    font-size: 29px;
+  }
+  .council-stat-strip span {
+    font-size: 13px;
+  }
+  .parliament-footer {
+    margin-top: 24px;
+  }
+  .parliament-footer > div {
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}
+.council-recent-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.council-recent-count input {
+  width: 64px;
+}
+.council-due-date {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 7px;
+}
+.council-nowrap {
+  white-space: nowrap;
+}
