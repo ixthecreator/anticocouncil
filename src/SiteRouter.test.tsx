@@ -126,7 +126,7 @@ test("public archive routes render complete example articles without touching wo
     browser.stored.set("antico_workspace_v2", "private meeting record");
     const html = await renderRoute();
     expect(html).toContain(record.title);
-    expect(html).toContain("排版示例 · 非真实历史记录");
+    expect(html).toContain("示例文稿");
     expect(html).toContain('aria-label="本文目录"');
     expect(html).toContain(`href="/archive#${record.termId}"`);
     for (const section of record.sections) {
@@ -148,7 +148,7 @@ test("archive and legacy blog provide the same term index with working article l
     for (const term of archiveTerms) expect(html).toContain(`id="${term.id}"`);
     for (const record of archiveRecords)
       expect(html).toContain(`href="/archive/${record.slug}"`);
-    expect(html).toContain("尚未收录真实往届档案");
+    expect(html).toContain("真实档案尚未收录");
     expect(browser.reads).toEqual([]);
   }
 });

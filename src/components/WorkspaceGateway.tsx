@@ -202,7 +202,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     <span className="cloud-eyebrow">SHARED WORKSPACE</span>
     {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务并确认登录结果…</p>{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
     : !identity ? <>
-      <h1>{screen === "login" ? "进入共同工作的空间" : "创建你的成员账号"}</h1><p>登录并验证邮箱后，提交加入申请。获得批准即可使用议会共同工作区。</p>
+      <h1>{screen === "login" ? "成员登录" : "注册成员账号"}</h1><p>首次使用须验证邮箱并申请加入，经管理员批准后可进入工作台。</p>
       <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => selectEmailScreen("login")} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => selectEmailScreen("register")} disabled={busy}>注册账号</button></div>
       <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => screen === "login" ? loginWithEmail(email, password) : registerWithEmail(name, email, password), screen === "register" ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
         {screen === "register" && <label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label>}
@@ -234,7 +234,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
       <h1>申请加入议会工作区</h1><p>邮箱已验证：<strong>{identity.email}</strong></p><p>填写成员姓名，让管理员确认你的申请。</p><form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => requestWorkspaceAccess(name), "加入申请已提交。"); }}><label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label><button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在提交…" : "提交加入申请"}</button></form>
     </>}
     {redirectError && <p className="cloud-error" role="alert">{redirectError}</p>}{(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
-    <footer className="cloud-gate-footer">{identity && <><button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>本地试用仅保存在当前浏览器，不会加入云端共同工作区。</p></footer>
+    <footer className="cloud-gate-footer">{identity && <><button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>
     {identity?.verified && passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </section></main>;
 }

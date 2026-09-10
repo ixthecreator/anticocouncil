@@ -33,7 +33,6 @@ export function PublicLayout({
               <small lang="en">ANTICO COUNCIL</small>
             </span>
           </a>
-          <span className="public-masthead-note">共同讨论，有序行动。</span>
         </div>
         <nav
           className="public-container public-navigation"
@@ -77,7 +76,7 @@ export function PublicLayout({
               使用说明（PDF）
               <span className="public-sr-only">，在新窗口打开</span>
             </a>
-            <a href="/preview/">新 UI 试用</a>
+            <a href="/preview/">试用演示</a>
             <a href="/local">本地工作台</a>
           </nav>
         </div>
@@ -89,10 +88,10 @@ export function SampleNotice() {
   if (!hasArchiveExamples) return null;
   return (
     <p className="public-phase">
-      <strong>设计预览</strong>
+      <strong>示例内容</strong>
       <span>{archiveRecords.every(record => record.isExample)
-        ? "以下馆藏为示例内容，用于展示排版；尚未收录真实往届档案。"
-        : "标有「示例」的馆藏仅用于展示排版，不代表真实历史记录。"}</span>
+        ? "目前展示的届次和文章均为示例，真实档案尚未收录。"
+        : "标有「示例」的文章不是实际会议或工作记录。"}</span>
     </p>
   );
 }
@@ -143,14 +142,12 @@ export default function LandingPage() {
             THE COUNCIL ARCHIVE
           </p>
           <h1 id="home-title">
-            议会的记录，
+            安提柯议会
             <br />
-            共同的记忆。
+            公开档案馆
           </h1>
           <p className="public-lead">
-            在这里，回看历届议会的工作与思考。
-            <br />
-            从一份议事记录，到一届共同走过的历程。
+            按届次整理工作报告、会议记录和交接资料。
           </p>
           <a className="public-button" href="/archive">
             查阅公开档案
@@ -164,17 +161,17 @@ export default function LandingPage() {
           <p className="public-eyebrow" lang="en">
             VISITOR’S GUIDE
           </p>
-          <h2 id="visitor-guide-title">从记录中认识议会</h2>
+          <h2 id="visitor-guide-title">按届次查找</h2>
           <p>
-            按届次整理工作回顾、议事记录与文章，让每一份公开资料都有自己的位置。
+            各届目录列出已收录的文章和文件。
           </p>
           <a href="/archive#terms">
             按届次浏览
             <ArrowRight size={18} aria-hidden="true" />
           </a>
           <div className="public-member-entry">
-            <h3>参与当下的工作</h3>
-            <p>例会、议题和日常协作在成员工作台进行。</p>
+            <h3>成员工作台</h3>
+            <p>登录后查看例会、处理议题和日常事务。</p>
             <a href="/portal">
               进入协作工作台
               <ArrowUpRight size={17} aria-hidden="true" />
@@ -185,9 +182,9 @@ export default function LandingPage() {
       <div className="public-home-columns">
         <section aria-labelledby="selected-records-title">
           <div className="public-section-heading">
-            <h2 id="selected-records-title">馆藏选读</h2>
+            <h2 id="selected-records-title">档案选读</h2>
             <a href="/archive">
-              全部馆藏
+              全部档案
               <ArrowRight size={17} aria-hidden="true" />
             </a>
           </div>
@@ -198,7 +195,6 @@ export default function LandingPage() {
             COLLECTIONS
           </p>
           <h2 id="home-terms-title">历届档案</h2>
-          <p>每一届，独立成卷。</p>
           <ol>
             {archiveTerms.map((term) => (
               <li key={term.id}>
@@ -210,9 +206,6 @@ export default function LandingPage() {
               </li>
             ))}
           </ol>
-          {hasArchiveExamples && (
-            <p className="public-small-note">届次与文章均为设计示例。</p>
-          )}
         </aside>
       </div>
     </PublicLayout>
