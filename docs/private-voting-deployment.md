@@ -27,6 +27,8 @@
 
 服务端相对模块导入使用编译后 `.js` 扩展名；不要仅靠 Vite/打包器验证模块可加载。`test:server-runtime` 会独立编译入口，再由原生 Node 加载验证，避免“构建成功、函数启动失败”。
 
+`jwks-rsa@4.1.0` 另有同步加载 ESM 的上游兼容问题，已通过版本固定的 Bun 补丁处理。部署必须使用 `bun install --frozen-lockfile` 应用补丁；`test:server-runtime` 还会关闭同步 ESM 加载，验证真实 RSA 公钥转换与签名。补丁来源、范围和移除条件见 `patches/README.md`，不要用降低认证依赖版本或关闭验签的方式修复启动。
+
 根目录 `api/voting.ts` 会作为 Vercel Node 函数单独构建，支持当前默认导出的 Node `request/response` handler。无需把它复制到 `dist`，也无需添加 Edge runtime。现有 Vite 静态输出与该函数可以共存；保留 `/__/auth/*` Firebase 代理、`/preview/` 演示和静态归档路由，避免新增覆盖 `/api/*` 的 SPA catch-all。[Vercel Node 运行时](https://vercel.com/docs/functions/runtimes/node-js)、[Node 版本设置](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)。
 
 在无生产凭据的环境执行仓库验证：

@@ -48,5 +48,8 @@
   },
   "engines": {
     "node": "22.x"
+  },
+  "patchedDependencies": {
+    "jwks-rsa@4.1.0": "patches/jwks-rsa@4.1.0.patch"
   }
 }

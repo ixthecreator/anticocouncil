@@ -25,12 +25,13 @@
 | TXT 纪要也会显示进行中票数 | 只有已结束的表决才导出匿名汇总；PDF/Word/LaTeX 继续使用结构化字段白名单 | `workspace.test.ts`、`meetingExport.test.ts` |
 | 工作台仍请求 Google Fonts；档案把直接执行事项称作“经表决通过” | 工作台改用本机字体，PDF 字体仍同源按需加载；档案标题改为“通过与执行事项” | 源码与生产构建检查 |
 | Vercel 可完成构建，但原生 Node ESM 因相对导入缺少扩展名而无法启动函数 | 服务端相对导入显式指向编译后的 `.js`，新增独立编译后用原生 Node 加载的测试 | `tests/server-runtime.mjs` |
+| Firebase Admin 的 JWKS 依赖同步加载 ESM，在实际云函数中启动失败 | 使用版本固定的 Bun 补丁改为动态加载，保留现有认证及验签依赖版本 | `patches/README.md`、禁用同步 ESM 加载的启动与 RSA 验签测试 |
 
 ## 验证结果
 
 - `bun test`：219 项通过，1138 个断言。
 - `bun run lint`：TypeScript 检查通过；服务端路径修复后 80 项服务端测试复核通过。
-- `bun run test:server-runtime`：独立编译的原生 Node ESM 函数启动与未登录边界验证通过。
+- `bun run test:server-runtime`：2 项通过；在禁用同步 ESM 加载的子进程中验证函数启动、未登录边界、RSA 公钥转换及有效／篡改签名。
 - Firestore Emulator：26 项通过，覆盖真实规则执行和跨角色访问。
 - `bun run build` 与 `bun run check:public`：通过；检查了 6 个无应用脚本的公开页面及 404。
 - 客户端构建产物未发现服务账号变量、Admin SDK 或 Google Fonts 请求地址；工作台包仍有超过 500 kB 的构建体积提示。
