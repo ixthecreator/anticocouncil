@@ -11,6 +11,7 @@ import {
 } from "../lib/cloudAccess";
 import "./cloud-access.css";
 import { PasswordRecoveryForm, PasswordSettingsDialog } from "./AccountPassword";
+import { AuthPageFrame, AuthLoadingContent } from "./AuthPageFrame";
 
 type StorageMode = "local" | "firebase";
 export interface WorkspaceGatewayProps {
@@ -197,10 +198,8 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   if (mode === "local") return <Fragment key="local">{children({ mode, onModeChange })}</Fragment>;
   if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
 
-  return <main className="cloud-gateway"><a className="cloud-home" href="/">← 返回议会首页</a><section className="cloud-gate-card">
-    <a className="cloud-brand" href="/"><img src="/logo.png" alt=""/><span>安提柯议会<small>ANTICO COUNCIL</small></span></a>
-    <span className="cloud-eyebrow">SHARED WORKSPACE</span>
-    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <><h1>正在确认登录状态</h1><p role="status">请稍候，正在连接账号服务并确认登录结果…</p>{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
+  return <div className="cloud-gateway"><AuthPageFrame><section className="cloud-gate-card">
+    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
     : !identity ? <>
       <h1>{screen === "login" ? "成员登录" : "注册成员账号"}</h1><p>首次使用须验证邮箱并申请加入，经管理员批准后可进入工作台。</p>
       <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => selectEmailScreen("login")} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => selectEmailScreen("register")} disabled={busy}>注册账号</button></div>
@@ -224,9 +223,9 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     </> : !identity.verified ? <>
       <h1>请先验证邮箱</h1><p>当前账号：<strong>{identity.email || "未提供邮箱"}</strong></p><p>打开验证邮件中的链接完成验证，再回到此处刷新认证状态。没有收到时，请检查垃圾邮件文件夹或重新发送。</p>
       <div className="cloud-gate-actions"><button type="button" className="cloud-button primary" disabled={busy} onClick={() => void run(refreshCloudAuthentication)}>已验证，刷新认证状态</button><button type="button" className="cloud-button" disabled={busy} onClick={() => void run(resendVerification, "验证邮件已重新发送，请查看收件箱。")}>重新发送验证邮件</button></div>
-    </> : !accessReady ? <>
-      <h1>正在确认成员资格</h1><p role="status">正在连接议会成员服务。确认有效授权后会自动进入工作台。</p><button type="button" className="cloud-button" disabled={busy} onClick={() => { setAuthError(""); setRefreshKey(key => key + 1); }}>重新检查</button>
-    </> : access ? <>
+    </> : !accessReady ? <AuthLoadingContent title="正在确认成员资格" description="确认访问权限后，将自动进入工作台。">
+      <button type="button" className="cloud-button" disabled={busy} onClick={() => { setAuthError(""); setRefreshKey(key => key + 1); }}>重新检查</button>
+    </AuthLoadingContent> : access ? <>
       <h1>当前账号暂不能访问工作区</h1><p>{identity.email}</p><p>{!access.active ? "此账号的议会访问权限已停用。历史工作记录仍然保留，如需恢复访问，请联系管理员。" : "当前邮箱与成员授权记录不一致，请联系管理员核对。"}</p><button type="button" className="cloud-button" disabled={busy} onClick={() => void run(refreshCloudAuthentication)}>刷新认证状态</button>
     </> : request ? <>
       <h1>加入申请已提交</h1><p><strong>{request.name}</strong> · {request.email}</p><p>请等待议会管理员批准。此页面会自动更新，通过后即可进入工作台。</p><button type="button" className="cloud-button" disabled={busy} onClick={() => { setAuthError(""); setRefreshKey(key => key + 1); }}>刷新申请状态</button>
@@ -236,7 +235,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     {redirectError && <p className="cloud-error" role="alert">{redirectError}</p>}{(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
     <footer className="cloud-gate-footer">{identity && <><button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>
     {identity?.verified && passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
-  </section></main>;
+  </section></AuthPageFrame></div>;
 }
 
 export default WorkspaceGateway;
