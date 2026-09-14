@@ -71,6 +71,7 @@ export interface Attendance {
   reportStatus: 'pending' | 'reported' | 'exempt';
   reportNote: string;
   reportedAt?: string;
+  reportAssigned?: boolean; // New weekly reporting assignments; legacy check-ins remain readable.
 }
 
 export interface EditorialItem {

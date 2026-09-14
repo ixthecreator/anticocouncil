@@ -42,6 +42,7 @@ import {
   localDate,
   weekday,
   advanceIssue,
+  weeklyReports,
 } from "./lib/workspace";
 import {
   Columns,
@@ -247,7 +248,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
       issues.some((i) => i.meetingId === id) ||
       data.attendance.some((r) => r.meetingId === id)
     ) {
-      setError("会议仍有关联议题或签到记录，请保留档案。");
+      setError("会议仍有关联议题或汇报记录，请保留档案。");
       return;
     }
     try {
@@ -429,9 +430,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   const currentIssues = issues.filter(
     (i) => i.meetingId === currentMeetingId && !i.archived,
   );
-  const currentAttendance = data.attendance.filter(
-    (row) => row.meetingId === currentMeetingId,
-  );
+  const currentReports = selectedMeeting ? weeklyReports(data, selectedMeeting.date) : [];
 
   return (
     <div className={`council-app parliament-app theme-${theme}`}>
@@ -531,10 +530,10 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
                 <Users size={21} />
               </span>
               <div>
-                <span>本次签到</span>
+                <span>本周安排汇报</span>
                 <strong>
-                  {currentAttendance.length}
-                  <small> / {members.length} 位成员</small>
+                  {currentReports.length}
+                  <small> 位成员</small>
                 </strong>
               </div>
             </div>
@@ -558,11 +557,11 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
                 <span>汇报进度</span>
                 <strong>
                   {
-                    currentAttendance.filter(
+                    currentReports.filter(
                       (row) => row.reportStatus !== "pending",
                     ).length
                   }
-                  <small> / {currentAttendance.length} 人已汇报或免汇报</small>
+                  <small> / {currentReports.length} 人已汇报或免汇报</small>
                 </strong>
               </div>
             </div>

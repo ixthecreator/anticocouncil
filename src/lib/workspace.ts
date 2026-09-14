@@ -65,7 +65,7 @@ export function recordBallot(
 ): Issue {
   if (issue.status !== "voting" || issue.voteMode !== "members")
     throw new Error("表决已结束或尚未开启，请刷新后重试。");
-  if (!memberId) throw new Error("请先选择签到成员。");
+  if (!memberId) throw new Error("请先选择投票成员。");
   return {
     ...issue,
     ballots: { ...issue.ballots, [memberId]: choice },
@@ -105,6 +105,29 @@ export function latestReport(
         data.meetings.find((m) => m.id === a.meetingId)?.date || "",
       ),
     )[0];
+}
+/** The reporting cycle is Monday–Sunday, independent of meeting labels or attendance. */
+export function reportingWeek(date: string): string {
+  const day = new Date(`${date}T12:00:00Z`);
+  if (!Number.isFinite(day.getTime())) return "";
+  day.setUTCDate(day.getUTCDate() - (day.getUTCDay() + 6) % 7);
+  return day.toISOString().slice(0, 10);
+}
+
+export const isReportRecord = (row: Attendance) =>
+  row.reportAssigned === true || row.reportStatus !== "pending";
+
+export function weeklyReports(data: WorkspaceData, date: string): Attendance[] {
+  const week = reportingWeek(date);
+  if (!week) return [];
+  const meetings = new Set(data.meetings.filter((m) => reportingWeek(m.date) === week).map((m) => m.id));
+  const byMember = new Map<string, Attendance>();
+  for (const row of data.attendance.filter((r) => meetings.has(r.meetingId) && isReportRecord(r))) {
+    const previous = byMember.get(row.memberId);
+    if (!previous || (previous.reportStatus !== "reported" && row.reportStatus === "reported"))
+      byMember.set(row.memberId, row);
+  }
+  return [...byMember.values()];
 }
 export function safeUrl(value: string): string {
   try {
@@ -210,6 +233,8 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
         !["pending", "reported", "exempt"].includes(row.reportStatus)
       )
         throw new Error("汇报状态无效。");
+      if (key === "attendance" && row.reportAssigned !== undefined && typeof row.reportAssigned !== "boolean")
+        throw new Error("汇报安排标记无效。");
       if (
         key === "editorial" &&
         (!["微信编辑部", "QQ编辑部"].includes(row.department) ||
@@ -288,14 +313,14 @@ export function meetingBrief(data: WorkspaceData, meetingId: string) {
   const meeting = data.meetings.find((m) => m.id === meetingId);
   if (!meeting) return "";
   const attendance = data.attendance
-    .filter((r) => r.meetingId === meetingId)
+    .filter((r) => r.meetingId === meetingId && isReportRecord(r))
     .sort((a, b) => a.checkedInAt.localeCompare(b.checkedInAt));
   const issues = data.issues.filter((i) => i.meetingId === meetingId);
   return [
     `${meeting.title}\n${meeting.date} ${meeting.week}`,
     `会议记录\n${meeting.regularReport || "暂无记录"}`,
     `会议摘要\n${meeting.summary || "暂无摘要"}`,
-    `签到与汇报（${attendance.length} 人）\n${attendance.map((r, i) => `${i + 1}. ${r.memberName}｜${{ pending: "待汇报", reported: "已汇报", exempt: "本次免汇报" }[r.reportStatus]}｜${r.reportNote}`).join("\n") || "暂无签到"}`,
+    `汇报记录（${attendance.length} 人）\n${attendance.map((r, i) => `${i + 1}. ${r.memberName}｜${{ pending: "待汇报", reported: "已汇报", exempt: "本次免汇报" }[r.reportStatus]}｜${r.reportNote}`).join("\n") || "暂无汇报记录"}`,
     `议程与执行\n${
       issues
         .map((i, n) => {

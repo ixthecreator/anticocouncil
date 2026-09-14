@@ -46,24 +46,23 @@ test("Word continuation rows preserve every cell's text and original line breaks
   const snapshot = buildMeetingExport(data, ["m"], "minutes", "2026-09-09T00:00:00.000Z");
   const source = [
     "甲乙🙂".repeat(190) + "\n姓名末尾",
-    "日期字段 A&B ".repeat(100) + "\r\n日期末尾",
     "已汇报",
     Array.from({ length: 90 }, (_, index) => `第${index}段：保留所有中文、ABC & < > 和🙂字符。`).join("\n\n") + "\n最终记录",
   ];
-  Object.assign(snapshot.meetings[0].attendance![0], { name: source[0], checkedInAt: source[1], reportStatus: source[2], reportNote: source[3] });
+  Object.assign(snapshot.meetings[0].attendance![0], { name: source[0], reportStatus: source[1], reportNote: source[2] });
   const zip = await JSZip.loadAsync(await (await renderMeetingDocx(snapshot)).arrayBuffer());
   const xml = await zip.file("word/document.xml")!.async("string");
   const table = xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/)![0];
   const rows = Array.from(table.matchAll(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g), (row) =>
     Array.from(row[0].matchAll(/<w:tc(?:\s[^>]*)?>[\s\S]*?<\/w:tc>/g), (cell) => cellText(cell[0])),
   );
-  expect(rows[0]).toEqual(["姓名", "签到时间", "汇报状态", "汇报记录"]);
+  expect(rows[0]).toEqual(["姓名", "汇报状态", "汇报记录"]);
   expect(rows.length).toBeGreaterThan(4);
   for (let column = 0; column < source.length; column++) {
     expect(rows.slice(1).map((row) => row[column]).join("")).toBe(source[column].replace(/\r\n?|\n/g, "\n"));
   }
-  expect(rows[1][2]).toBe("已汇报");
-  expect(rows.slice(2).every((row) => row[2] === "")).toBe(true);
+  expect(rows[1][1]).toBe("已汇报");
+  expect(rows.slice(2).every((row) => row[1] === "")).toBe(true);
   expect(table).not.toContain('<w:cantSplit w:val="false"');
 });
 
