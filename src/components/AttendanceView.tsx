@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Attendance, Meeting } from "../types";
 import { DEFAULT_DEPARTMENTS } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
-import { latestReport, reportingWeek, weeklyReports } from "../lib/workspace";
+import { latestReport, reportMeetingId, reportingWeek, updateReport, weeklyReports } from "../lib/workspace";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 
 export function AttendanceView({
@@ -18,6 +18,10 @@ export function AttendanceView({
   const [name, setName] = useState("");
   const [role, setRole] = useState(DEFAULT_DEPARTMENTS[0]);
   const [editing, setEditing] = useState<Attendance | null>(null);
+  const [original, setOriginal] = useState<Attendance | null>(null);
+  const weekMeetings = data.meetings
+    .filter((candidate) => reportingWeek(candidate.date) === reportingWeek(meeting.date))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
   const records = weeklyReports(data, meeting.date)
     .sort(
       (a, b) =>
@@ -144,7 +148,7 @@ export function AttendanceView({
               data,
             );
             const previousMeeting = previous?.id === r.id ? undefined : data.meetings.find(
-              (m) => m.id === previous?.meetingId,
+              (m) => previous && m.id === reportMeetingId(previous),
             );
             return (
               <li
@@ -157,7 +161,8 @@ export function AttendanceView({
                 <div className="attendance-person">
                   <strong>{r.memberName}</strong>
                   <span className="workspace-help">
-                    {data.meetings.find((m) => m.id === r.meetingId)?.date || meeting.date} 场次
+                    {r.reportStatus === "pending" ? "安排于 " : r.reportStatus === "reported" ? "汇报于 " : "免汇报于 "}
+                    {data.meetings.find((m) => m.id === reportMeetingId(r))?.date || "会议已删除"}
                     {previousMeeting
                       ? ` · 上次汇报 ${previousMeeting.date}`
                       : ""}
@@ -177,7 +182,10 @@ export function AttendanceView({
                 </span>
                 <button
                   className="workspace-button"
-                  onClick={() => setEditing(r)}
+                  onClick={() => {
+                    setOriginal(r);
+                    setEditing({ ...r, reportMeetingId: r.reportStatus === "pending" ? meeting.id : reportMeetingId(r) });
+                  }}
                 >
                   记录汇报
                 </button>
@@ -191,20 +199,11 @@ export function AttendanceView({
           key={editing.id}
           onCancel={() => setEditing(null)}
           onSave={async () => {
-            if (editing.reportStatus === "exempt" && !editing.reportNote.trim())
-              throw new Error("请填写免汇报原因，例如“周三已汇报”。");
-            await change("attendance", editing.id, (old) => {
-              if (!old) throw new Error("汇报记录不存在");
-              return {
-                ...old,
-                reportStatus: editing.reportStatus,
-                reportNote: editing.reportNote.trim(),
-                reportedAt:
-                  editing.reportStatus === "reported"
-                    ? old.reportedAt || new Date().toISOString()
-                    : "",
-              };
-            });
+            if (!original) return;
+            const now = new Date().toISOString();
+            await change("attendance", editing.id, (old) =>
+              updateReport(old, original, editing, data.meetings, now),
+            );
             setEditing(null);
           }}
         >
@@ -223,6 +222,18 @@ export function AttendanceView({
               <option value="exempt">本次免汇报</option>
             </select>
           </Field>
+          {editing.reportStatus !== "pending" && <Field label="汇报场次">
+            <select
+              required
+              value={editing.reportMeetingId || ""}
+              onChange={(e) => setEditing({ ...editing, reportMeetingId: e.target.value })}
+            >
+              <option value="">请选择实际汇报或免汇报的会议</option>
+              {weekMeetings.map((candidate) => <option key={candidate.id} value={candidate.id}>
+                {candidate.date} · {candidate.title}
+              </option>)}
+            </select>
+          </Field>}
           <Field label="汇报内容或免汇报原因">
             <textarea
               value={editing.reportNote}

@@ -246,7 +246,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   const handleDeleteMeeting = async (id: string) => {
     if (
       issues.some((i) => i.meetingId === id) ||
-      data.attendance.some((r) => r.meetingId === id)
+      data.attendance.some((r) => r.meetingId === id || r.reportMeetingId === id)
     ) {
       setError("会议仍有关联议题或汇报记录，请保留档案。");
       return;

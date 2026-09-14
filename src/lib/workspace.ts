@@ -1,4 +1,4 @@
-import type { Attendance, Issue, WorkspaceData } from "../types";
+import type { Attendance, Issue, Meeting, WorkspaceData } from "../types";
 
 export const collectionNames = [
   "meetings",
@@ -93,16 +93,16 @@ export function latestReport(
     .filter(
       (r) =>
         r.memberId === memberId &&
-        r.meetingId !== meetingId &&
+        reportMeetingId(r) !== meetingId &&
         r.reportStatus === "reported" &&
-        (data.meetings.find((m) => m.id === r.meetingId)?.date || "9999") <=
+        (data.meetings.find((m) => m.id === reportMeetingId(r))?.date || "9999") <=
           meetingDate,
     )
     .sort((a, b) =>
       (
-        data.meetings.find((m) => m.id === b.meetingId)?.date || ""
+        data.meetings.find((m) => m.id === reportMeetingId(b))?.date || ""
       ).localeCompare(
-        data.meetings.find((m) => m.id === a.meetingId)?.date || "",
+        data.meetings.find((m) => m.id === reportMeetingId(a))?.date || "",
       ),
     )[0];
 }
@@ -115,7 +115,49 @@ export function reportingWeek(date: string): string {
 }
 
 export const isReportRecord = (row: Attendance) =>
-  row.reportAssigned === true || row.reportStatus !== "pending";
+  row.reportAssigned === true || row.reportStatus !== "pending" || !!row.reportNote.trim();
+
+/** Pending work belongs to its assignment; completed work belongs to the actual meeting. */
+export const reportMeetingId = (row: Attendance): string =>
+  row.reportStatus === "pending" ? row.meetingId : row.reportMeetingId || row.meetingId;
+
+export function updateReport(
+  latest: Attendance | null,
+  expected: Attendance,
+  edit: Pick<Attendance, "reportStatus" | "reportNote" | "reportMeetingId">,
+  meetings: readonly Meeting[],
+  now: string,
+): Attendance {
+  if (!latest) throw new Error("汇报记录不存在，可能已被删除。");
+  if (latest.meetingId !== expected.meetingId || latest.memberId !== expected.memberId ||
+      latest.reportStatus !== expected.reportStatus || latest.reportNote !== expected.reportNote ||
+      latest.reportedAt !== expected.reportedAt || reportMeetingId(latest) !== reportMeetingId(expected)) {
+    throw new Error("汇报记录已被其他成员修改，请取消后重新编辑。");
+  }
+  const assignment = meetings.find((meeting) => meeting.id === latest.meetingId);
+  if (!assignment) throw new Error("安排汇报的会议不存在，请重新选择会议。");
+  const note = edit.reportNote.trim();
+  if (edit.reportStatus === "exempt" && !note) throw new Error("请填写免汇报原因。");
+  const actualId = edit.reportStatus === "pending" ? "" : edit.reportMeetingId || "";
+  if (edit.reportStatus !== "pending") {
+    const actual = meetings.find((meeting) => meeting.id === actualId);
+    if (!actual || !reportingWeek(assignment.date) || reportingWeek(actual.date) !== reportingWeek(assignment.date)) {
+      throw new Error("请选择本周仍然存在的汇报场次。");
+    }
+  }
+  return {
+    ...latest,
+    reportAssigned: true,
+    reportStatus: edit.reportStatus,
+    reportNote: note,
+    reportMeetingId: actualId,
+    reportedAt: edit.reportStatus === "reported"
+      ? latest.reportStatus === "reported" && reportMeetingId(latest) === actualId
+        ? latest.reportedAt || now
+        : now
+      : "",
+  };
+}
 
 export function weeklyReports(data: WorkspaceData, date: string): Attendance[] {
   const week = reportingWeek(date);
@@ -210,7 +252,7 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
         issues: ["dueDate", "archivedAt", "serialNumber"],
         activities: ["location", "description"],
         members: [],
-        attendance: ["reportedAt"],
+        attendance: ["reportedAt", "reportMeetingId"],
         editorial: [],
         assets: [],
         inventory: [],
@@ -313,7 +355,7 @@ export function meetingBrief(data: WorkspaceData, meetingId: string) {
   const meeting = data.meetings.find((m) => m.id === meetingId);
   if (!meeting) return "";
   const attendance = data.attendance
-    .filter((r) => r.meetingId === meetingId && isReportRecord(r))
+    .filter((r) => reportMeetingId(r) === meetingId && isReportRecord(r))
     .sort((a, b) => a.checkedInAt.localeCompare(b.checkedInAt));
   const issues = data.issues.filter((i) => i.meetingId === meetingId);
   return [

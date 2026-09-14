@@ -1,5 +1,5 @@
 import type { WorkspaceData } from "../types";
-import { isReportRecord, statusLabels, voteTotals } from "./workspace";
+import { isReportRecord, reportMeetingId, statusLabels, voteTotals } from "./workspace";
 
 export type MeetingExportKind = "agenda" | "minutes";
 
@@ -80,7 +80,7 @@ export function buildMeetingExport(
       regularReport: meeting.regularReport || "",
       ...(kind === "minutes" ? {
         summary: meeting.summary || "",
-        attendance: data.attendance.filter((row) => row.meetingId === meeting.id && isReportRecord(row))
+        attendance: data.attendance.filter((row) => reportMeetingId(row) === meeting.id && isReportRecord(row))
           .sort((a, b) => compare(a.checkedInAt, b.checkedInAt) || compare(a.id, b.id))
           .map((row) => ({
             name: row.memberName,

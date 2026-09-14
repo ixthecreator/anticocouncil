@@ -140,7 +140,7 @@ test("two meetings in one Monday–Sunday cycle share a single report assignment
 test("legacy check-ins alone do not put everyone on the reporting roster", () => {
   const data = emptyWorkspace();
   data.meetings = [meeting("first", "2026-09-09"), meeting("second", "2026-09-13")];
-  data.attendance = [record("check-in", "first", "pending"), { ...record("assigned", "second", "pending"), memberId: "b", reportAssigned: true }];
+  data.attendance = [{ ...record("check-in", "first", "pending"), reportNote: "" }, { ...record("assigned", "second", "pending"), memberId: "b", reportAssigned: true }];
   expect(weeklyReports(data, "2026-09-09").map((row) => row.id)).toEqual(["assigned"]);
   expect(meetingBrief(data, "first")).not.toContain("甲｜待汇报");
   expect(() => parseBackup({ attendance: [{ ...data.attendance[1], reportAssigned: "yes" }] })).toThrow("汇报安排标记");
