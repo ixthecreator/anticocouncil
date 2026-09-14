@@ -4,7 +4,11 @@
   const overviewHTML = main.innerHTML;
   const dialog = document.getElementById('dialog');
   const storageKey = 'antico-ui-preview-v1';
-  const seed = { attendance: false, votes: {}, tasks: {
+  const seed = { reports: {
+    lin: { status: '待汇报', note: '' },
+    zhou: { status: '待汇报', note: '' },
+    xu: { status: '待汇报', note: '' }
+  }, votes: {}, tasks: {
     t1: { status: '进行中', note: '已整理选题方向，正在确认作者与交稿时间。' },
     t2: { status: '未开始', note: '待收到场地可用日期。' },
     t3: { status: '进行中', note: '已完成资料清点，剩余文件正在整理。' },
@@ -27,7 +31,7 @@
   ];
   const meetings = [
     {id:'m18',title:'九月工作例会',number:'18',date:'2026-09-09',month:'9',day:'09',weekday:'星期三',time:'19:30–21:00',place:'线上会议',status:'待开始',description:'秋季沙龙安排、九月编辑计划与资料归档。'},
-    {id:'m19',title:'九月中期工作例会',number:'19',date:'2026-09-16',month:'9',day:'16',weekday:'星期三',time:'19:30–21:00',place:'线上会议',status:'筹备中',description:'跟进编辑进展与秋季活动准备。'},
+    {id:'m19',title:'九月周末工作例会',number:'19',date:'2026-09-13',month:'9',day:'13',weekday:'星期日',time:'19:30–21:00',place:'线上会议',status:'筹备中',description:'跟进本周汇报与秋季活动准备。'},
     {id:'m17',title:'八月工作回顾与九月安排',number:'17',date:'2026-09-02',month:'9',day:'02',weekday:'星期三',time:'19:30–21:00',place:'线上会议',status:'已归档',description:'八月工作回顾、活动安排与会后执行分工。'}
   ];
   const records = [
@@ -35,23 +39,32 @@
     {id:'r16',title:'八月公共阅读与资料整理',date:'2026-08-26',number:'16',attendees:'10 / 12',summary:'会议讨论阅读小组的参与安排，并确认资料目录校对与记录复核工作。',decisions:['完成阅读小组报名名单核对。','完成七月资料目录校对。']},
     {id:'r15',title:'八月编辑工作例会',date:'2026-08-19',number:'15',attendees:'12 / 12',summary:'会议交流稿件进展与编辑协作情况，确定下一阶段的交叉审阅安排。',decisions:['为每篇稿件安排一名交叉审阅成员。','统一作者简介与文章日期格式。']}
   ];
+  const reporters = [
+    { id: 'lin', name: '林澈', group: '编辑组' },
+    { id: 'zhou', name: '周宁', group: '活动组' },
+    { id: 'xu', name: '许言', group: '秘书组' }
+  ];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let state = structuredClone(seed), storageWarning = '';
   try {
     const raw = localStorage.getItem(storageKey);
     if(raw) {
       const saved = JSON.parse(raw);
-      if(typeof saved.attendance !== 'boolean' || !saved.votes || !saved.tasks) throw new Error('invalid');
+      if(!saved.votes || !saved.tasks) throw new Error('invalid');
       for(const [key,vote] of Object.entries(saved.votes)) {
         if(!['p1','p2'].includes(key) || !['agree','disagree','abstain'].includes(vote.choice) || typeof vote.reason !== 'string') throw new Error('invalid');
       }
       for(const id of Object.keys(seed.tasks)) {
         if(!saved.tasks[id] || !['未开始','进行中','已完成'].includes(saved.tasks[id].status) || typeof saved.tasks[id].note !== 'string') throw new Error('invalid');
       }
-      state = saved;
+      const reports = saved.reports || structuredClone(seed.reports);
+      for(const id of Object.keys(seed.reports)) {
+        if(!reports[id] || !['待汇报','已汇报','本周免汇报'].includes(reports[id].status) || typeof reports[id].note !== 'string') throw new Error('invalid');
+      }
+      state = { votes: saved.votes, tasks: saved.tasks, reports };
     }
   } catch { storageWarning = '无法读取本地记录，当前显示初始示例。原存储尚未修改；如需继续保存，请先重置示例。'; }
-  const statusColor = s => ({'表决中':'blue','待开始':'purple','筹备中':'grey','待讨论':'grey','已归档':'green','已完成':'green','进行中':'blue','未开始':'grey'}[s] || 'grey');
+  const statusColor = s => ({'表决中':'blue','待开始':'purple','筹备中':'grey','待讨论':'grey','已归档':'green','已完成':'green','进行中':'blue','未开始':'grey','待汇报':'amber','已汇报':'green','本周免汇报':'grey'}[s] || 'grey');
   const tag = (label,color=statusColor(label)) => `<span class="tag ${color}">${esc(label)}</span>`;
   const completed = () => tasks.filter(t=>state.tasks[t.id].status==='已完成').length;
   function notify(message) { const box=document.getElementById('notice');box.textContent=message;box.classList.add('visible');clearTimeout(notify.timer);notify.timer=setTimeout(()=>box.classList.remove('visible'),4800); }
@@ -59,11 +72,6 @@
     if(storageWarning) throw new Error(storageWarning);
     try { localStorage.setItem(storageKey,JSON.stringify(next)); } catch { throw new Error('无法保存到此浏览器。请检查浏览器是否允许本地存储后重试，当前修改尚未保存。'); }
     state=next;
-  }
-  function setAttendance(value) {
-    if(typeof value !== 'boolean') throw new Error('签到状态必须为 true 或 false。');
-    const next=structuredClone(state);next.attendance=value;commit(next);render(false);notify(value?'已完成本次例会签到。':'已撤销本次例会签到。');
-    return {meetingId:'m18',attended:state.attendance};
   }
   function shell(title,eyebrow,description,content,parent) {
     return `<div class="breadcrumb"><a href="#overview">成员工作台</a><span>/</span>${parent?`<a href="#${parent.route}">${parent.title}</a><span>/</span>`:''}${esc(title)}</div><div class="page-heading"><div><p class="eyebrow">${eyebrow}</p><h1>${esc(title)}</h1>${description?`<p class="lead">${esc(description)}</p>`:''}</div></div>${content}`;
@@ -74,14 +82,13 @@
     const needs=[];
     if(!state.votes.p1) needs.push(`<a class="action-item" href="#proposal/p1"><span class="action-heading"><strong>参与沙龙提案表决</strong>${tag('今日截止','amber')}</span><span class="meta">请在 21:00 前提交意见</span></a>`);
     if(state.tasks.t1.status!=='已完成') needs.push(`<a class="action-item" href="#task/t1"><span class="action-heading"><strong>提交九月编辑专题排期初稿，并确认各篇稿件的负责编辑、作者与最终交付时间</strong>${tag('今日截止','amber')}</span><span class="meta">执行事项 E-018 · 编辑组</span></a>`);
-    if(!state.attendance) needs.push(`<a class="action-item" href="#meeting/m18"><strong>完成本次例会签到</strong><span class="meta">九月工作例会 · 19:30 开始</span></a>`);
+    if(state.reports.lin.status==='待汇报') needs.push(`<a class="action-item" href="#meeting/m18"><strong>完成本周工作汇报</strong><span class="meta">两次例会共享同一汇报进度</span></a>`);
     html=html.replace(/<section class="action-panel">[\s\S]*?<\/section>/,`<section class="action-panel"><div class="section-title"><h2>需要我处理</h2><span class="number-label">${String(needs.length).padStart(2,'0')}</span></div>${needs.join('')||'<p class="empty-small">当前待办已处理。你可以继续查阅会议议程与其他议题。</p>'}</section>`);
     html=html.replace('3 / 6 已完成',`${completed()} / 6 已完成`).replace('width:50%',`width:${completed()/6*100}%`);
-    if(state.attendance) html=html.replace('查看议程与签到','查看议程 · 已签到');
     return html;
   }
   function showMeetings() {
-    return shell('例会与议程','MEETINGS & AGENDAS','查看近期例会、参与签到，或回顾已经结束的会议。',`<div class="list-layout"><aside class="filter-panel"><h2>筛选会议</h2><label for="meeting-filter">会议范围</label><select id="meeting-filter"><option value="upcoming">近期会议</option><option value="all">全部会议</option><option value="archived">已归档</option></select><div class="inset-note">示例日程以 2026 年 9 月 9 日为基准。</div></aside><section><div class="results-heading"><h2>会议日程</h2><span id="meeting-count" class="muted"></span></div><div id="meeting-results"></div></section></div>`);
+    return shell('例会与议程','MEETINGS & AGENDAS','查看近期例会与议程，或回顾已经结束的会议。',`<div class="list-layout"><aside class="filter-panel"><h2>筛选会议</h2><label for="meeting-filter">会议范围</label><select id="meeting-filter"><option value="upcoming">近期会议</option><option value="all">全部会议</option><option value="archived">已归档</option></select><div class="inset-note">示例日程以 2026 年 9 月 9 日为基准。</div></aside><section><div class="results-heading"><h2>会议日程</h2><span id="meeting-count" class="muted"></span></div><div id="meeting-results"></div></section></div>`);
   }
   function meetingResults(filter='upcoming') {
     const list=meetings.filter(m=>filter==='all'||(filter==='archived'?m.status==='已归档':m.status!=='已归档'));
@@ -91,7 +98,12 @@
   function showMeeting(id) {
     const m=meetings.find(m=>m.id===id);if(!m) return notFound();if(id==='m17')return showRecord('r17');
     const isCurrent=id==='m18';
-    return shell(m.title,'MEETING '+m.number,`2026 年 ${m.month} 月 ${m.day} 日 · ${m.weekday} · ${m.time}`,`<div class="detail-layout"><article><div class="section-bar"><h2>会议资料</h2>${tag(m.status)}</div>${summary([['会议编号',`AC-2026-${m.number}`],['会议地点',m.place],['主持人','陈禾'],['记录人','许言'],['参与成员',`12 名成员${isCurrent?` · ${8+Number(state.attendance)} 人已签到`:''}`]])}<section class="section"><h2>本次议程</h2>${isCurrent?`<ol class="agenda"><li><span class="agenda-time">19:30</span><div><h3>签到与上次执行事项回顾</h3><p>确认出席情况，汇报尚未完成的执行事项。</p><a href="#tasks">查阅执行督办</a></div></li>${proposals.map((p,i)=>`<li><span class="agenda-time">${['19:40','20:10','20:40'][i]}</span><div><h3><a href="#proposal/${p.id}">${p.title}</a></h3><p>${p.group}汇报 · ${p.status}</p></div></li>`).join('')}<li><span class="agenda-time">20:55</span><div><h3>确认决议与执行分工</h3><p>确认负责人、截止日期与下一次汇报安排。</p></div></li></ol>`:'<div class="inset-note">议程正在筹备中，确认后将显示在此处。</div>'}</section></article><aside><section class="action-panel"><h2>我的参会状态</h2>${isCurrent?`${tag(state.attendance?'已签到':'未签到',state.attendance?'green':'grey')}<p class="spaced muted">以示例成员「林澈」参与本次会议。</p><button class="button ${state.attendance?'secondary':''}" data-action="attendance">${state.attendance?'撤销签到':'确认签到'}</button>`:'<p class="muted">本次会议尚未开放签到。</p>'}</section><section class="section side-section"><h2>相关记录</h2><a href="#record/r17">第 17 次例会纪要</a><p class="spaced muted">讨论前可查阅上次会议已确认的决定与执行分工。</p></section></aside></div>`,{title:'例会与议程',route:'meetings'});
+    const done=reporters.filter(person=>state.reports[person.id].status!=='待汇报').length;
+    const reportRows=reporters.map(person=>`<li class="report-row"><span><strong>${person.name}</strong><small>${person.group}</small></span>${tag(state.reports[person.id].status)}${state.reports[person.id].note?`<p>${esc(state.reports[person.id].note)}</p>`:''}</li>`).join('');
+    const first=reporters[0], firstReport=state.reports[first.id];
+    const reportPanel=`<section class="section" id="weekly-reports"><div class="section-bar"><h2>本周汇报 · ${done} / ${reporters.length}</h2>${tag('9 月 7–13 日','purple')}</div><p class="muted">9 月 9 日与 9 月 13 日两场例会共用此进度，每人每周只汇报一次；无需签到。</p><ol class="report-list">${reportRows}</ol><form id="report-form" novalidate><div id="form-errors"></div><label for="report-person">汇报成员</label><select id="report-person" name="person">${reporters.map(person=>`<option value="${person.id}">${person.name} · ${person.group}</option>`).join('')}</select><label for="report-status" class="spaced">本周状态</label><select id="report-status" name="status">${['待汇报','已汇报','本周免汇报'].map(status=>`<option ${firstReport.status===status?'selected':''}>${status}</option>`).join('')}</select><label for="report-note" class="spaced">汇报内容或免汇报原因</label><textarea id="report-note" name="note" rows="3" maxlength="1000">${esc(firstReport.note)}</textarea><div class="form-actions"><button class="button" type="submit">保存本周汇报</button></div></form></section>`;
+    const agenda=isCurrent?`<ol class="agenda"><li><span class="agenda-time">19:30</span><div><h3>上次执行事项回顾</h3><p>汇报尚未完成的执行事项。</p><a href="#tasks">查阅执行督办</a></div></li>${proposals.map((p,i)=>`<li><span class="agenda-time">${['19:40','20:10','20:40'][i]}</span><div><h3><a href="#proposal/${p.id}">${p.title}</a></h3><p>${p.group}汇报 · ${p.status}</p></div></li>`).join('')}<li><span class="agenda-time">20:55</span><div><h3>确认决议与执行分工</h3><p>确认负责人、截止日期与下一次汇报安排。</p></div></li></ol>`:'<div class="inset-note">议程正在筹备中，确认后将显示在此处。</div>';
+    return shell(m.title,'MEETING '+m.number,`2026 年 ${m.month} 月 ${m.day} 日 · ${m.weekday} · ${m.time}`,`<div class="detail-layout"><article><div class="section-bar"><h2>会议资料</h2>${tag(m.status)}</div>${summary([['会议编号',`AC-2026-${m.number}`],['会议地点',m.place],['主持人','陈禾'],['记录人','许言'],['参与成员','12 名成员']])}${reportPanel}<section class="section"><h2>本次议程</h2>${agenda}</section></article><aside><section class="action-panel"><h2>跨场次查看</h2><p class="muted">当前是${isCurrent?'周三':'周日'}例会。保存汇报后，另一场例会立即显示相同状态。</p><a href="#meeting/${isCurrent?'m19':'m18'}">查看${isCurrent?'周日':'周三'}例会 →</a></section><section class="section side-section"><h2>示例名单说明</h2><p class="muted">此处只有虚构成员，尚未接入真实腾讯文档。</p><a href="#record/r17">第 17 次例会纪要</a></section></aside></div>`,{title:'例会与议程',route:'meetings'});
   }
   function showProposals() {
     return shell('议题与表决','PROPOSALS & DECISIONS','了解议题背景，表达意见，并保留决定的依据。',`<div class="toolbar"><label for="proposal-filter">议题状态</label><select id="proposal-filter"><option value="all">全部议题</option><option value="表决中">表决中</option><option value="待讨论">待讨论</option><option value="mine">我已投票</option></select><span id="proposal-count" class="muted"></span></div><div id="proposal-results"></div>`);
@@ -168,12 +180,11 @@
     const button=event.target.closest('[data-action]');if(!button)return;
     const action=button.dataset.action;
     try {
-      if(action==='attendance')setAttendance(!state.attendance);
       if(action==='download')downloadRecord(button.dataset.id);
       if(action==='close'||action==='search-result')dialog.close();
       if(action==='account')openDialog(`<h2 id="dialog-title">当前示例成员</h2>${summary([['姓名','林澈'],['应用角色','普通成员'],['工作组','编辑组'],['数据位置','当前浏览器']])}<p class="muted">这是 UI 试作中的演示身份，不涉及真实账号登录。</p><button class="button" data-action="close">返回工作台</button>`);
-      if(action==='guide')openDialog(`<h2 id="dialog-title">新 UI 试用区使用说明</h2><ol class="guide-list"><li>在「例会与议程」中打开九月工作例会，完成签到。</li><li>在「议题与表决」中选择意见并提交，可再次提交修改表决。</li><li>在「执行督办」中更新由林澈负责的事项。</li><li>在「纪要档案」中筛选、阅读并下载会议纪要。</li></ol><p class="muted">所有姓名与业务记录均为示例。数据只保存在当前浏览器；刷新后保留，可通过「重置示例」恢复初始状态。</p><p class="muted">本试作覆盖会议工作流程，原项目的活动、库存、资料库、成员审批及登录功能尚未接入。</p><button class="button" data-action="close">开始体验</button>`);
-      if(action==='reset')openDialog(`<h2 id="dialog-title">重置本地示例？</h2><p>将清除此试作中保存的签到、表决和进展，恢复初始示例记录。</p><div class="form-actions"><button class="button danger" data-action="confirm-reset">重置示例数据</button><button class="text-button" data-action="close">取消</button></div>`);
+      if(action==='guide')openDialog(`<h2 id="dialog-title">新 UI 试用区使用说明</h2><ol class="guide-list"><li>在「例会与议程」中打开周三例会，保存一人的本周汇报，再切到周日例会确认进度相同。</li><li>在「议题与表决」中选择意见并提交，可再次提交修改表决。</li><li>在「执行督办」中更新由林澈负责的事项。</li><li>在「纪要档案」中筛选、阅读并下载会议纪要。</li></ol><p class="muted">汇报名单和全部业务记录均为示例，未同步腾讯文档。操作只保存在当前浏览器，可通过「重置示例」恢复。</p><button class="button" data-action="close">开始体验</button>`);
+      if(action==='reset')openDialog(`<h2 id="dialog-title">重置本地示例？</h2><p>将清除此试作中保存的汇报、表决和进展，恢复初始示例记录。</p><div class="form-actions"><button class="button danger" data-action="confirm-reset">重置示例数据</button><button class="text-button" data-action="close">取消</button></div>`);
       if(action==='confirm-reset'){localStorage.removeItem(storageKey);state=structuredClone(seed);storageWarning='';dialog.close();render(false);notify('已恢复初始示例。');}
       if(action==='search'){openDialog(`<h2 id="dialog-title">搜索议会记录</h2><label for="global-search">关键词</label><input type="search" id="global-search" placeholder="例如：沙龙、编辑、资料" autocomplete="off"><div id="search-results" class="spaced" aria-live="polite"></div>`);searchResults('');document.getElementById('global-search').focus();}
     }catch(err){notify(err.message);}
@@ -183,15 +194,27 @@
     if(el.id==='meeting-filter')meetingResults(el.value);
     if(el.id==='proposal-filter')proposalResults(el.value);
     if(el.id==='task-filter')taskResults(el.value);
+    if(el.id==='report-person') {
+      const report=state.reports[el.value];
+      if(report){document.getElementById('report-status').value=report.status;document.getElementById('report-note').value=report.note;}
+    }
   });
   document.addEventListener('input',event=>{if(event.target.id==='global-search')searchResults(event.target.value);});
   document.addEventListener('submit',event=>{
-    const form=event.target;if(!['vote-form','task-form','archive-form'].includes(form.id))return;event.preventDefault();
+    const form=event.target;if(!['vote-form','task-form','archive-form','report-form'].includes(form.id))return;event.preventDefault();
     const data=new FormData(form);
     if(form.id==='archive-form'){archiveResults(data.get('query'),data.get('month'));return;}
     try {
       const next=structuredClone(state);
-      if(form.id==='vote-form') {
+      if(form.id==='report-form') {
+        const person=String(data.get('person')||'');
+        const status=String(data.get('status')||'');
+        const note=String(data.get('note')||'').trim();
+        if(!reporters.some(row=>row.id===person) || !['待汇报','已汇报','本周免汇报'].includes(status)) throw new Error('请选择有效的汇报成员与状态。');
+        if(status==='本周免汇报' && !note) throw new Error('请填写免汇报原因。');
+        next.reports[person]={status,note:note.slice(0,1000)};
+        commit(next);render(false);notify('本周汇报已保存，两场例会共享此进度。');
+      } else if(form.id==='vote-form') {
         const choice=data.get('choice');
         if(!['agree','disagree','abstain'].includes(choice)) {
           const first=form.querySelector('input[name=choice]');first.id='vote-first';first.setAttribute('aria-describedby','choice-error');
@@ -213,8 +236,7 @@
   if(context?.registerTool){
     const lifecycle=new AbortController();
     const tools=[
-      {name:'read_demo_workspace',title:'查看本地议会示例',description:'读取此本地 UI 试作的签到、表决和任务状态，不读取真实议会数据。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||Object.keys(input).length)throw new Error('此工具不接受参数。');return {route:location.hash||'#overview',state:structuredClone(state)};}},
-      {name:'set_demo_attendance',title:'设置本地示例签到',description:'以示例成员林澈签到或撤销签到，仅更新此浏览器中第 18 次例会的演示记录。',inputSchema:{type:'object',properties:{attended:{type:'boolean'}},required:['attended'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||Object.keys(input).some(k=>k!=='attended'))throw new Error('只接受 attended 参数。');return setAttendance(input.attended);}},
+      {name:'read_demo_workspace',title:'查看本地议会示例',description:'读取此本地 UI 试作的汇报、表决和任务状态，不读取真实议会数据。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||Object.keys(input).length)throw new Error('此工具不接受参数。');return {route:location.hash||'#overview',state:{reports:structuredClone(state.reports),votes:structuredClone(state.votes),tasks:structuredClone(state.tasks)}};}},
       {name:'navigate_demo_workspace',title:'打开本地工作台栏目',description:'打开此试作的概览、例会、表决、督办或档案栏目，不修改业务数据。',inputSchema:{type:'object',properties:{section:{type:'string',enum:['overview','meetings','proposals','tasks','archive']}},required:['section'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||Object.keys(input).some(k=>k!=='section')||!['overview','meetings','proposals','tasks','archive'].includes(input.section))throw new Error('无效的栏目。');history.replaceState(null,'',`#${input.section}`);render();return {section:input.section};}}
     ];
     for(const tool of tools){try{Promise.resolve(context.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}}

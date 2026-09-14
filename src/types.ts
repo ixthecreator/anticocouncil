@@ -71,6 +71,8 @@ export interface Attendance {
   reportStatus: 'pending' | 'reported' | 'exempt';
   reportNote: string;
   reportedAt?: string;
+  reportAssigned?: boolean; // New weekly reporting assignments; legacy check-ins remain readable.
+  reportMeetingId?: string; // Actual reporting/exemption meeting; meetingId retains the assignment origin.
 }
 
 export interface EditorialItem {
@@ -130,4 +132,3 @@ export const DEFAULT_DEPARTMENTS: string[] = [
   '拉美小组',
   '其他'
 ];
-

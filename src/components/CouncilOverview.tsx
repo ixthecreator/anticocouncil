@@ -6,7 +6,7 @@ import {
   overviewData,
   responsibleName,
 } from "../lib/councilOverview";
-import { statusLabels, weekday } from "../lib/workspace";
+import { statusLabels, weekday, weeklyReports } from "../lib/workspace";
 import { Empty } from "./WorkspaceForms";
 
 export function DeadlineTag({
@@ -112,22 +112,17 @@ export function CouncilOverview({
               </div>
               <p className="council-feature-description">
                 {featured.summary ||
-                  "查阅本次议程，完成成员签到，并记录讨论与执行分工。"}
+                  "查阅本次议程，安排每周汇报，并记录讨论与执行分工。"}
               </p>
               <div className="council-feature-bottom">
                 <button
                   className="workspace-button primary"
                   onClick={() => onOpenMeeting(featured)}
                 >
-                  查看议程与签到 <ArrowRight size={17} aria-hidden="true" />
+                  查看议程与汇报 <ArrowRight size={17} aria-hidden="true" />
                 </button>
                 <span className="council-meta">
-                  {
-                    data.attendance.filter(
-                      (row) => row.meetingId === featured.id,
-                    ).length
-                  }{" "}
-                  人已签到
+                  {weeklyReports(data, featured.date).length} 人安排汇报
                 </span>
               </div>
             </>
@@ -135,7 +130,7 @@ export function CouncilOverview({
             <>
               <h2 id="featured-meeting-title">还没有例会</h2>
               <p className="council-feature-description">
-                创建第一场例会，开始成员签到与议程记录。
+                创建第一场例会，开始每周汇报与议程记录。
               </p>
               <button
                 className="workspace-button primary"

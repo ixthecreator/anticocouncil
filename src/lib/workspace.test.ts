@@ -10,6 +10,8 @@ import {
   votingResult,
   weekday,
   advanceIssue,
+  reportingWeek,
+  weeklyReports,
 } from "./workspace";
 
 test("stale workflow actions cannot reverse newer decisions", () => {
@@ -125,6 +127,23 @@ test("report history excludes future meetings and exemption records", () => {
     record("3", "now", "exempt"),
   ];
   expect(latestReport(records, "a", "now", "2026-09-06", data)?.id).toBe("1");
+});
+test("two meetings in one Monday–Sunday cycle share a single report assignment", () => {
+  const data = emptyWorkspace();
+  data.meetings = [meeting("first", "2026-09-09"), meeting("second", "2026-09-13"), meeting("next", "2026-09-14")];
+  data.attendance = [record("old", "first", "pending"), record("done", "second", "reported"), record("following", "next")];
+  expect(reportingWeek("2026-09-09")).toBe("2026-09-07");
+  expect(reportingWeek("2026-09-13")).toBe("2026-09-07");
+  expect(weeklyReports(data, "2026-09-09").map((row) => row.id)).toEqual(["done"]);
+  expect(weeklyReports(data, "2026-09-14").map((row) => row.id)).toEqual(["following"]);
+});
+test("legacy check-ins alone do not put everyone on the reporting roster", () => {
+  const data = emptyWorkspace();
+  data.meetings = [meeting("first", "2026-09-09"), meeting("second", "2026-09-13")];
+  data.attendance = [{ ...record("check-in", "first", "pending"), reportNote: "" }, { ...record("assigned", "second", "pending"), memberId: "b", reportAssigned: true }];
+  expect(weeklyReports(data, "2026-09-09").map((row) => row.id)).toEqual(["assigned"]);
+  expect(meetingBrief(data, "first")).not.toContain("甲｜待汇报");
+  expect(() => parseBackup({ attendance: [{ ...data.attendance[1], reportAssigned: "yes" }] })).toThrow("汇报安排标记");
 });
 test("complete minutes retain rejected issues, attendance and results", () => {
   const data = emptyWorkspace();

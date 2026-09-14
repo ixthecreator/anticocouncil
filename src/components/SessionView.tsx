@@ -35,7 +35,7 @@ export function SessionView({
   const [editingNotes, setEditingNotes] = useState(false);
   if (!currentMeeting)
     return (
-      <Empty>还没有当前例会。点击「新建例会」，开始签到与议程记录。</Empty>
+      <Empty>还没有当前例会。点击「新建例会」，开始汇报与议程记录。</Empty>
     );
   const allIssues = data.issues.filter(
     (i) => i.meetingId === currentMeeting.id && !i.archived,
@@ -50,9 +50,6 @@ export function SessionView({
   const totals = active
     ? voteTotals(active)
     : { approve: 0, reject: 0, abstain: 0 };
-  const checked = data.attendance.filter(
-    (r) => r.meetingId === currentMeeting.id,
-  );
   const updateVoting = (update: (issue: Issue) => Issue) =>
     active &&
     change("issues", active.id, (old) => {
@@ -227,7 +224,7 @@ export function SessionView({
             </span>
           </div>
           {!active ? (
-            <Empty>从议程中发起表决。成员签到后，可选择姓名投票。</Empty>
+            <Empty>从议程中发起表决。成员投票不依赖汇报安排。</Empty>
           ) : (
             <>
               {voting.length > 1 && (
@@ -309,10 +306,10 @@ export function SessionView({
                       value={memberId}
                       onChange={(e) => setMemberId(e.target.value)}
                     >
-                      <option value="">选择本次已签到成员</option>
-                      {checked.map((r) => (
-                        <option key={r.memberId} value={r.memberId}>
-                          {r.memberName}
+                      <option value="">选择成员</option>
+                      {data.members.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name} · {member.role}
                         </option>
                       ))}
                     </select>
@@ -324,7 +321,7 @@ export function SessionView({
                         className={
                           active.ballots?.[memberId] === vote ? "primary" : ""
                         }
-                        disabled={!checked.some((r) => r.memberId === memberId)}
+                        disabled={!data.members.some((member) => member.id === memberId)}
                         onClick={() =>
                           updateVoting((old) =>
                             recordBallot(old, memberId, vote),

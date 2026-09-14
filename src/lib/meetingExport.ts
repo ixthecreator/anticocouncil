@@ -1,5 +1,5 @@
 import type { WorkspaceData } from "../types";
-import { statusLabels, voteTotals } from "./workspace";
+import { isReportRecord, reportMeetingId, statusLabels, voteTotals } from "./workspace";
 
 export type MeetingExportKind = "agenda" | "minutes";
 
@@ -25,7 +25,7 @@ export interface MeetingExportMeeting {
   week: string;
   regularReport: string;
   summary?: string;
-  attendance?: { name: string; checkedInAt: string; reportStatus: string; reportNote: string }[];
+  attendance?: { name: string; reportStatus: string; reportNote: string }[];
   issues: MeetingExportIssue[];
 }
 
@@ -80,11 +80,10 @@ export function buildMeetingExport(
       regularReport: meeting.regularReport || "",
       ...(kind === "minutes" ? {
         summary: meeting.summary || "",
-        attendance: data.attendance.filter((row) => row.meetingId === meeting.id)
+        attendance: data.attendance.filter((row) => reportMeetingId(row) === meeting.id && isReportRecord(row))
           .sort((a, b) => compare(a.checkedInAt, b.checkedInAt) || compare(a.id, b.id))
           .map((row) => ({
             name: row.memberName,
-            checkedInAt: row.checkedInAt,
             reportStatus: reportStatuses[row.reportStatus],
             reportNote: row.reportNote,
           })),
@@ -131,13 +130,13 @@ export function meetingExportBlocks(snapshot: MeetingExport): MeetingExportPage[
       blocks.push({ type: "heading", level: 2, text: "会议摘要" }, { type: "text", text: meeting.summary || "暂无会议摘要。" });
     }
     if (meeting.attendance !== undefined) {
-      blocks.push({ type: "heading", level: 2, text: `签到与汇报（${meeting.attendance.length} 人）` });
+      blocks.push({ type: "heading", level: 2, text: `汇报记录（${meeting.attendance.length} 人）` });
       if (meeting.attendance.length) blocks.push({
         type: "table",
-        headers: ["姓名", "签到时间", "汇报状态", "汇报记录"],
-        rows: meeting.attendance.map((row) => [row.name || "未填写", row.checkedInAt || "未记录", row.reportStatus, row.reportNote || "暂无"]),
+        headers: ["姓名", "汇报状态", "汇报记录"],
+        rows: meeting.attendance.map((row) => [row.name || "未填写", row.reportStatus, row.reportNote || "暂无"]),
       });
-      else blocks.push({ type: "text", text: "暂无签到记录。" });
+      else blocks.push({ type: "text", text: "暂无汇报记录。" });
     }
     blocks.push({ type: "heading", level: 2, text: `议题（${meeting.issues.length} 项）` });
     if (!meeting.issues.length) blocks.push({ type: "text", text: "暂无符合导出范围的议题。" });

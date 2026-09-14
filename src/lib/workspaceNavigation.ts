@@ -10,7 +10,7 @@ export const workspaceNavigation = [
   {
     id: "session",
     title: "例会与议程",
-    description: "查看会议、完成签到，记录讨论与表决。",
+    description: "查看会议、安排每周汇报，记录讨论与表决。",
     kicker: "MEETINGS & AGENDAS",
     group: "会议协作",
     search: "搜索本次会议的议题…",

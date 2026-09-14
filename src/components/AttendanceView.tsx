@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Attendance, Meeting } from "../types";
 import { DEFAULT_DEPARTMENTS } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
-import { latestReport } from "../lib/workspace";
+import { latestReport, reportMeetingId, reportingWeek, updateReport, weeklyReports } from "../lib/workspace";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 
 export function AttendanceView({
@@ -18,8 +18,11 @@ export function AttendanceView({
   const [name, setName] = useState("");
   const [role, setRole] = useState(DEFAULT_DEPARTMENTS[0]);
   const [editing, setEditing] = useState<Attendance | null>(null);
-  const records = data.attendance
-    .filter((r) => r.meetingId === meeting.id)
+  const [original, setOriginal] = useState<Attendance | null>(null);
+  const weekMeetings = data.meetings
+    .filter((candidate) => reportingWeek(candidate.date) === reportingWeek(meeting.date))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  const records = weeklyReports(data, meeting.date)
     .sort(
       (a, b) =>
         a.checkedInAt.localeCompare(b.checkedInAt) || a.id.localeCompare(b.id),
@@ -29,11 +32,11 @@ export function AttendanceView({
     <section className="workspace-panel">
       <div className="workspace-heading">
         <div>
-          <span className="eyebrow">01 / CHECK IN</span>
+          <span className="eyebrow">01 / WEEKLY REPORT</span>
           <h2>
-            签到与分享顺序{" "}
+            本周汇报{" "}
             <small>
-              {records.length} / {data.members.length}
+              {records.filter((r) => r.reportStatus === "reported").length} / {records.length}
             </small>
           </h2>
         </div>
@@ -51,7 +54,7 @@ export function AttendanceView({
                 (m) => m.name.trim() === name.trim() && m.role === role,
               )
             )
-              throw new Error("此部门已有同名成员，请直接选择签到。");
+              throw new Error("此部门已有同名成员，请直接选择汇报。");
             const id = crypto.randomUUID();
             await save("members", {
               id,
@@ -82,7 +85,7 @@ export function AttendanceView({
         </SaveForm>
       )}
       <div className="checkin-form">
-        <Field label="签到成员">
+        <Field label="本周需要汇报的成员">
           <select
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
@@ -91,7 +94,7 @@ export function AttendanceView({
             {data.members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name} · {m.role}
-                {records.some((r) => r.memberId === m.id) ? "（已签到）" : ""}
+                {records.some((r) => r.memberId === m.id) ? "（本周已安排）" : ""}
               </option>
             ))}
           </select>
@@ -102,7 +105,7 @@ export function AttendanceView({
           onClick={async () => {
             const member = data.members.find((m) => m.id === memberId);
             if (!member) return;
-            const id = `${meeting.id}__${member.id}`;
+            const id = `${reportingWeek(meeting.date)}__${member.id}`;
             await change(
               "attendance",
               id,
@@ -112,26 +115,28 @@ export function AttendanceView({
                   meetingId: meeting.id,
                   memberId: member.id,
                   memberName: member.name,
+                  // Keep the legacy storage field for existing backups and cloud records.
                   checkedInAt: new Date().toISOString(),
                   reportStatus: "pending",
                   reportNote: "",
+                  reportAssigned: true,
                 },
             );
           }}
         >
-          签到
+          安排汇报
         </Action>
       </div>
       <p className="workspace-help">
-        按签到时间依次分享。
+        同一自然周只安排一次汇报；两次例会共用本周进度。
         {next
           ? `下一位：${next.memberName}`
           : records.length
-            ? "本次分享已全部处理。"
-            : "签到后会自动加入分享队列。"}
+            ? "本周汇报已全部处理。"
+            : "请选择本周需要汇报的成员。"}
       </p>
       {!records.length ? (
-        <Empty>还没有签到记录。先添加成员，再选择姓名签到。</Empty>
+        <Empty>本周还没有安排汇报人员。</Empty>
       ) : (
         <ol className="attendance-list">
           {records.map((r, index) => {
@@ -142,8 +147,8 @@ export function AttendanceView({
               meeting.date,
               data,
             );
-            const previousMeeting = data.meetings.find(
-              (m) => m.id === previous?.meetingId,
+            const previousMeeting = previous?.id === r.id ? undefined : data.meetings.find(
+              (m) => previous && m.id === reportMeetingId(previous),
             );
             return (
               <li
@@ -156,11 +161,8 @@ export function AttendanceView({
                 <div className="attendance-person">
                   <strong>{r.memberName}</strong>
                   <span className="workspace-help">
-                    {new Date(r.checkedInAt).toLocaleTimeString("zh-CN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}{" "}
-                    签到
+                    {r.reportStatus === "pending" ? "安排于 " : r.reportStatus === "reported" ? "汇报于 " : "免汇报于 "}
+                    {data.meetings.find((m) => m.id === reportMeetingId(r))?.date || "会议已删除"}
                     {previousMeeting
                       ? ` · 上次汇报 ${previousMeeting.date}`
                       : ""}
@@ -180,7 +182,10 @@ export function AttendanceView({
                 </span>
                 <button
                   className="workspace-button"
-                  onClick={() => setEditing(r)}
+                  onClick={() => {
+                    setOriginal(r);
+                    setEditing({ ...r, reportMeetingId: r.reportStatus === "pending" ? meeting.id : reportMeetingId(r) });
+                  }}
                 >
                   记录汇报
                 </button>
@@ -194,20 +199,11 @@ export function AttendanceView({
           key={editing.id}
           onCancel={() => setEditing(null)}
           onSave={async () => {
-            if (editing.reportStatus === "exempt" && !editing.reportNote.trim())
-              throw new Error("请填写免汇报原因，例如“周三已汇报”。");
-            await change("attendance", editing.id, (old) => {
-              if (!old) throw new Error("签到记录不存在");
-              return {
-                ...old,
-                reportStatus: editing.reportStatus,
-                reportNote: editing.reportNote.trim(),
-                reportedAt:
-                  editing.reportStatus === "reported"
-                    ? old.reportedAt || new Date().toISOString()
-                    : "",
-              };
-            });
+            if (!original) return;
+            const now = new Date().toISOString();
+            await change("attendance", editing.id, (old) =>
+              updateReport(old, original, editing, data.meetings, now),
+            );
             setEditing(null);
           }}
         >
@@ -226,6 +222,18 @@ export function AttendanceView({
               <option value="exempt">本次免汇报</option>
             </select>
           </Field>
+          {editing.reportStatus !== "pending" && <Field label="汇报场次">
+            <select
+              required
+              value={editing.reportMeetingId || ""}
+              onChange={(e) => setEditing({ ...editing, reportMeetingId: e.target.value })}
+            >
+              <option value="">请选择实际汇报或免汇报的会议</option>
+              {weekMeetings.map((candidate) => <option key={candidate.id} value={candidate.id}>
+                {candidate.date} · {candidate.title}
+              </option>)}
+            </select>
+          </Field>}
           <Field label="汇报内容或免汇报原因">
             <textarea
               value={editing.reportNote}
