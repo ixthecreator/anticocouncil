@@ -66,11 +66,163 @@ service cloud.firestore {
         && !exists(accessPath(uid)) && validRequest(request.resource.data);
       allow delete: if administrator() && uid != request.auth.uid;
     }
+    function validId(data, recordId) {
+      return data.id is string && data.id == recordId
+        && !(recordId in ['__proto__', 'constructor', 'prototype']);
+    }
+    function optionalString(data, field) {
+      return data.get(field, '') is string;
+    }
+    function safeInteger(value) {
+      return value is int && value >= 0 && value <= 9007199254740991;
+    }
+    function parentExists(meetingId) {
+      return meetingId is string && meetingId.size() > 0
+        && !meetingId.matches('.*[/].*')
+        && getAfter(/databases/$(database)/documents/meetings/$(meetingId)).data.id == meetingId;
+    }
+    function validMeeting(data) {
+      return data.title is string && data.date is string
+        && data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && data.week is string && data.summary is string && data.createdAt is string
+        && data.issueIds is list && optionalString(data, 'regularReport');
+    }
+    function validIssue(data) {
+      return data.title is string && data.category is string
+        && data.priority in ['low', 'medium', 'high', 'urgent']
+        && data.status in ['agenda', 'voting', 'passed', 'rejected', 'authorization', 'execution', 'completed']
+        && data.description is string && data.discussion is string && data.signature is string
+        && data.createdAt is string && data.updatedAt is string && data.archived is bool
+        && (data.meetingId == null || data.meetingId is string)
+        && optionalString(data, 'dueDate') && optionalString(data, 'archivedAt')
+        && optionalString(data, 'serialNumber') && optionalString(data, 'voteRoundId')
+        && optionalString(data, 'voteClosedAt')
+        && data.get('voteMode', 'private') in ['manual', 'members', 'private', 'legacy']
+        && data.get('voteRule', 'simple') in ['simple', 'absolute']
+        && (!('votes' in data) || (data.votes is map
+          && data.votes.keys().hasOnly(['approve', 'reject', 'abstain'])
+          && safeInteger(data.votes.approve) && safeInteger(data.votes.reject)
+          && safeInteger(data.votes.abstain)))
+        // Identity-bearing legacy fields must be removed by the server migration.
+        && !data.keys().hasAny(['ballots', 'voters']);
+    }
+    function validIssueTransition(previous, next) {
+      return previous == next
+        || (previous == 'agenda' && next == 'execution')
+        || (previous == 'passed' && next == 'authorization')
+        || (previous == 'authorization' && next == 'execution')
+        || (previous == 'execution' && next == 'completed');
+    }
+    function validIssueEdit() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let frozen = before.status == 'voting' || before.get('voteMode', '') in ['private', 'legacy'];
+      return after.diff(before).affectedKeys().hasOnly([
+          'title', 'description', 'category', 'priority', 'discussion', 'signature',
+          'dueDate', 'status', 'updatedAt', 'meetingId', 'archived', 'archivedAt', 'serialNumber'
+        ])
+        && validIssueTransition(before.status, after.status)
+        && (!frozen || !after.diff(before).affectedKeys().hasAny(['title', 'description', 'category', 'meetingId']))
+        && (before.status != 'voting' || !after.archived || before.archived)
+        // Existing orphaned records may be repaired without changing their parent.
+        && (after.meetingId == before.meetingId || after.meetingId == null || parentExists(after.meetingId));
+    }
+    function validMember(data) {
+      return data.name is string && data.role is string && data.avatarSymbol is string;
+    }
+    function validActivity(data) {
+      return data.name is string && data.time is string && data.organizer is string
+        && data.participants is string && optionalString(data, 'location')
+        && optionalString(data, 'description')
+        && data.get('status', 'planned') in ['planned', 'completed', 'cancelled'];
+    }
+    function validAttendance(data) {
+      return data.meetingId is string && data.memberId is string && data.memberName is string
+        && data.checkedInAt is string && data.reportStatus in ['pending', 'reported', 'exempt']
+        && data.reportNote is string && optionalString(data, 'reportedAt');
+    }
+    function validEditorial(data) {
+      return data.title is string && data.department in ['微信编辑部', 'QQ编辑部']
+        && data.author is string && data.editor is string && data.designer is string
+        && data.dueDate is string && data.status in ['选题', '撰稿', '编辑', '排版', '已发布']
+        && data.notes is string;
+    }
+    function validAsset(data) {
+      return data.title is string && data.kind in ['作者名片', '美工素材', '往期成果']
+        && data.author is string && data.tags is string && data.url is string
+        && (data.url == '' || data.url.matches('https?://[^ /]+.*'))
+        && data.fileName is string && data.fileData is string
+        && data.fileData.size() <= 550000
+        && (data.fileData == '' || data.fileData.matches('data:(image/(png|jpeg|webp)|application/pdf);base64,[A-Za-z0-9+/=]+'))
+        && data.notes is string && data.updatedAt is string;
+    }
+    function validInventory(data) {
+      return data.title is string && data.location is string && data.keeper is string
+        && data.notes is string && safeInteger(data.quantity);
+    }
     match /{businessCollection}/{recordId} {
-      allow read, write: if businessCollection in [
+      allow read: if businessCollection in [
         'meetings', 'issues', 'members', 'activities',
         'attendance', 'editorial', 'assets', 'inventory'
       ] && approved();
+    }
+    match /meetings/{recordId} {
+      allow create: if approved() && validId(request.resource.data, recordId)
+        && validMeeting(request.resource.data) && request.resource.data.issueIds == [];
+      allow update: if approved() && validId(request.resource.data, recordId)
+        && validMeeting(request.resource.data) && request.resource.data.issueIds == resource.data.issueIds;
+      // Only the server may delete after checking authoritative child links.
+      allow delete: if false;
+    }
+    match /issues/{recordId} {
+      allow create: if approved() && validId(request.resource.data, recordId)
+        && validIssue(request.resource.data) && request.resource.data.status == 'agenda'
+        && !request.resource.data.keys().hasAny([
+          'ballots', 'voters', 'votes', 'voteMode', 'voteRule', 'voteRoundId', 'voteClosedAt'
+        ])
+        && (request.resource.data.meetingId == null || parentExists(request.resource.data.meetingId));
+      allow update: if approved() && validId(request.resource.data, recordId)
+        && validIssue(request.resource.data) && validIssueEdit();
+      allow delete: if approved() && resource.data.status != 'voting'
+        && !('voteRoundId' in resource.data) && resource.data.get('voteMode', '') != 'legacy';
+    }
+    match /members/{recordId} {
+      allow create, update: if approved() && validId(request.resource.data, recordId) && validMember(request.resource.data);
+      allow delete: if approved();
+    }
+    match /activities/{recordId} {
+      allow create, update: if approved() && validId(request.resource.data, recordId) && validActivity(request.resource.data);
+      allow delete: if approved();
+    }
+    match /attendance/{recordId} {
+      allow create: if approved() && validId(request.resource.data, recordId)
+        && validAttendance(request.resource.data) && parentExists(request.resource.data.meetingId);
+      allow update: if approved() && validId(request.resource.data, recordId)
+        && validAttendance(request.resource.data)
+        && (request.resource.data.meetingId == resource.data.meetingId || parentExists(request.resource.data.meetingId));
+      allow delete: if approved();
+    }
+    match /editorial/{recordId} {
+      allow create, update: if approved() && validId(request.resource.data, recordId) && validEditorial(request.resource.data);
+      allow delete: if approved();
+    }
+    match /assets/{recordId} {
+      allow create, update: if approved() && validId(request.resource.data, recordId) && validAsset(request.resource.data);
+      allow delete: if approved();
+    }
+    match /inventory/{recordId} {
+      allow create, update: if approved() && validId(request.resource.data, recordId) && validInventory(request.resource.data);
+      allow delete: if approved();
+    }
+    match /privateVotes/{roundId} {
+      allow read, write: if false;
+      match /ballots/{uid} {
+        allow get: if approved() && request.auth.uid == uid;
+        allow list, write: if false;
+      }
+    }
+    match /legacyVoteArchives/{issueId} {
+      allow read, write: if false;
     }
     match /{document=**} {
       allow read, write: if false;

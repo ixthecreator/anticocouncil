@@ -1,5 +1,5 @@
 import { Inbox } from "lucide-react";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 export function Action({
   children,
   onClick,
@@ -12,18 +12,22 @@ export function Action({
   disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   return (
     <button
       type="button"
       className={`workspace-button ${className}`}
       disabled={disabled || busy}
       onClick={async () => {
+        if (disabled || pending.current) return;
+        pending.current = true;
         setBusy(true);
         try {
           await onClick();
         } catch {
           /* The workspace retains and displays the error. */
         } finally {
+          pending.current = false;
           setBusy(false);
         }
       }}
@@ -60,30 +64,44 @@ export function SaveForm({
   onSave,
   children,
   onCancel,
+  onBusyChange,
 }: {
   onSave: () => Promise<void>;
   children: React.ReactNode;
   onCancel?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const pending = useRef(false);
   return (
     <form
       className="workspace-form"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (pending.current) return;
+        pending.current = true;
         setBusy(true);
+        onBusyChange?.(true);
         setError("");
         try {
           await onSave();
         } catch (err) {
           setError(err instanceof Error ? err.message : "保存失败");
         } finally {
+          pending.current = false;
           setBusy(false);
+          onBusyChange?.(false);
         }
       }}
     >
-      <div className="workspace-fields">{children}</div>
+      <fieldset
+        className="workspace-fields"
+        disabled={busy}
+        style={{ minWidth: 0, margin: 0, padding: 0, border: 0 }}
+      >
+        {children}
+      </fieldset>
       {error && (
         <p role="alert" className="workspace-error">
           {error}
@@ -95,7 +113,9 @@ export function SaveForm({
             type="button"
             disabled={busy}
             className="workspace-button"
-            onClick={onCancel}
+            onClick={() => {
+              if (!pending.current) onCancel();
+            }}
           >
             取消
           </button>

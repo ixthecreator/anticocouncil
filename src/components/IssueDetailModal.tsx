@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Issue, Member, Priority, Status } from "../types";
+import { OwnBallotReceipt } from "./OwnBallotReceipt";
+import { issueTransitions } from "../lib/issueEditing";
 import {
   X,
   Calendar,
@@ -13,6 +15,8 @@ import {
 interface IssueDetailModalProps {
   issue: Issue;
   members: Member[];
+  ballotUid?: string;
+  isNew?: boolean;
   categories: string[];
   onClose: () => void;
   onUpdate: (updated: Issue) => Promise<void>;
@@ -21,6 +25,8 @@ interface IssueDetailModalProps {
 
 export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   issue,
+  ballotUid,
+  isNew = false,
   members,
   categories,
   onClose,
@@ -42,13 +48,13 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
     const panel = panelRef.current;
-    panel?.querySelector<HTMLElement>("input")?.focus();
+    panel?.querySelector<HTMLElement>("input:not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)")?.focus();
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) onClose();
+      if (event.key === "Escape" && !savingRef.current) onClose();
       if (event.key !== "Tab") return;
       const focusable = Array.from(
         panel?.querySelectorAll<HTMLElement>(
-          "button:not(:disabled), input, textarea, select, a[href]",
+          "button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]",
         ) || [],
       ).filter((el) => el.offsetParent !== null);
       const first = focusable[0],
@@ -67,9 +73,12 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
       document.removeEventListener("keydown", handler);
       previous?.focus();
     };
-  }, [saving]);
+  }, []);
 
+  const savingRef = useRef(false);
+  const ballotLocked = issue.status === "voting" || issue.voteMode === "private" || issue.voteMode === "legacy";
   const handleSave = async () => {
+    if (savingRef.current) return;
     if (!title.trim()) {
       setErrorMsg("标题不能为空");
       return;
@@ -79,6 +88,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
       return;
     }
     setErrorMsg("");
+    savingRef.current = true;
     setSaving(true);
     try {
       await onUpdate({
@@ -97,6 +107,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "保存失败，请重试。");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -130,6 +141,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
         aria-label="议题详情"
         className="w-full max-w-2xl bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] border-2 border-[var(--theme-border,#171717)] flex flex-col max-h-[90vh]"
       >
+        {ballotUid && issue.voteMode === "private" && issue.voteRoundId && <OwnBallotReceipt issueId={issue.id} roundId={issue.voteRoundId} uid={ballotUid} />}
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))]">
           <div className="flex items-center gap-2">
@@ -154,7 +166,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
         {/* Modal Content - Scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Main Form Fields */}
-          <div className="space-y-4">
+          <fieldset disabled={saving} className="space-y-4">
             <div>
               <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
                 议题标题 · 必填
@@ -162,6 +174,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               <input
                 type="text"
                 aria-label="议题标题"
+                disabled={ballotLocked}
                 aria-required="true"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -177,6 +190,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 </label>
                 <select
                   aria-label="议题部门"
+                  disabled={ballotLocked}
                   value={categories.includes(category) ? category : "其他"}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -194,6 +208,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                   <input
                     type="text"
                     value={category === "其他" ? "" : category}
+                    disabled={ballotLocked}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
                     placeholder="请输入自定义部门..."
@@ -226,13 +241,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                   onChange={(e) => setStatus(e.target.value as Status)}
                   className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none"
                 >
-                  <option value="agenda">议程 (Agenda)</option>
-                  <option value="voting">表决中 (Voting)</option>
-                  <option value="passed">已通过 (Passed)</option>
-                  <option value="rejected">已否决 (Rejected)</option>
-                  <option value="authorization">授权 (Authorization)</option>
-                  <option value="execution">执行 (Execution)</option>
-                  <option value="completed">归档完成 (Completed)</option>
+                  {(isNew ? ["agenda" as const] : issueTransitions[issue.status]).map(value => <option key={value} value={value}>{getStatusLabel(value)}</option>)}
                 </select>
               </div>
             </div>
@@ -243,13 +252,14 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               </label>
               <textarea
                 value={description}
+                disabled={ballotLocked}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))] resize-none"
                 placeholder="详细阐述议题的相关背景、遇到的障碍与核心待议事宜..."
               />
             </div>
-          </div>
+          </fieldset>
 
           <hr className="border-t-2 border-[var(--theme-border,#171717)] opacity-30" />
 
@@ -258,11 +268,12 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             <span>执行截止日期</span>
             <input
               type="date"
+              disabled={saving}
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </label>
-          <div className="space-y-4">
+          <fieldset disabled={saving} className="space-y-4">
             <div>
               <div className="flex items-center gap-1.5 mb-1">
                 <MessageSquare className="w-4 h-4 text-[var(--theme-text-primary,#171717)]" />
@@ -326,7 +337,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 每次状态流转或修改，均需指明明确的执行负责人或经办代表，确立核心责任。
               </p>
             </div>
-          </div>
+          </fieldset>
 
           {errorMsg && (
             <div className="p-3 border-2 border-[var(--theme-border,#171717)] bg-red-50 text-red-700 font-sans text-xs flex items-center gap-2">
@@ -348,7 +359,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
 
         {/* Modal Footer */}
         <div className="p-4 border-t-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))] flex items-center justify-between">
-          {showDeleteConfirm ? (
+          {isNew ? <span /> : showDeleteConfirm ? (
             <div className="flex items-center gap-2 border-2 border-red-500 bg-red-50 p-2 text-xs font-sans">
               <span className="text-red-700 font-bold">
                 确定要彻底删除该议题吗？此操作不可逆。
@@ -356,6 +367,8 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               <button
                 disabled={saving}
                 onClick={async () => {
+                  if (savingRef.current) return;
+                  savingRef.current = true;
                   setSaving(true);
                   try {
                     await onDelete(issue.id);
@@ -365,6 +378,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                       err instanceof Error ? err.message : "删除失败",
                     );
                   } finally {
+                    savingRef.current = false;
                     setSaving(false);
                   }
                 }}
@@ -373,6 +387,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 确定删除
               </button>
               <button
+                disabled={saving}
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-2 py-1 border border-neutral-300 text-neutral-600 hover:text-neutral-950 bg-white transition-all cursor-pointer font-bold"
               >
@@ -382,6 +397,8 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
           ) : (
             <button
               id="delete-issue-btn"
+              disabled={saving || ballotLocked}
+              title={ballotLocked ? "表决议题需要保留为历史记录" : undefined}
               onClick={() => setShowDeleteConfirm(true)}
               className="px-3 py-1.5 border border-neutral-400 text-neutral-500 hover:text-red-600 hover:border-red-600 text-xs font-sans transition-colors cursor-pointer"
             >

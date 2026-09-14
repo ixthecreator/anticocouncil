@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { EditorialItem, InventoryItem, LibraryAsset } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import { safeUrl } from "../lib/workspace";
+import { mergeEditedRecord } from "../lib/editRecord";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 import { FileImage, ExternalLink } from "lucide-react";
 
@@ -11,6 +12,33 @@ const labels = {
   assets: "作者名片与素材库",
   inventory: "文创库存与存放地点",
 };
+const editorialFields = [
+  "title",
+  "department",
+  "author",
+  "editor",
+  "designer",
+  "dueDate",
+  "status",
+  "notes",
+] as const satisfies readonly (keyof EditorialItem)[];
+const assetFields = [
+  "title",
+  "kind",
+  "author",
+  "tags",
+  "url",
+  "fileName",
+  "fileData",
+  "notes",
+] as const satisfies readonly (keyof LibraryAsset)[];
+const inventoryFields = [
+  "title",
+  "location",
+  "quantity",
+  "keeper",
+  "notes",
+] as const satisfies readonly (keyof InventoryItem)[];
 const freshEditorial = (): EditorialItem => ({
   id: crypto.randomUUID(),
   title: "",
@@ -42,20 +70,33 @@ const freshInventory = (): InventoryItem => ({
   keeper: "",
   notes: "",
 });
-function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
+function DeleteButton({
+  onDelete,
+  disabled = false,
+}: {
+  onDelete: () => Promise<void>;
+  disabled?: boolean;
+}) {
   const [confirm, setConfirm] = useState(false);
   return confirm ? (
     <span className="workspace-actions">
-      <Action className="danger" onClick={onDelete}>
+      <Action className="danger" onClick={onDelete} disabled={disabled}>
         确认删除
       </Action>
-      <button className="workspace-button" onClick={() => setConfirm(false)}>
+      <button
+        type="button"
+        className="workspace-button"
+        disabled={disabled}
+        onClick={() => setConfirm(false)}
+      >
         取消
       </button>
     </span>
   ) : (
     <button
+      type="button"
       className="workspace-button subtle"
+      disabled={disabled}
       onClick={() => setConfirm(true)}
     >
       删除
@@ -76,7 +117,31 @@ export function OperationsView({
   const [inventory, setInventory] = useState<InventoryItem | null>(null);
   const [filter, setFilter] = useState("全部");
   const [fileBusy, setFileBusy] = useState(false);
-  const { data, save, remove, setError } = workspace;
+  const [formBusy, setFormBusy] = useState(false);
+  const draftPending = useRef(false);
+  const editorialOriginal = useRef<EditorialItem | null>(null);
+  const assetOriginal = useRef<LibraryAsset | null>(null);
+  const inventoryOriginal = useRef<InventoryItem | null>(null);
+  const { data, change, remove, setError } = workspace;
+  const onFormBusyChange = (busy: boolean) => {
+    draftPending.current = busy;
+    setFormBusy(busy);
+  };
+  const beginEditorial = (row: EditorialItem | null) => {
+    if (draftPending.current) return;
+    editorialOriginal.current = row ? structuredClone(row) : null;
+    setEditorial(row ? structuredClone(row) : freshEditorial());
+  };
+  const beginAsset = (row: LibraryAsset | null) => {
+    if (draftPending.current) return;
+    assetOriginal.current = row ? structuredClone(row) : null;
+    setAsset(row ? structuredClone(row) : freshAsset());
+  };
+  const beginInventory = (row: InventoryItem | null) => {
+    if (draftPending.current) return;
+    inventoryOriginal.current = row ? structuredClone(row) : null;
+    setInventory(row ? structuredClone(row) : freshInventory());
+  };
   const matched = (row: object) =>
     Object.entries(row).some(
       ([key, value]) =>
@@ -86,10 +151,10 @@ export function OperationsView({
   const authorCards = data.assets.filter((a) => a.kind === "作者名片");
   const edit = () =>
     kind === "editorial"
-      ? setEditorial(freshEditorial())
+      ? beginEditorial(null)
       : kind === "assets"
-        ? setAsset(freshAsset())
-        : setInventory(freshInventory());
+        ? beginAsset(null)
+        : beginInventory(null);
   return (
     <section className="workspace-panel operations-view">
       <div className="workspace-heading">
@@ -103,7 +168,12 @@ export function OperationsView({
           </span>
           <h2>{labels[kind]}</h2>
         </div>
-        <button className="workspace-button primary" onClick={edit}>
+        <button
+          type="button"
+          className="workspace-button primary"
+          disabled={formBusy}
+          onClick={edit}
+        >
           ＋{" "}
           {kind === "editorial"
             ? "新增选题"
@@ -149,13 +219,18 @@ export function OperationsView({
       {editorial && (
         <SaveForm
           key={editorial.id}
+          onBusyChange={onFormBusyChange}
           onCancel={() => setEditorial(null)}
           onSave={async () => {
             if (!editorial.title.trim()) throw new Error("请输入选题。");
-            await save("editorial", {
+            const original = editorialOriginal.current;
+            const edited = {
               ...editorial,
               title: editorial.title.trim(),
-            });
+            };
+            await change("editorial", editorial.id, (latest) =>
+              mergeEditedRecord(latest, original, edited, editorialFields),
+            );
             setEditorial(null);
           }}
         >
@@ -250,6 +325,7 @@ export function OperationsView({
       {asset && (
         <SaveForm
           key={asset.id}
+          onBusyChange={onFormBusyChange}
           onCancel={() => setAsset(null)}
           onSave={async () => {
             if (fileBusy) throw new Error("文件正在读取，请稍候。");
@@ -260,12 +336,16 @@ export function OperationsView({
               throw new Error("请输入完整的 https:// 或 http:// 链接。");
             if (asset.kind === "作者名片" && !asset.author.trim())
               throw new Error("作者名片需要填写作者姓名。");
-            await save("assets", {
+            const original = assetOriginal.current;
+            const edited = {
               ...asset,
               title: asset.title.trim(),
               url: asset.url ? safeUrl(asset.url) : "",
+            };
+            await change("assets", asset.id, (latest) => ({
+              ...mergeEditedRecord(latest, original, edited, assetFields),
               updatedAt: new Date().toISOString(),
-            });
+            }));
             setAsset(null);
           }}
         >
@@ -382,6 +462,7 @@ export function OperationsView({
       {inventory && (
         <SaveForm
           key={inventory.id}
+          onBusyChange={onFormBusyChange}
           onCancel={() => setInventory(null)}
           onSave={async () => {
             if (!inventory.title.trim() || !inventory.location.trim())
@@ -390,12 +471,16 @@ export function OperationsView({
               !Number.isSafeInteger(inventory.quantity) ||
               inventory.quantity < 0
             )
-              throw new Error("数量必须是非负整数。");
-            await save("inventory", {
+              throw new Error("数量必须是 0 至 9007199254740991 之间的整数。");
+            const original = inventoryOriginal.current;
+            const edited = {
               ...inventory,
               title: inventory.title.trim(),
               location: inventory.location.trim(),
-            });
+            };
+            await change("inventory", inventory.id, (latest) =>
+              mergeEditedRecord(latest, original, edited, inventoryFields),
+            );
             setInventory(null);
           }}
         >
@@ -421,6 +506,7 @@ export function OperationsView({
             <input
               required
               min={0}
+              max={Number.MAX_SAFE_INTEGER}
               step={1}
               type="number"
               value={inventory.quantity}
@@ -497,11 +583,15 @@ export function OperationsView({
                 <div className="workspace-actions">
                   <button
                     className="workspace-button"
-                    onClick={() => setEditorial(row)}
+                    disabled={formBusy}
+                    onClick={() => beginEditorial(row)}
                   >
                     编辑安排
                   </button>
-                  <DeleteButton onDelete={() => remove("editorial", row.id)} />
+                  <DeleteButton
+                    disabled={formBusy}
+                    onDelete={() => remove("editorial", row.id)}
+                  />
                 </div>
               </article>
             ))}
@@ -542,11 +632,15 @@ export function OperationsView({
                 <div className="workspace-actions">
                   <button
                     className="workspace-button"
-                    onClick={() => setAsset(row)}
+                    disabled={formBusy}
+                    onClick={() => beginAsset(row)}
                   >
                     编辑
                   </button>
-                  <DeleteButton onDelete={() => remove("assets", row.id)} />
+                  <DeleteButton
+                    disabled={formBusy}
+                    onDelete={() => remove("assets", row.id)}
+                  />
                 </div>
               </article>
             ))}
@@ -567,11 +661,15 @@ export function OperationsView({
               <div className="workspace-actions">
                 <button
                   className="workspace-button"
-                  onClick={() => setInventory(row)}
+                  disabled={formBusy}
+                  onClick={() => beginInventory(row)}
                 >
                   更新数量与地点
                 </button>
-                <DeleteButton onDelete={() => remove("inventory", row.id)} />
+                <DeleteButton
+                  disabled={formBusy}
+                  onDelete={() => remove("inventory", row.id)}
+                />
               </div>
             </article>
           ))}

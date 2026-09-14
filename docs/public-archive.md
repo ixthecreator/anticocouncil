@@ -1,6 +1,6 @@
 # 公开档案馆的维护
 
-这一版属于 UI 草稿 PR，等待设计审核。正式功能 PR #4 已单独合并。当前两组届次和三篇文章全部为排版示例，不代表真实历史、作者或成果；没有从 Firebase 或本地工作台提取资料。
+UI PR #1 已按用户要求合并至 main 并发布；正式功能 PR #4 已先行合并。当前两组届次和三篇文章全部为排版示例，不代表真实历史、作者或成果；没有从 Firebase 或本地工作台提取资料。
 
 ## 内容与页面
 
@@ -19,7 +19,7 @@
 
 ## 静态生成与路由
 
-`bun run build` 先执行 Vite，再由 `scripts/prerender-public.tsx` 将公开页面生成为独立 HTML。公开 HTML 不带应用脚本，关闭 JavaScript 仍能阅读、跳转目录和打开文章；公开样式使用系统字体。旧工作台的在线字体单独随工作台 CSS 加载，不进入公开页面。
+`bun run build` 先执行 Vite，再由 `scripts/prerender-public.tsx` 将公开页面生成为独立 HTML。公开 HTML 不带应用脚本，关闭 JavaScript 仍能阅读、跳转目录和打开文章；公开样式使用系统字体。工作台使用本机字体，PDF 的同源中文字体只在导出时按需加载。
 
 原 Vite 应用壳保存在 `dist/workspace.html`，只为 `/portal`、`/workspace`、`/local` 服务，保留登录、本地数据和懒加载逻辑。`vercel.json` 明确映射公开目录、文章与三个工作台入口。不存在的文章或路径由 `dist/404.html` 返回 404，不再以首页作为通用 200 兜底。Firebase 代理、`/preview/` 文件及其安全头保持原样。
 

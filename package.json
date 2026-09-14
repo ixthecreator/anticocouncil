@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "test:rules": "firebase emulators:exec --project demo-antico-council --only firestore \"node --test tests/firestore.rules.mjs\"",
+    "test:server-runtime": "node --test tests/server-runtime.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -20,16 +22,17 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.16.0",
+    "firebase-admin": "^14.3.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "recharts": "^3.9.2",
-    "vite": "^6.2.3"
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/bun": "^1.4.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
@@ -37,9 +40,16 @@
     "@types/react-dom": "19",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "firebase-tools": "^15.30.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "patchedDependencies": {
+    "jwks-rsa@4.1.0": "patches/jwks-rsa@4.1.0.patch"
   }
 }

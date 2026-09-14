@@ -1,9 +1,20 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Attendance, Meeting } from "../types";
 import { DEFAULT_DEPARTMENTS } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import { latestReport } from "../lib/workspace";
+import { mergeEditedRecord } from "../lib/editRecord";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
+
+export function mergeAttendanceReport(latest: Attendance | null, original: Attendance, edited: Attendance, now: string): Attendance {
+  const merged = mergeEditedRecord(latest, original, { ...edited, reportNote: edited.reportNote.trim() }, ["reportStatus", "reportNote"]);
+  if (merged.reportStatus === "exempt" && !merged.reportNote)
+    throw new Error("请填写免汇报原因，例如“周三已汇报”。");
+  return {
+    ...merged,
+    reportedAt: merged.reportStatus === "reported" ? latest?.reportedAt || now : "",
+  };
+}
 
 export function AttendanceView({
   meeting,
@@ -18,6 +29,9 @@ export function AttendanceView({
   const [name, setName] = useState("");
   const [role, setRole] = useState(DEFAULT_DEPARTMENTS[0]);
   const [editing, setEditing] = useState<Attendance | null>(null);
+  const [editingOriginal, setEditingOriginal] = useState<Attendance | null>(null);
+  const [savingReport, setSavingReport] = useState(false);
+  const reportPending = useRef(false);
   const records = data.attendance
     .filter((r) => r.meetingId === meeting.id)
     .sort(
@@ -180,7 +194,12 @@ export function AttendanceView({
                 </span>
                 <button
                   className="workspace-button"
-                  onClick={() => setEditing(r)}
+                  disabled={savingReport}
+                  onClick={() => {
+                    if (reportPending.current) return;
+                    setEditingOriginal(structuredClone(r));
+                    setEditing(structuredClone(r));
+                  }}
                 >
                   记录汇报
                 </button>
@@ -192,23 +211,14 @@ export function AttendanceView({
       {editing && (
         <SaveForm
           key={editing.id}
-          onCancel={() => setEditing(null)}
+          onBusyChange={busy => { reportPending.current = busy; setSavingReport(busy); }}
+          onCancel={() => { setEditing(null); setEditingOriginal(null); }}
           onSave={async () => {
-            if (editing.reportStatus === "exempt" && !editing.reportNote.trim())
-              throw new Error("请填写免汇报原因，例如“周三已汇报”。");
-            await change("attendance", editing.id, (old) => {
-              if (!old) throw new Error("签到记录不存在");
-              return {
-                ...old,
-                reportStatus: editing.reportStatus,
-                reportNote: editing.reportNote.trim(),
-                reportedAt:
-                  editing.reportStatus === "reported"
-                    ? old.reportedAt || new Date().toISOString()
-                    : "",
-              };
-            });
+            if (!editingOriginal) throw new Error("请重新打开汇报记录后编辑。");
+            const now = new Date().toISOString();
+            await change("attendance", editing.id, old => mergeAttendanceReport(old, editingOriginal, editing, now));
             setEditing(null);
+            setEditingOriginal(null);
           }}
         >
           <Field label={`${editing.memberName} · 汇报状态`}>

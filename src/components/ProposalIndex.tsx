@@ -114,9 +114,10 @@ export function ProposalIndex({
                   </div>
                 )}
               </dl>
-              {issue.status === "voting" && (
+              {issue.status === "voting" && <p className="council-meta">表决结束后公布匿名汇总。</p>}
+              {!["agenda", "voting"].includes(issue.status) && issue.votes && (
                 <p className="council-meta">
-                  当前表决：赞成 {votes.approve} · 反对 {votes.reject} · 弃权{" "}
+                  表决汇总：赞成 {votes.approve} · 反对 {votes.reject} · 弃权{" "}
                   {votes.abstain}
                 </p>
               )}

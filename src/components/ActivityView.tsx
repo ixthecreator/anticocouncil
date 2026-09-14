@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ActivityEvent } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import { localDate, safeUrl } from "../lib/workspace";
+import { mergeEditedRecord } from "../lib/editRecord";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
+const activityFields = [
+  "time",
+  "name",
+  "organizer",
+  "participants",
+  "location",
+  "description",
+  "status",
+] as const satisfies readonly (keyof ActivityEvent)[];
 export function ActivityView({
   workspace,
   search,
@@ -13,6 +23,27 @@ export function ActivityView({
   const [month, setMonth] = useState("");
   const [editing, setEditing] = useState<ActivityEvent | null>(null);
   const [deleting, setDeleting] = useState("");
+  const [formBusy, setFormBusy] = useState(false);
+  const draftPending = useRef(false);
+  const originalRecord = useRef<ActivityEvent | null>(null);
+  const beginEditing = (row: ActivityEvent | null) => {
+    if (draftPending.current) return;
+    originalRecord.current = row ? structuredClone(row) : null;
+    setEditing(
+      row
+        ? structuredClone(row)
+        : {
+            id: crypto.randomUUID(),
+            time: `${localDate()}T19:00`,
+            name: "",
+            organizer: "",
+            participants: "",
+            location: "",
+            description: "",
+            status: "planned",
+          },
+    );
+  };
   const rows = workspace.data.activities
     .filter(
       (a) =>
@@ -35,19 +66,10 @@ export function ActivityView({
           <h2>月度线上沙龙</h2>
         </div>
         <button
+          type="button"
           className="workspace-button primary"
-          onClick={() =>
-            setEditing({
-              id: crypto.randomUUID(),
-              time: `${localDate()}T19:00`,
-              name: "",
-              organizer: "",
-              participants: "",
-              location: "",
-              description: "",
-              status: "planned",
-            })
-          }
+          disabled={formBusy}
+          onClick={() => beginEditing(null)}
         >
           ＋ 新增活动
         </button>
@@ -77,13 +99,21 @@ export function ActivityView({
       {editing && (
         <SaveForm
           key={editing.id}
+          onBusyChange={(busy) => {
+            draftPending.current = busy;
+            setFormBusy(busy);
+          }}
           onCancel={() => setEditing(null)}
           onSave={async () => {
             if (!editing.name.trim()) throw new Error("请输入活动主题。");
-            await workspace.save("activities", {
+            const original = originalRecord.current;
+            const edited = {
               ...editing,
               name: editing.name.trim(),
-            });
+            };
+            await workspace.change("activities", editing.id, (latest) =>
+              mergeEditedRecord(latest, original, edited, activityFields),
+            );
             setEditing(null);
           }}
         >
@@ -200,7 +230,8 @@ export function ActivityView({
               <div className="workspace-actions">
                 <button
                   className="workspace-button"
-                  onClick={() => setEditing(row)}
+                  disabled={formBusy}
+                  onClick={() => beginEditing(row)}
                 >
                   编辑活动
                 </button>
@@ -208,12 +239,14 @@ export function ActivityView({
                   <>
                     <Action
                       className="danger"
+                      disabled={formBusy}
                       onClick={() => workspace.remove("activities", row.id)}
                     >
                       确认删除
                     </Action>
                     <button
                       className="workspace-button"
+                      disabled={formBusy}
                       onClick={() => setDeleting("")}
                     >
                       取消
@@ -222,6 +255,7 @@ export function ActivityView({
                 ) : (
                   <button
                     className="workspace-button subtle"
+                    disabled={formBusy}
                     onClick={() => setDeleting(row.id)}
                   >
                     删除

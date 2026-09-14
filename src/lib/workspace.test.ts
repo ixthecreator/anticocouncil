@@ -74,10 +74,16 @@ const record = (
   reportStatus: status,
   reportNote: "进展",
 });
-test("one member can revise a ballot without adding turnout", () => {
-  let value = recordBallot(issue(), "a", "approve");
-  value = recordBallot(value, "a", "reject");
-  expect(voteTotals(value)).toEqual({ approve: 0, reject: 1, abstain: 0 });
+test("a submitted ballot cannot change and an identical retry preserves its receipt", () => {
+  const value = recordBallot(issue(), "a", "approve");
+  expect(() => recordBallot(value, "a", "reject")).toThrow("不能修改");
+  expect(recordBallot(value, "a", "approve")).toBe(value);
+  expect(voteTotals(value)).toEqual({ approve: 1, reject: 0, abstain: 0 });
+});
+test("ongoing ballots never appear in the text minutes", () => {
+  const data = emptyWorkspace(); data.meetings = [meeting("m1")];
+  data.issues = [{ ...issue(), ballots: { a: "approve" } }];
+  expect(meetingBrief(data, "m1")).not.toContain("赞成 1");
 });
 test("distinct voters are preserved and closed votes reject updates", () => {
   let value = recordBallot(

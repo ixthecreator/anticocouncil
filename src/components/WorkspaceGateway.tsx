@@ -16,7 +16,7 @@ import { AuthPageFrame, AuthLoadingContent } from "./AuthPageFrame";
 type StorageMode = "local" | "firebase";
 export interface WorkspaceGatewayProps {
   mode?: StorageMode;
-  children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode }) => ReactNode;
+  children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode; actor?: AccessActor }) => ReactNode;
 }
 
 function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => void }) {
@@ -196,7 +196,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   const approved = authReady && (owner || accessReady && hasWorkspaceAccess(identity, access));
 
   if (mode === "local") return <Fragment key="local">{children({ mode, onModeChange })}</Fragment>;
-  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
+  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, actor: { ...identity, role: owner ? "admin" : access!.role }, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
 
   return <div className="cloud-gateway"><AuthPageFrame><section className="cloud-gate-card">
     {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>

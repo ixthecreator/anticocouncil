@@ -334,7 +334,7 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
 
             <section>
               <h3 className="font-sans text-sm font-bold uppercase mb-3 flex items-center gap-2 text-green-700">
-                <CheckCircle className="w-4 h-4" /> 经表决通过的议案 (
+                <CheckCircle className="w-4 h-4" /> 通过与执行事项 (
                 {passedIssues.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
