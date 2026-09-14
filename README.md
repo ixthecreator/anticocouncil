@@ -1,193 +1,143 @@
 # 安提柯议会 · Antico Council
 
-安提柯议会协作网站，基于 React 19、Vite、TypeScript、Tailwind 和 Firebase。公开首页与档案馆提供按届次整理的文章和资料；协作工作台是登录后使用的操作面板，涵盖每周汇报、例会表决、会后执行、编辑排期和后勤资料管理，支持手机布局及五种配色。
+安提柯议会的公开档案馆与成员协作工作台。公开页面用于整理文章和历届资料；工作台用于会议、议题、表决、会后执行、编辑排期和资料管理。
 
-汇报按周一至周日合并：一周两次例会共享同一批汇报状态，不再要求签到。成员投票直接从成员名册选择，不以汇报安排为前提。原有签到记录保留；已汇报或免汇报的历史记录继续展示，单纯的旧「待汇报」签到不自动变成本周汇报名单。备份格式和云端集合暂不变，会议纪要不再展示签到时间。汇报人员的固定名单及轮值规则须以腾讯文档核对后接入，目前只能在工作台手动安排，不能视为已同步该文档。
+前端使用 React 19、TypeScript、Vite 和 Tailwind CSS，云端使用 Firebase Authentication 与 Firestore，也支持浏览器本地模式。
 
-## UI 更新分支（待审阅）
+[访问网站](https://www.anticocouncil.com/) · [成员登录](https://www.anticocouncil.com/portal) · [示例演示](https://www.anticocouncil.com/preview/) · [部署说明](docs/deployment.md) · [档案维护](docs/public-archive.md)
 
-`feat/parliament-portal-ui` 将已确认的议会委员会 / GOV.UK 风格原型接入现有 React 工作台：深紫页眉、横向导航、清晰的表格与状态标签，新增真实数据概览及议题索引。每个未完成事项按自身截止日期显示靠右的「今日截止」或「已逾期」，长标题正常换行；生产数据中不注入原型示例。
+本文说明当前 `main` 的实现。议会风格工作台、公开档案馆、注册登录及加载页样式、PDF / Word 导出和会议改名均已合并。未合并 PR 中的功能不属于此版本；提交与发布记录请查看 [GitHub 历史](https://github.com/ixthecreator/anticocouncil/commits/main/)。
 
-首次使用默认「议会紫」，已有四种主题偏好继续保留；可在设置中切换。原有八个业务模块与锚点、登录审批、云端保存、投票和导入导出继续沿用。此分支通过草稿 PR 审阅，尚未合并至生产分支；下文既有发布记录仍对应此前版本。
+## 页面与数据
 
-本地查看：运行下方开发命令后打开 `/local#overview`；已有数据仍使用当前浏览器与域名的本地存储，新端口可能显示空工作区。云端 `/portal#overview` 与 `/portal#proposals` 均须通过原有身份和成员资格检查。当前 12 页 PDF 使用说明仍对应旧导航，菜单位置以本分支 UI 与此 README 为准。
+| 入口 | 用途 | 数据与访问方式 |
+| --- | --- | --- |
+| `/`、`/archive`、`/archive/<slug>` | 首页、档案目录与文章 | 构建时生成的公开 HTML，无需登录；当前内容标为示例 |
+| `/portal` | 成员工作台 | Firebase 共享数据；需要登录、验证邮箱并取得成员授权 |
+| `/local` | 本地工作台 | 无需登录；记录保存在当前浏览器和站点，不会自动上传 |
+| `/preview/` | 带示例数据的独立演示 | 不连接 Firebase；操作保存在单独的浏览器存储中 |
+| `/workspace`、`/blog` | 兼容旧地址 | 分别对应云端工作台与公开档案目录 |
 
-## 公开首页与档案馆（待审阅）
+公开档案馆与工作台里的「纪要档案」是两套内容。内部会议、成员和选票不会自动发布到公开页面。
 
-同一 UI 草稿 PR 现包含统一的深紫页眉、公开首页、按届次排列的档案馆和静态文章页。首页保留协作工作台及 `/preview/` 入口；`/blog` 兼容旧地址。当前届次和文章均明确标为设计示例，没有真实往届材料，也不读取内部会议、成员或选票。
+`/preview/` 保留固定演示日期与虚构记录，用于查看界面效果，并不完整复刻正式功能。本地工作台默认没有这些演示记录。
 
-公开页面在构建时生成独立 HTML，不运行应用脚本，不加载 Google 字体。真实稿件可在仓库中维护，无需新后台。内容规范、静态构建和路由说明见 [公开档案馆维护说明](docs/public-archive.md)。审阅路径：`/`、`/archive`、`/archive/sample-working-records`。
+## 本地启动
 
-功能 PR #4（PDF 修复、Word 导出、会议改名）已合并至 main；本 UI 分支已同步该版本。UI PR #1 继续保持草稿，等待审核，未合并或发布到生产。
-
-## 既有发布状态
-
-2026 年 9 月 8 日：公开开始页、云端 Portal、独立本地试用及 Google 整页登录代码已发布，并同步更新 12 页中文使用说明。Google 与邮箱密码提供方、三个认证域名和成员访问规则已启用；真实登录后的 Portal 访问和业务读写尚未验证成功。
-
-新增密码功能与使用说明已发布：登录页提供邮件找回与 Google 账号的邮件设置入口，已登录账号可直接设置独立的本站密码。本轮通过 TypeScript 检查、62 项测试、315 项断言、诊断构建及 Vercel 标准生产构建；本地浏览器已验证两个入口、返回流程和无效邮箱拦截，生产浏览器已验证忘记密码入口及返回。尚未发送真实密码邮件或实际修改密码。
-
-本轮应用角色调整已发布：新所有者规则已发布并复读确认，原所有者的有效管理员授权记录已写入并 GET 核对。应用版本 `d80798a` 已完成 Vercel 生产构建和发布，通过 TypeScript 检查、46 项测试和 234 项断言；远程 Rules API 的 7 个新角色模拟场景全部通过。这不涉及 Firebase 项目、Google Cloud IAM、GitHub 或 Vercel 的平台所有权转移。
-
-本轮已发布并验收的应用版本为 `074c3d2f4468ed50066ce6d528bd37a8106f1fb1`（`074c3d2`），[对应 Vercel 生产部署成功](https://vercel.com/ixthecreators-projects/anticocouncil/4ScCgqDWsT4Mz6ZP6fNGubyCP6AE)。后续文档提交另计，不改变这里记录的应用验收版本。
-
-自有 Firebase Spark 项目 `antico-council`、Web 应用和位于 `asia-east2` 的 Firestore 默认数据库已创建，Vercel 的 7 项 Firebase 环境变量已设置，线上构建已确认对应新 Web 应用，不再默认连接原作者的数据库。
-
-Google 与邮箱密码登录提供方已启用，`anticocouncil.com`、`www.anticocouncil.com` 和 `anticocouncil-sigma.vercel.app` 三个认证域名已添加。新 `firestore.rules` 已发布，重新读取 release 和 ruleset 后与本地规则内容完全一致。角色变更前匿名 REST HTTP 403 与四个旧角色规则模拟保留为历史记录，不能代替新角色的实际访问验证。
-
-此前内置浏览器中，Google 账号选择和用户授权后已能返回本站，Firebase Authentication 用户列表已有原所有者 Google 账号记录，但回到网站后仍出现 `network-request-failed`，未实际进入 Portal。当前 Auth 用户列表仍只有原账号，新所有者尚未注册或完成真实登录。普通浏览器对新版的验证反馈仍待确认；真实业务读写、邮箱注册验证、申请审批与成员停用的完整联调尚未完成。
-
-已确认内置浏览器直接访问 Google 的公开 `getProjectConfig` 接口时出现 `net::ERR_BLOCKED_BY_CLIENT`；同一接口在服务器检查中返回 HTTP 200，授权域名和跨域响应正常。认证辅助页会先调用该接口验证父页面域名，失败可能使回跳继续等待。这是当前环境中实际观察到的阻塞，普通浏览器是否能完成登录仍须实际确认。
-
-## 新 UI 示例试用区
-
-`/preview/` 是公开的独立静态试用区，使用虚构成员与示例记录，可体验一周两场例会共享汇报进度、议程、表决、执行更新、纪要查询与下载；旧签到演示已移除。预览中的三人名单仅供演示，尚未接入真实腾讯文档。演示基准日固定为 2026 年 9 月 9 日，以保留两条「今日截止」及长标题效果。首页页脚提供「新 UI 试用」入口，试用区页脚可返回网站首页。
-
-试用操作仅保存到独立的 `antico-ui-preview-v1` 浏览器存储；重置只清除此键。该页面不加载 Firebase、不读写正式工作区数据，网络连接受独立页面策略禁止。生产上的 `/portal`、`/workspace` 和 `/local` 仍使用原正式 UI；本草稿分支中的相同路径使用待审的新 React UI。
-
-试用文件位于 `public/preview/`，构建时复制到 `dist/preview/`。`vercel.json` 为试用入口指定独立 HTML，静态文件使用 `/preview/` 绝对路径以兼容有无尾斜线的入口。
-
-## 会议文档与改名
-
-在正式工作台或 `/local` 的「历届档案」中，可选择会议议程或完整会议纪要，下载 PDF 或可编辑 Word（`.docx`）。默认导出当前查看会议；手动多选从全部会议中选择，不受搜索结果影响。原 LaTeX 入口继续提供完整会议纪要。
-
-- 议程包含该会议所有未归档事项，不按事项状态过滤；纪要包含所有关联事项、摘要和汇报记录，不再显示签到时间。
-- 新文档不含逐人选票；纪要只列已结束表决的汇总，议程不列票数。本轮没有修改现有投票系统的可见性或可修改规则。
-- PDF 使用同源 Noto Sans SC 字体与文字排版，支持复制中文和跨页表格；缺字会明确提示，可改用 Word。字体及导出库在需要时加载，生成过程不上传会议内容，也不请求 Google Fonts。
-- 在「例会现场」或「会后执行」的当前会议旁点击「修改名称」。改名保留原会议及关联记录；名称冲突会提示最新名称，失败时保留输入。
-
-共享快照和格式实现位于 `src/lib/meetingExport.ts`、`meetingPdf.ts` 与 `meetingDocx.ts`。字体来源、许可证和重建方法见 `public/fonts/README.md`。Supabase 迁移、私密不可修改投票及 React 新 UI 草稿 PR 继续独立处理；`/preview/` 保持原示例体验。
-
-## 页面入口
-
-- `/`：公开首页，提供馆藏选读、历届目录和工作台入口，不读取会议或成员数据。
-- `/archive`：按届次整理的公开档案馆。
-- `/archive/<slug>`：独立静态文章，包含正文目录与同届文章。
-- `/portal`：云端操作面板。须登录、验证邮箱并取得成员批准；当前指定的所有者完成邮箱验证后无需申请。
-- `/portal#overview`：默认议会概览，汇总真实会议、待议事项、执行进展和编辑排期。
-- `/portal#proposals`：议题索引，按状态筛选并进入现有议题详情或所属会议。
-- `/portal#session`：例会现场。其余工作模块使用 `post`、`supervision`、`archive`、`activity`、`editorial`、`assets`、`inventory` 锚点直达。
-- `/workspace`：保留的旧工作台入口，执行与 `/portal` 相同的云端身份与成员资格检查。
-- `/local`：独立本地试用，不要求登录。使用同一浏览器、同一网站的原本地记录，仅改变页面路径不需要迁移数据。
-- `/blog`：保留旧入口，呈现公开档案目录；无需文章编辑后台。
-- `/antico-council-guide.pdf`：使用说明的固定公开路径，对应仓库文件 `public/antico-council-guide.pdf`；新增密码说明已发布，线上文件与本地逐字节一致。
-- 其他路径显示未找到页面。公开页、工作台和文章页支持直接打开、刷新及浏览器返回。
-
-## 启动与配置
-
-项目沿用 `bun.lock`：
+准备 Git、Node.js **22.12 或更高版本**与 Bun。仓库使用 `bun.lock`，安装时保留锁文件；运行前端无需 Java、Spring Boot 或 Gemini API 密钥。
 
 ```sh
+git clone https://github.com/ixthecreator/anticocouncil.git
+cd anticocouncil
 bun install --frozen-lockfile
 bun run dev
+```
+
+私有仓库需要先取得 GitHub 访问权限。开发服务器默认为 `http://localhost:3000`；端口被占用时以终端输出为准。
+
+- 打开 `http://localhost:3000/` 查看公开页面。
+- 打开 `http://localhost:3000/local` 使用本地工作台，无需配置 Firebase。
+- 打开 `http://localhost:3000/preview/` 查看示例演示。
+
+开发服务器只负责前端，不会启动 `backend/`。该目录是未接入网站的历史示例，现状见 [backend/README.md](backend/README.md)。
+
+## 云端配置
+
+需要调试登录或共享数据时，将 [.env.example](.env.example) 复制为 `.env.local`，填写自己 Firebase Web 应用的配置并重启开发服务器。部署时在 Vercel 的对应环境填写相同变量，然后重新构建。
+
+| 变量 | 要求与用途 |
+| --- | --- |
+| `VITE_FIREBASE_PROJECT_ID` | 必填，Firebase 项目 ID |
+| `VITE_FIREBASE_API_KEY` | 必填，Web 应用 API key |
+| `VITE_FIREBASE_APP_ID` | 必填，Web 应用 ID |
+| `VITE_FIREBASE_AUTH_DOMAIN` | 默认 `<project-id>.firebaseapp.com`；正式站点的 Google 整页登录需要配套代理与授权域名配置 |
+| `VITE_FIREBASE_DATABASE_ID` | 默认 `(default)`；命名数据库需显式填写 |
+| `VITE_FIREBASE_STORAGE_BUCKET` | 可选，Web 应用配置中的存储桶名称 |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | 可选，Web 应用配置中的消息发送编号 |
+
+`VITE_*` 会进入浏览器产物，不能放服务账号私钥或其他服务端凭据。缺少配置时云端入口会提示错误，公开页面和本地模式仍可使用，也不会回退连接旧项目。
+
+**自行部署不能只改 `.env`。** 当前仓库还包含站点专用的所有者邮箱、密码邮件返回地址、Firebase 登录代理与域名跳转。请按 [部署说明](docs/deployment.md) 同步配置；Firestore 规则须单独发布，推送前端代码不会更新规则。
+
+## 使用工作台
+
+### 登录与成员权限
+
+普通成员使用邮箱密码注册或 Google 登录，验证邮箱后返回页面并点击「已验证，刷新认证状态」，再填写姓名并申请加入；所有者或管理员批准后才能进入共享工作台。代码中指定的所有者在邮箱验证后可直接进入，并非首个注册者自动成为管理员。
+
+- 管理员可审批、停用和恢复普通成员；所有者还可调整其他成员的管理员角色。
+- 授权记录 `workspaceAccess`、申请记录 `accessRequests` 与业务中的成员名册分开管理。应用角色不代表 GitHub、Vercel 或 Firebase 平台权限。
+- 登录页提供「忘记密码？」；Google 账号可在登录后通过账号菜单设置本站密码。密码设置不会替代邮箱验证或成员审批。
+
+### 会议与文档
+
+工作流程为：创建或选择例会 → 登记成员、签到与汇报 → 讨论和表决 → 会后执行与督办 → 完成归档。当前汇报状态为手动记录的「待汇报／已汇报／本次免汇报」，免汇报需填写原因，不会自动按周判断。工作台还提供月度沙龙、编辑安排、资料库和文创库存；默认使用议会紫，可在设置中切换主题。
+
+在「例会与议程」或「会后执行」中，点击当前会议旁的「修改名称」即可改名。会议 ID 和关联记录保持不变；发生并发改名时会提示最新名称。
+
+常规报告和会议摘要在「例会与议程 → 会议记录 → 编辑会议记录」中填写。
+
+「纪要档案」支持当前会议或手动多选会议，导出 PDF、可编辑 Word（`.docx`）及完整纪要 LaTeX 源文件。PDF / Word 的内容区别如下：
+
+| 内容 | 会前议程 | 完整会议纪要 |
+| --- | --- | --- |
+| 会议信息、会期与常规报告 | 包含 | 包含 |
+| 关联事项 | 所有未归档事项，不按状态过滤 | 全部事项，包括已归档事项 |
+| 事项标题、编号、类别、优先级、状态、负责人、截止日期和描述 | 包含 | 包含 |
+| 讨论、决议、归档状态、会议摘要、签到与汇报 | 不包含 | 包含 |
+| 表决信息 | 不包含 | 仅已结束表决的汇总，不含个人选票 |
+
+PDF / Word 在浏览器内生成，不上传会议内容。PDF 按需加载同源中文字体；遇到缺字会提示，可改用 Word。字体来源和重建方法见 [字体说明](public/fonts/README.md)。LaTeX 使用同一导出模型，固定导出完整纪要，下载的源文件需自行用 XeLaTeX 编译。
+
+工作台锚点包括 `overview`（概览）、`proposals`（议题索引）、`session`（例会与议程）、`post`、`supervision`、`archive`、`activity`、`editorial`、`assets` 和 `inventory`，例如 `/portal#overview`。
+
+### 保存与备份
+
+- 本地数据按浏览器及站点来源隔离；不同协议、域名、端口或设备不会自动共享。主要存储键为 `antico_workspace_v2`，继续兼容旧 `local_*` 数据；演示区单独使用 `antico-ui-preview-v1`。
+- `/local` 与云端入口不会自动同步或合并数据。换设备或域名前，先在原环境导出备份，再在目标环境导入。
+- 云端取得完整服务端确认后才允许编辑。离线或连接异常时数据仅供查看；保存长时间未确认时，保留页面并等待提示，避免重复提交。
+- 「设置 → 导出备份」包含八类业务记录及内嵌附件，不包含账号密码、授权或申请记录。导入会按 ID 合并，同 ID 的记录会更新，其他记录保留。
+- 云端导入分批提交，不能作为一次整体事务回滚。导入前先备份，并避开多人同时编辑；GitHub 代码备份不能代替业务数据备份。
+
+## 当前限制
+
+- **现有投票不是私密、不可修改的选票系统。** 选票按业务成员 ID 记录，未逐票绑定登录账号，表决结束前可以改票；工作区成员可读取业务记录。JSON 备份可能包含个人选票，PDF / Word 不导出个人选票并不代表原始记录已受隐私保护。
+- 目前是单一共享议会工作区，没有按账号或组织隔离的多租户空间。Supabase 迁移及私密投票改造尚未合并到 `main`。
+- 云端登录与共享数据仍依赖 Firebase / Google 服务，邮箱密码登录也需要网络能访问 Firebase。
+- [PDF 使用说明](public/antico-council-guide.pdf) 保留为旧版参考，部分导航及新功能尚未更新，请以当前页面和本文为准。
+
+## 检查与构建
+
+提交前在仓库根目录运行：
+
+```sh
 bun run lint
 bun test
 bun run build
 bun run check:public
 ```
 
-开发地址为 `http://localhost:3000`，生产输出为 `dist/`。当前界面不调用 Gemini，本地使用不需要 Gemini API 密钥。
+`lint` 实际执行 TypeScript 类型检查，不是 ESLint。测试覆盖业务数据、认证与连接状态、路由、会议改名和文档导出；自动测试不等于真实账号登录、收信、审批及云端业务写入的完整验收。
 
-Firebase 使用 `.env.example` 中的 `VITE_FIREBASE_*` 配置。在本地复制为 `.env.local`；部署时在 Vercel 的对应环境设置相同变量并重新构建。所需变量为 `VITE_FIREBASE_PROJECT_ID`、`VITE_FIREBASE_API_KEY`、`VITE_FIREBASE_APP_ID`；可配置授权域名、存储桶、消息发送编号和 `VITE_FIREBASE_DATABASE_ID`。数据库编号未指定时使用 `(default)`，命名数据库须显式填写。仓库不会保存实际登录凭据或服务账号私钥。
+`build` 先执行 Vite，再生成静态公开页面，输出到 `dist/`。`check:public` 必须在构建后运行，检查公开页面、文章内容、链接、字体、工作台应用壳及 404；Vercel 的构建命令不会自动执行该检查。
 
-没有配置或仅填写部分变量时，云端入口会解释配置问题，公开开始页和 `/local` 本地试用仍可使用。Firebase 仅在云端功能需要时初始化；不会静默回退到原项目。原配置只作为显式迁移参考保留，不代表已迁移任何业务数据。
+生产公开首页不加载工作台脚本；`dist/workspace.html` 才是 `/portal`、`/workspace` 和 `/local` 使用的应用壳。不要将所有路径统一重写到 `index.html`。本地 `dev` / `preview` 不会执行 Vercel 的认证代理和完整路由配置，部署验证方法见 [部署说明](docs/deployment.md)。
 
-## 云端共同使用设计
+## 协作与目录
 
-登录提供方已启用，新角色授权记录已写入，新规则和应用生产版本均已发布。本节描述调整后的应用角色与使用流程；真实账号登录、邮件验证、完整审批和成员停用的端到端结果仍需分别验收。
+从最新 `main` 创建功能分支，完成相关检查后提交 PR。合并到 `main` 后，由已关联的 Vercel 项目构建并发布；应确认部署成功后再把修改视为已上线。README 保留当前行为和可复现步骤，临时调试记录及测试次数写入对应 PR。
 
-| 应用账号 | 角色 |
+| 路径 | 职责 |
 | --- | --- |
-| `yulun8964@gmail.com` | 新所有者；邮箱验证即可直接进入，无需加入申请。 |
-| `ez4eason@gmail.com` | 管理员；已通过正常成员授权记录设置 `role: admin`、`active: true`。 |
-
-1. 使用邮箱密码注册/登录，或使用 Google 登录。Google 登录使用当前页面前往 Google，完成后返回网站；邮箱注册者须先完成邮件验证。
-2. 邮箱验证后提交成员姓名及加入申请，等待所有者或管理员批准；当前指定的新所有者邮箱验证后可直接进入，无需加入申请。
-3. 获批且未停用的成员进入同一议会工作区，共同维护八类业务记录；没有个人分库或自动隔离的多组织空间。
-4. 管理员可审批申请、停用或恢复其他普通成员。所有者可调整其他成员的管理员角色。用户不能审批自己或修改自己的授权，管理员不能修改其他管理员或所有者。
-5. `workspaceAccess` 保存授权，`accessRequests` 保存申请；这两类记录与业务页面中的成员名册分开。客户端判断用于展示，实际读写权限由部署后的 Firestore 规则执行。
-
-原所有者的管理员资格来自正常的 `workspaceAccess/{uid}` 记录：邮箱必须与账号一致，`role` 为 `admin` 且 `active` 为 `true`。该账号没有永久所有者身份或按邮箱直接放行的特例；新所有者可停用或降级它，账号也不能修改自己的授权。这里的所有者与管理员仅指本应用的协作权限，不代表平台账户或项目的所有权。
-
-工作区只在当前身份通过验证且取得有效成员授权后挂载。缓存或未提交的本地授权写入不能放行；切换账号和模式会隔离组件状态，管理员降级后关闭成员管理面板。
-
-登录审批控制的是进入共享工作区的资格。当前业务成员姓名、汇报和投票仍按工作区内成员记录操作，尚未逐票绑定登录账号，也不是正式实名投票系统。
-
-## 找回与设置本站密码
-
-登录页提供“忘记密码？”与“给 Google 账号设置本站密码”两个入口。填写原账号邮箱后，点击“发送密码重置邮件”或“发送密码设置邮件”，按邮件中的链接设置密码，再用邮箱与新密码登录；不需要数字验证码。统一提示不会确认邮箱是否已注册，60 秒后可重新发送，链接过期时重新申请。密码设置不会代替邮箱验证或成员审批。
-
-已经能够登录的成员，优先从账号菜单选择“设置本站密码”；已验证但尚待审批的账号也可从页底进入。两次填写至少 8 位的新密码并点击“保存本站密码”。首次添加使用 Firebase 的账号关联功能，保留同一账号、Google 登录方式与成员权限；已有本站密码时直接修改。本密码独立于 Google 或邮箱本身的密码。
-
-如提示需要重新登录，可重新登录后再设置，或使用“向当前邮箱发送重置链接”。邮件重置用于原账号，但其 Google 登录关联可能变化，完成后应使用邮箱与新密码登录；不能承诺该邮件方式始终保留 Google 关联。系统不提供单独的 Google 重新关联入口。
-
-Firebase 默认邮件模板语言已保存并复读确认为简体中文，SDK 发信语言设置为 `zh-CN`；当前发件地址为 `noreply@antico-council.firebaseapp.com`。此项确认配置，不代表已验证真实邮件投递。
-
-## 本地数据、连接与备份
-
-- 路径决定数据位置：`/portal` 与 `/workspace` 固定使用云端，不会因旧的本地偏好绕过登录审批；`/local` 固定使用本地记录，不要求登录。前往另一入口不会自动上传或合并记录；有未确认的保存时应先处理完成再离开。
-- 本地记录保存在当前浏览器、当前域名。旧 `local_*` 数据继续兼容读取，正常写入 `antico_workspace_v2`；切换云端不覆盖这些记录。
-- 连接状态区分本地、连接中、已连接、离线和错误。八类集合均收到有效服务端确认后才允许修改；缓存数据可供只读查看，不能充当连接成功的证据。
-- 任一集合权限或格式错误都会阻止修改。重试会重新建立监听，并保留独立的保存错误。断网恢复后重新确认连接。
-- 云端写入以服务端确认作为保存成功依据。超过 15 秒仍未确认时会显示等待提醒，不会把未知结果误报为成功或失败；请保留页面并避免重复提交。
-- 「设置 → 导出备份」保存八类业务记录及资料附件；备份不包含账号密码、成员授权表或审批申请。导入先校验，再按编号合并，同编号更新，其余记录保留。
-- 云端导入分批执行，不是跨所有批次的一次事务。发生明确错误时会报告已完成条数；重新导入同一备份不会创建重复编号，但应避开多人同时编辑并先备份。
-- 本地数据损坏时可导出原始存储。使用正常备份恢复前，损坏原件保留在 `antico_workspace_v2_recovery`；原始排查文件需修复内部 JSON 后才能作为业务备份导入。
-
-同一网站从旧路径进入 `/local` 会继续读取原本地记录，无需因路由调整迁移。更换域名、浏览器或设备前，先从旧工作台导出，再到新环境导入。GitHub 同步代码，不能代替业务数据备份。自有 Firebase 与原项目的数据也不会自动互通，迁移应在明确选择来源并保留备份后单独进行。
-
-## 功能与结构
-
-| 文件或模块 | 职责 |
-| --- | --- |
-| `src/SiteRouter.tsx`、`src/WorkspaceEntry.tsx` | 公开页路由及工作区代码按需加载 |
-| `src/components/LandingPage.tsx` | 公开开始页、文章预留页及未找到页 |
-| `src/components/WorkspaceGateway.tsx` | 云端登录验证、成员申请与管理，以及独立本地模式 |
-| `src/components/AccountPassword.tsx` | 邮件密码找回、Google 账号邮件设置入口与已登录账号的本站密码设置 |
-| `src/lib/cloudAccess.ts`、`firestore.rules` | 身份与角色行为、服务端访问约束 |
-| `src/lib/firebase.ts`、`src/lib/firebaseConnection.ts` | 自有项目配置、惰性连接、快照状态、事务和分批写入 |
-| `src/lib/useWorkspace.ts` | 本地/云端数据隔离、只读缓存、保存反馈与恢复 |
-| `src/components/WorkspaceShell.tsx`、`src/App.tsx` | 工作台导航、主题、搜索、数据状态及导入导出 |
-| `CouncilOverview`、`ProposalIndex`、`src/lib/councilOverview.ts` | 概览汇总、截止标签与议题索引 |
-| `src/lib/workspaceNavigation.ts`、`src/components/parliament.css` | 新旧模块锚点、五种主题及议会风格样式 |
-| `AttendanceView`、`SessionView` | 成员登记、每周汇报、议题与表决（历史集合名保留） |
-| `PostMeetingView`、`SupervisionView`、`ArchiveView` | 会后执行、跨会议督办及历史纪要 |
-| `ActivityView`、`OperationsView` | 月度沙龙、编辑安排、资料库与文创库存 |
-| `src/lib/workspace.ts`、`src/lib/latex.ts` | 数据校验、投票规则、纪要与中文 LaTeX 导出 |
-| `public/antico-council-guide.pdf` | 门户公开使用说明的发布文件路径 |
-| `backend/` | 保留的 Spring Boot 示例，当前前端未连接它 |
-
-会议流程为：新建或选择例会 → 从成员名册安排本周汇报 → 记录待汇报/已汇报/免汇报 → 讨论与表决 → 授权执行 → 完成归档。两场例会共享周一至周日的汇报进度；免汇报需填写原因。成员投票按成员编号计一票，结束前可改票，与汇报安排无关；保留旧主持人录票格式。
-
-资料库支持 PNG/JPG/WEBP/PDF 附件，单文件最多 400 KB，存入当前工作区业务数据；大文件使用 HTTP(S) 链接。同名作者资料需要自行区分。外部表格仅保留业务入口，未抓取或迁移其内容。
-
-## 验证与发布
-
-UI 更新分支已通过 TypeScript 检查、68 项测试（379 项断言）与 Vite 标准生产构建；覆盖新旧路由的云端身份边界、截止标签、两条同日待办、空数据和历史记录筛选。构建仍报告工作区包超过 500 kB 的体积提示。此次未进行真实云端登录、写入或 PDF 导出的端到端验收；此前这些流程的已知待验证事项继续保留。
-
-新增密码功能通过 TypeScript 检查、62 项测试、315 项断言及诊断构建。浏览器已验证登录页两个密码入口、进入与返回，以及 HTML 对无效邮箱的拦截；独立模拟页面验证密码不一致、近期登录提示、慢响应时禁用、键盘焦点、手机布局和中性发信提示及 60 秒重发等待，未发送真实邮件。测试包含 Firebase SDK 初始化和同一标签页中较晚返回的 Google 结果不能覆盖当前密码登录的边界；跨标签页 Google 登录取消没有新增覆盖。
-
-应用 `074c3d2` 的 Vercel 标准生产构建与发布已成功。线上产物校验通过，包含三个密码入口和当前 Google 登录逻辑，使用正确的 Firebase Web 应用、新所有者及原管理员正常授权方式，没有旧所有者邮箱放行特例；生产浏览器忘记密码入口及返回正常。实际收信、邮件链接设置、设密后登录及共享业务读写仍待用户验证。
-
-新角色源码 `d80798a` 已通过 TypeScript 检查、46 项测试、234 项断言和构建，覆盖核心业务、备份、连接状态、客户端角色判断及登录诊断；这不是 Firestore 规则模拟或真实账号联调。本轮角色更新已完成 Vercel 标准生产发布，线上代码已确认使用新所有者邮箱、自有 Firebase Web 应用，且没有旧邮箱的身份放行硬编码。真实云端会话与业务读写仍需验收。
-
-线上已确认公开开始页和 Blog 内容及桌面布局正常；自有 Vercel 默认域名的 `/portal?check=entry#members` 完整跳至 `www` 并保留查询和锚点，`/local` 保留原域名且无需登录即可进入本地工作区。
-
-角色变更前的 Firebase 成员规则曾发布并确认持久化，匿名业务数据 REST 请求返回 HTTP 403。当时 Firebase 控制台完成 4 项实际模拟：未登录拒绝、已验证但未获批成员拒绝、当时的所有者已验证时允许、其邮箱未验证时拒绝。这些旧规则结果不能视为新所有者规则已验证，也不能代替完整登录审批或成员停用的端到端验证。
-
-本轮新规则发布后已复读确认与本地 `firestore.rules` 的 LF 内容一致，SHA-256 为 `28e2d241debba1ff3688a1724c03f2f0f9fc198c1bd22483ae5b1e2700b7a585`。管理员记录也已独立 GET 核对其邮箱、`role: admin` 和布尔值 `active: true`。
-
-远程 Rules API 对当前新规则完成 7 个模拟场景，全部通过，编译问题与诊断均为零：新所有者邮箱已验证且无成员记录时允许、未验证时拒绝；原所有者有有效管理员记录时允许、无记录时拒绝；原所有者不能降级另一管理员、不能将普通成员提升为管理员；新所有者可以降级原所有者的管理员记录。这些测试使用模拟身份和模拟成员记录，没有真实登录或更改业务数据；新所有者真实登录、业务读写及管理员停用后的实际失权仍待验证。
-
-Windows 本地验证环境对 esbuild 子进程管道有限制，因此曾使用进程内 TypeScript/Bun 转换配合 Vite/Rollup 和 Tailwind 生成验证产物。项目标准构建配置保持 Vite；正式发布以 Vercel 对源码的标准生产构建为准。
-
-自有私有仓库为 [ixthecreator/anticocouncil](https://github.com/ixthecreator/anticocouncil)，关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。生产分支为 `main`，推送后由 Vercel 自动构建。安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build`，输出目录为 `dist`。
-
-Google 整页登录使用正式 `www` 域名作为 Firebase `authDomain`。Google OAuth 已保存 `https://www.anticocouncil.com` 来源及 `https://www.anticocouncil.com/__/auth/handler` 返回地址。`vercel.json` 须保留 Firebase `/__/auth/:path*` 与 `/__/firebase/init.json` 同源代理和单页应用路径重写，代理须优先于页面兜底；静态包也须携带完整配置，不能只复制首页重写。变更认证域名、代理或环境变量后，应重新构建并验收真实登录返回流程。
-
-OAuth 受众已确认为“外部、正式版”。正式 `www` 的认证 `handler`、`iframe`、`handler.js` 均返回 HTTP 200 和 `no-store`，响应与 Firebase 原文一致，无 HTTP 302；`createAuthUri` 公共配置检查返回 HTTP 200，并生成正确的 Google 客户端和 `www` 回调。这些检查未登录或记录凭据，也不代表已完成真实登录和数据读写。
-
-自有 Vercel 默认域名的 `/portal` 与 `/workspace` 会前往正式 `www` 域名并保留路径、查询参数与模块锚点；公开页与 `/local` 留在原域名，保留其本地数据位置。Google 登录完成后返回发起页面，仍须通过邮箱验证和服务端成员授权检查；回跳失败显示具体原因，等待超时可使用“重新载入登录页”。
-
-正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com)，根域名跳转至 `www`；保留 [Vercel 默认地址](https://anticocouncil-sigma.vercel.app)。密码说明更新后的 PDF 为 12 页、695,020 字节，SHA-256 为 `26cb877ba95ba5bda756210c6efd063d80394dfe4e33e54ca164a036a76d83e1`；中文字体、10 处章节跳转和 8 个 Portal 模块链接已验证，并检查了 4 张变更页渲染。线上新版已与本地文件逐字节核对一致。网站发布、Firebase 配置和真实登录分别验收。
+| `src/SiteRouter.tsx`、`src/WorkspaceEntry.tsx` | 页面路由、工作台按需加载 |
+| `src/content/archive.ts`、`src/components/LandingPage.tsx` | 公开文章、届次与公开页面 |
+| `src/components/AuthPageFrame.tsx`、`WorkspaceGateway.tsx`、`AccountPassword.tsx` | 登录、注册、权限检查、密码与加载页面 |
+| `src/App.tsx`、`src/components/WorkspaceShell.tsx` | 工作台导航、状态、主题与备份入口 |
+| `src/lib/cloudAccess.ts`、`firebase.ts`、`firebaseConnection.ts`、`useWorkspace.ts` | 认证、云端连接、保存与本地数据 |
+| `src/lib/workspace.ts`、`src/types.ts` | 业务规则、数据校验与类型 |
+| `src/lib/meetingExport.ts`、`meetingPdf.ts`、`meetingDocx.ts` | PDF / Word / LaTeX 共用导出模型与格式生成 |
+| `scripts/`、`vercel.json` | 静态页面生成、产物检查与 Vercel 配置 |
+| `firestore.rules`、`firebase.json`、`.firebaserc` | Firebase 权限规则与部署目标 |
+| `public/preview/` | 独立示例演示 |
 
 本项目由 [Fiochanqwq/newmeetingapp](https://github.com/Fiochanqwq/newmeetingapp) 延续改进，保留原有仓库历史与代码署名。
