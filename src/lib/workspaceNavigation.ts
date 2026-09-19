@@ -2,7 +2,7 @@ export const workspaceNavigation = [
   {
     id: "overview",
     title: "议会概览",
-    description: "参与讨论，作出决定，跟进每一项承诺。",
+    description: "群号977589830，欢迎入群交流。",
     kicker: "COUNCIL BUSINESS",
     group: "会议协作",
     search: "搜索待议事项与待办…",
