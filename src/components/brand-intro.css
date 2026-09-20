@@ -1,0 +1,75 @@
+.brand-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  color: #e8e8e8;
+  background: #101010;
+  isolation: isolate;
+  animation: brand-intro-exit 3.3s linear both;
+  -webkit-font-smoothing: antialiased;
+}
+.brand-intro__edition {
+  position: absolute;
+  top: max(36px, env(safe-area-inset-top));
+  font: 9px/1.5 Arial, sans-serif;
+  letter-spacing: .32em;
+  color: #929292;
+  animation: brand-intro-type 3.3s both;
+}
+.brand-intro__signature { display: grid; justify-items: center; margin-top: -20px; }
+.brand-intro__emblem {
+  display: block;
+  width: clamp(156px, 23vw, 228px);
+  height: auto;
+  overflow: visible;
+  animation: brand-intro-reveal 3.3s cubic-bezier(.22, 1, .36, 1) both;
+}
+.brand-intro__wordmark { text-align: center; animation: brand-intro-type 3.3s both; }
+.brand-intro__rule { display: block; width: 24px; height: 1px; margin: 29px auto 23px; background: #b0b0b080; }
+.brand-intro .brand-intro__name {
+  margin: 0;
+  padding-left: .38em;
+  color: #e8e8e8;
+  font-family: "Songti SC", "Noto Serif SC", SimSun, serif;
+  font-size: clamp(21px, 3vw, 26px);
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: .38em;
+}
+.brand-intro .brand-intro__english { margin: 12px 0 0; padding-left: .4em; color: #aaaaaa; font: 9px/1.5 Arial, sans-serif; letter-spacing: .4em; }
+.brand-intro__footer {
+  position: absolute;
+  bottom: max(36px, env(safe-area-inset-bottom));
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  color: #929292;
+  font: 10px/1.8 "Microsoft YaHei", sans-serif;
+  letter-spacing: .22em;
+  animation: brand-intro-type 3.3s both;
+}
+.brand-intro__hairline { width: 40px; height: 1px; background: #555555; }
+@keyframes brand-intro-reveal {
+  0% { opacity: 0; }
+  34%, 68% { opacity: 1; }
+  88%, 100% { opacity: 0; }
+}
+@keyframes brand-intro-type {
+  0%, 17% { opacity: 0; }
+  40%, 67% { opacity: 1; }
+  86%, 100% { opacity: 0; }
+}
+@keyframes brand-intro-exit {
+  0%, 75% { opacity: 1; visibility: visible; }
+  99% { opacity: 0; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
+}
+/* Keyboard users can proceed immediately; reduced motion skips the overlay. */
+.brand-intro:has(~ * :focus-visible), body:has(:focus-visible) .brand-intro { display: none; }
+@media (prefers-reduced-motion: reduce) { .brand-intro { display: none; } .brand-intro * { animation: none; } }
+@media (max-height: 480px) { .brand-intro__emblem { width: 120px; } .brand-intro__rule { margin: 14px auto; } .brand-intro__footer { display: none; } .brand-intro__edition { top: 18px; } }
+@media print { .brand-intro { display: none; } }
