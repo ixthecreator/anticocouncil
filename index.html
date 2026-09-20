@@ -2,6 +2,18 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <script data-brand-intro>
+      try {
+        const path = location.pathname.replace(/\/+$/, "") || "/";
+        const entry = ["/", "/portal", "/workspace", "/local"].includes(path);
+        if (entry && !sessionStorage.getItem("antico-intro-played")) {
+          sessionStorage.setItem("antico-intro-played", "1");
+          document.documentElement.setAttribute("data-brand-intro", "play");
+        }
+      } catch {
+        // If storage is unavailable, skip the introduction.
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="安提柯议会：一个共同讨论与协作的空间。从例会、沙龙到文章与共同计划，让讨论有回响，让共识有行动。" />
     <meta name="theme-color" content="#2b173d" />

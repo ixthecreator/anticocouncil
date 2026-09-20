@@ -12,7 +12,7 @@ if (!template.includes(rootMarker))
 // Keep the original application shell for authenticated and local workspace routes.
 await writeFile(resolve(output, "workspace.html"), template);
 const publicTemplate = template
-  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, "")
+  .replace(/<script\b(?![^>]*\bdata-brand-intro)[^>]*>[\s\S]*?<\/script>/g, "")
   .replace(/<link\b[^>]*rel="modulepreload"[^>]*>/g, "");
 const escapeAttribute = (value: string) =>
   value.replace(
@@ -46,6 +46,8 @@ for (const path of [...publicPaths, "/404"]) {
       rootMarker,
       () => `<div id="root">${renderToStaticMarkup(route.page)}</div>`,
     );
+  if (path !== "/")
+    html = html.replace(/<script data-brand-intro>[\s\S]*?<\/script>/g, "");
   if (route.noindex)
     html = html.replace(
       "</head>",
