@@ -25,7 +25,9 @@ for (const path of publicPaths) {
     `Missing rendered content: ${path}`,
   );
   assert(
-    !/<script\b|modulepreload|class="cloud-gateway"/.test(html),
+    !/<script\b|modulepreload|class="cloud-gateway"/.test(
+      html.replace(/<script data-brand-intro>[\s\S]*?<\/script>/g, ""),
+    ),
     `Public page loads application code: ${path}`,
   );
   if (route.noindex)

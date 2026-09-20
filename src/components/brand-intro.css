@@ -73,3 +73,4 @@
 @media (prefers-reduced-motion: reduce) { .brand-intro { display: none; } .brand-intro * { animation: none; } }
 @media (max-height: 480px) { .brand-intro__emblem { width: 120px; } .brand-intro__rule { margin: 14px auto; } .brand-intro__footer { display: none; } .brand-intro__edition { top: 18px; } }
 @media print { .brand-intro { display: none; } }
+html:not([data-brand-intro="play"]) .brand-intro { display: none; }
