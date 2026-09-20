@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import BrandIntro from "./BrandIntro";
 import { ArrowRight, ArrowUpRight, FileText } from "lucide-react";
 import {
   archiveRecords,
@@ -17,6 +18,7 @@ export function PublicLayout({
 }) {
   return (
     <div className="public-site">
+      {page === "home" && <BrandIntro />}
       <a className="public-skip" href="#public-main">
         跳到页面内容
       </a>

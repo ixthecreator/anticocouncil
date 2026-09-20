@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { getPublicRoute } from "./publicRoutes";
 import { AuthLoadingContent, AuthPageFrame } from "./components/AuthPageFrame";
 import "./components/landing.css";
+import "./components/brand-intro.css";
 
 const Workspace = lazy(() => import("./WorkspaceEntry"));
 const cloudAliases = new Set(["anticocouncil-sigma.vercel.app"]);
