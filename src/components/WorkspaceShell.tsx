@@ -204,7 +204,7 @@ export function WorkspaceShell({
             <strong>{current.title}</strong>
           </div>
           <div className="topbar-tools">
-            <div className="workspace-search">
+            {page !== "cards" && <div className="workspace-search">
               <Search size={17} aria-hidden="true" />
               <input
                 type="search"
@@ -222,7 +222,7 @@ export function WorkspaceShell({
                   <X size={16} />
                 </button>
               )}
-            </div>
+            </div>}
             <div
               ref={settingsContainer}
               onKeyDown={(event) => {

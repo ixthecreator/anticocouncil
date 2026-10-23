@@ -64,6 +64,14 @@ export const workspaceNavigation = [
     search: "搜索编辑安排…",
   },
   {
+    id: "cards",
+    title: "名片制作",
+    description: "制作个人名片，下载高清图片，或保存到团队资料库。",
+    kicker: "MEMBER CARD STUDIO",
+    group: "日常工作",
+    search: "",
+  },
+  {
     id: "assets",
     title: "资料库",
     description: "查找作者资料、设计素材与往期成果。",
