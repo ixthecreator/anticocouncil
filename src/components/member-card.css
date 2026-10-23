@@ -4,6 +4,10 @@
 .card-section-heading h2 { font-size: 17px; font-weight: 700; margin: 0 0 4px; color: var(--theme-text-primary); }
 .card-section-heading p { font-size: 12px; color: var(--theme-text-secondary); margin: 0; }
 .card-step { display: grid; place-items: center; background: var(--theme-accent-light); color: var(--theme-accent); border-radius: 9px; width: 34px; height: 38px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.card-editor-modes { display: flex; gap: 4px; margin-top: 22px; padding: 4px; background: var(--theme-accent-light); border-radius: 8px; }
+.card-editor-modes button { flex: 1; border: 0; border-radius: 5px; padding: 9px 6px; background: transparent; color: var(--theme-text-secondary); font-size: 12px; cursor: pointer; }
+.card-editor-modes button[aria-pressed="true"] { background: var(--theme-panel-bg); color: var(--theme-accent); font-weight: 600; box-shadow: 0 1px 4px #0000000a; }
+.card-editor-modes button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
 .card-fields { display: grid; gap: 16px; margin-top: 24px; }
 .card-fields label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; min-width: 0; color: var(--theme-text-primary); font-size: 12px; font-weight: 600; }
 .card-fields input, .card-fields textarea, .card-fields select { width: 100%; min-width: 0; color: var(--theme-text-primary); background: var(--theme-card-bg); border: 1px solid var(--theme-border); border-radius: 7px; padding: 10px 11px; font: inherit; font-size: 13px; font-weight: 400; line-height: 1.6; }
@@ -32,6 +36,28 @@
 .card-preview-stage.is-updating canvas { opacity: .55; }
 .card-preview-placeholder { position: absolute; inset: 22px; display: grid; place-items: center; padding: 20px; text-align: center; background: #fff; color: #666; font-size: 13px; }
 .card-preview-status { min-height: 36px; padding: 12px 2px 4px; color: var(--theme-text-secondary); font-size: 11px; }
+.card-layout-editor { margin: 20px 0 0; }
+.card-layout-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.card-layout-heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--theme-text-primary); }
+.card-layout-heading p { margin: 6px 0 0; font-size: 11px; color: var(--theme-text-secondary); }
+.card-layout-heading > button { flex-shrink: 0; font-size: 11px; }
+.card-layout-targets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 17px; }
+.card-layout-targets button { padding: 7px 11px; border: 1px solid var(--theme-border); border-radius: 6px; background: var(--theme-card-bg); color: var(--theme-text-secondary); font-size: 12px; cursor: pointer; }
+.card-layout-targets button[aria-pressed="true"] { border-color: var(--theme-accent); background: var(--theme-accent-light); color: var(--theme-accent); font-weight: 600; }
+.card-layout-selection { display: flex; align-items: center; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--theme-border); font-size: 11px; color: var(--theme-text-secondary); }
+.card-layout-selection strong { color: var(--theme-text-primary); font-weight: 600; }
+.card-layout-selection button { font-size: 11px; }
+.card-layout-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.card-layout-control { min-width: 0; }
+.card-layout-control-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.card-layout-control-heading label { font-size: 12px; color: var(--theme-text-primary); font-weight: 500; }
+.card-layout-number { display: flex; align-items: center; width: 100%; gap: 5px; color: var(--theme-text-secondary); font-size: 10px; }
+.card-layout-number input { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--theme-border); border-radius: 5px; background: var(--theme-card-bg); color: var(--theme-text-primary); font: inherit; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.card-layout-control > input { display: block; width: 100%; height: 20px; margin: 6px 0 2px; accent-color: var(--theme-accent); cursor: pointer; }
+.card-layout-control small { font-size: 10px; color: var(--theme-text-secondary); }
+.card-layout-editor input:focus-visible, .card-layout-targets button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
+.card-layout-help { margin: 15px 0 0; font-size: 10px; line-height: 1.8; color: var(--theme-text-secondary); }
+.card-layout-empty { margin: 5px 0 0; font-size: 11px; color: var(--theme-accent); }
 .card-export-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 15px; }
 .card-export-actions .workspace-button { min-height: 42px; }
 .card-studio button:disabled { opacity: .5; cursor: not-allowed; }
@@ -54,3 +80,4 @@
 @media (max-width: 1000px) { .card-studio { grid-template-columns: 280px minmax(0, 1fr); gap: 20px; } .card-editor { padding: 20px; } .card-preview-stage { padding: 12px; } .card-preview-placeholder { inset: 12px; } }
 @media (max-width: 760px) { .card-studio { grid-template-columns: 1fr; gap: 24px; } .card-preview-section { grid-row: 1; } .card-preview-heading { margin-bottom: 14px; } .card-preview-stage { padding: 10px; } .card-preview-placeholder { inset: 10px; } .card-draft-panel { margin-top: 20px; padding-top: 18px; } .card-fields { grid-template-columns: 1fr 1fr; } .card-fields > label:has(textarea), .card-field-pair { grid-column: 1 / -1; } }
 @media (max-width: 440px) { .card-editor { padding: 18px; } .card-fields { grid-template-columns: 1fr; } .card-preview-heading .card-section-heading p { font-size: 11px; } .card-size { display: none; } .card-export-actions > .workspace-button { flex: 1 1 160px; justify-content: center; } }
+@media (max-width: 440px) { .card-layout-targets button { padding: 7px 9px; } }

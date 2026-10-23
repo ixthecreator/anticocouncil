@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { defaultMemberCardData } from "./memberCard";
+import { defaultMemberCardData, getMemberCardTextStyle, type MemberCardData } from "./memberCard";
 import {
   loadMemberCardDraft,
   memberCardDraftKey,
@@ -37,6 +37,31 @@ test("corrupt or unavailable local storage is ignored while write failures propa
   expect(loadMemberCardDraft({ getItem: () => { throw new Error("storage denied"); } }, "local")).toBeNull();
   const quota = new Error("quota exceeded");
   expect(() => saveMemberCardDraft({ setItem: () => { throw quota; } }, "local", card)).toThrow(quota);
+});
+
+test("layout refinements survive portable and stored drafts while old v1 drafts keep defaults", () => {
+  const custom: MemberCardData = { ...card, layout: {
+    role: { fontSize: 155, tracking: -2, offsetX: -120, offsetY: 28 },
+    biography: { fontSize: 74, lineHeight: 130 }, organization: { offsetY: -16 },
+  } };
+  expect(parseMemberCardDraft(serializeMemberCardDraft(custom))).toEqual(custom);
+  let saved = "";
+  saveMemberCardDraft({ setItem: (_key, value) => { saved = value; } }, "local", custom);
+  expect(loadMemberCardDraft({ getItem: () => saved }, "local")).toEqual(custom);
+  const legacy = parseMemberCardDraft(wrap(card));
+  expect(legacy.layout).toBeUndefined();
+  expect(getMemberCardTextStyle(legacy, "role")).toEqual(getMemberCardTextStyle(card, "role"));
+  expect(parseMemberCardDraft(serializeMemberCardDraft({ ...custom, layout: {} })).name).toBe(card.name);
+});
+
+test("draft imports reject malformed layout parameters before they can replace the current card", () => {
+  for (const layout of [null, [], "layout", { role: null }, { role: [] }, { role: { fontSize: "100" } }, { role: { tracking: null } }, { role: { other: 5 } }, { org: { offsetX: 10 } }]) {
+    expect(() => parseMemberCardDraft(wrap({ ...card, layout }))).toThrow("排版设置格式不正确");
+  }
+  expect(() => serializeMemberCardDraft({ ...card, layout: { name: { fontSize: Infinity } } })).toThrow("排版设置格式不正确");
+  const imported = parseMemberCardDraft(wrap({ ...card, layout: { name: { fontSize: 900, offsetX: -9000 } } }));
+  expect(getMemberCardTextStyle(imported, "name").fontSize).toBe(240);
+  expect(getMemberCardTextStyle(imported, "name").offsetX).toBe(-1200);
 });
 
 test("imports reject bad envelopes, invalid field types and invalid renderer content", () => {

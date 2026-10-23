@@ -7,6 +7,7 @@ import {
   memberCardFilename, renderMemberCard, validateMemberCardData, type MemberCardData,
 } from "../lib/memberCard";
 import { loadMemberCardDraft, parseMemberCardDraft, saveMemberCardDraft, serializeMemberCardDraft } from "../lib/memberCardDraft";
+import MemberCardLayoutEditor from "./MemberCardLayoutEditor";
 import "./member-card.css";
 
 interface Props {
@@ -74,6 +75,7 @@ function libraryImage(canvas: HTMLCanvasElement): string {
 
 export default function MemberCardStudio({ draftScope, libraryReady, sharedLibrary, onSave, onOpenLibrary }: Props) {
   const [data, setData] = useState(() => initialDraft(draftScope));
+  const [editorMode, setEditorMode] = useState<"content" | "layout">("content");
   const [rendered, setRendered] = useState<MemberCardData | null>(null);
   const [renderError, setRenderError] = useState("");
   const [error, setError] = useState("");
@@ -187,7 +189,12 @@ export default function MemberCardStudio({ draftScope, libraryReady, sharedLibra
 
   return <div className="card-studio">
     <section className="card-editor" aria-labelledby="card-editor-title">
-      <header className="card-section-heading"><span className="card-step">01</span><div><h2 id="card-editor-title">填写名片</h2><p>一张属于你的议会名片</p></div></header>
+      <header className="card-section-heading"><span className="card-step">01</span><div><h2 id="card-editor-title">编辑名片</h2><p>一张属于你的议会名片</p></div></header>
+      <div className="card-editor-modes" role="group" aria-label="名片编辑方式">
+        <button type="button" aria-pressed={editorMode === "content"} onClick={() => setEditorMode("content")}>填写信息</button>
+        <button type="button" aria-pressed={editorMode === "layout"} onClick={() => setEditorMode("layout")}>排版微调</button>
+      </div>
+      {editorMode === "layout" ? <MemberCardLayoutEditor data={data} onChange={layout => update("layout", layout)} /> : <>
       <div className="card-fields">
         <label>身份模板<select value={presets.find(p => p.role === data.role && p.roleEnglish === data.roleEnglish)?.role || "custom"} onChange={event => {
           const preset = presets.find(p => p.role === event.target.value);
@@ -209,6 +216,7 @@ export default function MemberCardStudio({ draftScope, libraryReady, sharedLibra
         {data.avatar && <label className="card-zoom">头像缩放 <input type="range" min="1" max="3" step="0.05" value={data.avatarZoom} onChange={event => update("avatarZoom", Number(event.target.value))} /><output>{data.avatarZoom.toFixed(1)}×</output></label>}
         <p className="card-small">头像自动居中裁切；未上传时使用姓名首字。</p>
       </div>
+      </>}
     </section>
     <section className="card-preview-section" aria-labelledby="card-preview-title">
       <header className="card-preview-heading"><div className="card-section-heading"><span className="card-step">02</span><div><h2 id="card-preview-title">名片预览</h2><p>经典黑白 · 议会徽标 · 圆形头像</p></div></div><span className="card-size">2400 × 1240</span></header>

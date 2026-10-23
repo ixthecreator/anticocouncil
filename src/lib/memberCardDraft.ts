@@ -1,5 +1,6 @@
 import {
   defaultMemberCardData,
+  isMemberCardLayout,
   sanitizeMemberCardData,
   validateMemberCardData,
   type MemberCardData,
@@ -39,6 +40,9 @@ function checkedData(value: unknown): MemberCardData {
   }
   if (typeof value.avatar === "string" && value.avatar.length > MAX_AVATAR_CHARACTERS) {
     throw new Error("草稿中的头像过大，请压缩头像后重新保存。");
+  }
+  if (value.layout !== undefined && !isMemberCardLayout(value.layout)) {
+    throw new Error("名片草稿中的排版设置格式不正确，请重新下载草稿。");
   }
   const data = sanitizeMemberCardData({ ...defaultMemberCardData, ...value } as MemberCardData);
   if (!portableAvatar(data.avatar)) {

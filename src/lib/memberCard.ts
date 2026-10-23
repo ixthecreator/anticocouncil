@@ -7,6 +7,70 @@ export interface MemberCardData {
   contact: string;
   avatar: string;
   avatarZoom: number;
+  layout?: MemberCardLayout;
+}
+
+export const MEMBER_CARD_TEXT_FIELDS = ["role", "roleEnglish", "name", "biography", "organization", "contact"] as const;
+export type MemberCardTextField = typeof MEMBER_CARD_TEXT_FIELDS[number];
+export interface MemberCardTextStyle {
+  fontSize: number;
+  tracking: number;
+  offsetX: number;
+  offsetY: number;
+  lineHeight: number;
+}
+export type MemberCardLayout = Partial<Record<MemberCardTextField, Partial<MemberCardTextStyle>>>;
+export const MEMBER_CARD_STYLE_LIMITS = {
+  fontSize: { min: 16, max: 240, step: 1 },
+  tracking: { min: -8, max: 80, step: 1 },
+  offsetX: { min: -1200, max: 1200, step: 1 },
+  offsetY: { min: -1000, max: 1000, step: 1 },
+  lineHeight: { min: 30, max: 280, step: 1 },
+} as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+}
+
+/** Imported layouts may omit fields, but cannot contain unknown or non-numeric settings. */
+export function isMemberCardLayout(value: unknown): value is MemberCardLayout {
+  return isRecord(value) && Reflect.ownKeys(value).every((field) =>
+    typeof field === "string" && MEMBER_CARD_TEXT_FIELDS.includes(field as MemberCardTextField)
+    && isRecord(value[field]) && Reflect.ownKeys(value[field]).every((key) =>
+      typeof key === "string" && Object.hasOwn(MEMBER_CARD_STYLE_LIMITS, key)
+      && typeof value[field][key] === "number" && Number.isFinite(value[field][key])));
+}
+
+/** Keep only supported finite settings; drafts never gain arbitrary renderer options. */
+export function sanitizeMemberCardLayout(value: unknown): MemberCardLayout {
+  const result: MemberCardLayout = {};
+  if (!isRecord(value)) return result;
+  for (const field of MEMBER_CARD_TEXT_FIELDS) {
+    const source = value[field];
+    if (!isRecord(source)) continue;
+    const style: Partial<MemberCardTextStyle> = {};
+    for (const key of Object.keys(MEMBER_CARD_STYLE_LIMITS) as (keyof MemberCardTextStyle)[]) {
+      const setting = source[key];
+      if (typeof setting !== "number" || !Number.isFinite(setting)) continue;
+      const { min, max } = MEMBER_CARD_STYLE_LIMITS[key];
+      style[key] = Math.min(max, Math.max(min, setting));
+    }
+    if (Object.keys(style).length) result[field] = style;
+  }
+  return result;
+}
+
+export function getMemberCardTextStyle(data: MemberCardData, field: MemberCardTextField): MemberCardTextStyle {
+  const defaults: Record<MemberCardTextField, Pick<MemberCardTextStyle, "fontSize" | "tracking">> = {
+    role: { fontSize: 174, tracking: 2 },
+    roleEnglish: { fontSize: 82, tracking: 35 },
+    name: { fontSize: 132, tracking: Array.from(data.name).length <= 6 ? 32 : 4 },
+    biography: { fontSize: 90, tracking: 4 },
+    organization: { fontSize: 44, tracking: 15 },
+    contact: { fontSize: 33, tracking: 0 },
+  };
+  return { ...defaults[field], offsetX: 0, offsetY: 0, lineHeight: 116, ...sanitizeMemberCardLayout(data.layout)[field] };
 }
 
 export const MEMBER_CARD_WIDTH = 2400;
@@ -46,6 +110,7 @@ export function memberCardBiographyLines(value: string): string[] {
 /** Normalize imported/local drafts without silently removing over-length text. */
 export function sanitizeMemberCardData(input: Partial<MemberCardData> | null | undefined): MemberCardData {
   const source = input ?? {};
+  const layout = sanitizeMemberCardLayout(source.layout);
   return {
     name: singleLine(source.name),
     role: singleLine(source.role),
@@ -57,6 +122,7 @@ export function sanitizeMemberCardData(input: Partial<MemberCardData> | null | u
     avatarZoom: Number.isFinite(source.avatarZoom)
       ? Math.min(MEMBER_CARD_LIMITS.avatarZoomMax, Math.max(MEMBER_CARD_LIMITS.avatarZoomMin, source.avatarZoom!))
       : 1,
+    ...(Object.keys(layout).length ? { layout } : {}),
   };
 }
 
@@ -99,12 +165,12 @@ export function fitMemberCardText(
   measure: CardTextMeasure,
   tracking = 0,
 ): { fontSize: number; width: number; tracking: number } {
-  if (!(maxWidth > 0) || !(minimumSize > 0) || preferredSize < minimumSize) throw new Error("名片文字布局参数无效。");
+  if (![maxWidth, preferredSize, minimumSize, tracking].every(Number.isFinite) || !(maxWidth > 0) || !(minimumSize > 0) || preferredSize < minimumSize) throw new Error("名片文字布局参数无效。");
   const gaps = Math.max(0, Array.from(text).length - 1);
   const widthAt = (size: number, spacing: number) => measure(text, size) + gaps * spacing;
-  let spacing = Math.max(0, tracking);
+  let spacing = tracking;
   // Tracking is decorative; remove it before making a long name unreadably small.
-  if (widthAt(minimumSize, spacing) > maxWidth) spacing = 0;
+  if (spacing > 0 && widthAt(minimumSize, spacing) > maxWidth) spacing = 0;
   if (widthAt(minimumSize, spacing) > maxWidth + 0.01) throw new Error("文字过长，无法完整放入名片，请缩短内容。");
   if (widthAt(preferredSize, spacing) <= maxWidth) return { fontSize: preferredSize, width: widthAt(preferredSize, spacing), tracking: spacing };
   let low = minimumSize;
@@ -204,7 +270,55 @@ function assertSupportedCharacters(data: MemberCardData, coverage: FontCoverage)
   if (unsupported.length) throw new Error(`名片字体暂不支持这些字符：${unsupported.slice(0, 8).join("、")}。请替换后重试。`);
 }
 
-function drawCardText(
+interface CardBounds { left: number; top: number; right: number; bottom: number }
+interface PreparedCardText {
+  text: string;
+  font: string;
+  fontSize: number;
+  tracking: number;
+  left: number;
+  baseline: number;
+  color: string;
+  bounds: CardBounds;
+}
+type CardTextOptions = { weight?: 100 | 300 | 400 | 500 | 700; serif?: boolean; tracking?: number; color?: string; align?: "left" | "center" | "right" };
+
+function measuredTextBounds(context: CanvasRenderingContext2D, text: string, fontSize: number, tracking: number): CardBounds {
+  let cursor = 0;
+  let left = Infinity;
+  let right = -Infinity;
+  let top = Infinity;
+  let bottom = -Infinity;
+  const pieces = tracking ? Array.from(text) : [text];
+  for (const piece of pieces) {
+    const metrics = context.measureText(piece);
+    left = Math.min(left, cursor - (Number.isFinite(metrics.actualBoundingBoxLeft) ? metrics.actualBoundingBoxLeft : 0));
+    right = Math.max(right, cursor + (Number.isFinite(metrics.actualBoundingBoxRight) ? metrics.actualBoundingBoxRight : metrics.width));
+    top = Math.min(top, -(Number.isFinite(metrics.actualBoundingBoxAscent) ? metrics.actualBoundingBoxAscent : fontSize * 0.85));
+    bottom = Math.max(bottom, Number.isFinite(metrics.actualBoundingBoxDescent) ? metrics.actualBoundingBoxDescent : fontSize * 0.2);
+    cursor += metrics.width + tracking;
+  }
+  return { left, right, top, bottom };
+}
+
+/** Translate a group together, keeping every glyph and biography marker inside the bitmap. */
+function cardBoundsTranslation(bounds: CardBounds[]) {
+  const padding = 4;
+  if (!bounds.length) return { x: 0, y: 0 };
+  const left = Math.min(...bounds.map((box) => box.left));
+  const right = Math.max(...bounds.map((box) => box.right));
+  const top = Math.min(...bounds.map((box) => box.top));
+  const bottom = Math.max(...bounds.map((box) => box.bottom));
+  if (right - left > MEMBER_CARD_WIDTH - padding * 2 || bottom - top > MEMBER_CARD_HEIGHT - padding * 2) {
+    throw new Error("文字排版超出名片范围，请缩小字号或行距。");
+  }
+  return {
+    x: Math.max(padding - left, Math.min(0, MEMBER_CARD_WIDTH - padding - right)),
+    y: Math.max(padding - top, Math.min(0, MEMBER_CARD_HEIGHT - padding - bottom)),
+  };
+}
+
+function prepareCardText(
   context: CanvasRenderingContext2D,
   text: string,
   x: number,
@@ -212,33 +326,61 @@ function drawCardText(
   width: number,
   preferred: number,
   minimum: number,
-  options: { weight?: 100 | 300 | 400 | 500 | 700; serif?: boolean; tracking?: number; color?: string; align?: "left" | "center" | "right" } = {},
-) {
+  options: CardTextOptions = {},
+): PreparedCardText | undefined {
   if (!text) return;
   const weight = options.weight ?? 400;
   const family = options.serif ? SERIF_FONT_FAMILY : FONT_FAMILY;
   const measure: CardTextMeasure = (value, size) => {
     context.font = `${weight} ${size}px "${family}"`;
-    return options.tracking
-      ? Array.from(value).reduce((width, character) => width + context.measureText(character).width, 0)
-      : context.measureText(value).width;
+    if (!options.tracking) return context.measureText(value).width;
+    const characters = Array.from(value);
+    const advance = characters.reduce((width, character) => width + context.measureText(character).width, 0);
+    // With tight negative spacing, narrow glyphs can move backwards. Fit their real span.
+    if (options.tracking < 0) {
+      const bounds = measuredTextBounds(context, value, size, options.tracking);
+      return Math.max(advance, bounds.right - bounds.left - (characters.length - 1) * options.tracking);
+    }
+    return advance;
   };
-  const fit = fitMemberCardText(text, width, preferred, minimum, measure, options.tracking);
+  const fit = fitMemberCardText(text, width, preferred, Math.min(minimum, preferred), measure, options.tracking);
   context.font = `${weight} ${fit.fontSize}px "${family}"`;
-  context.fillStyle = options.color ?? "#111111";
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   const align = options.align ?? "right";
-  let cursor = x - (align === "right" ? fit.width : align === "center" ? fit.width / 2 : 0);
-  const left = cursor;
-  if (!fit.tracking) context.fillText(text, cursor, baseline);
+  const measured = measuredTextBounds(context, text, fit.fontSize, fit.tracking);
+  const left = fit.tracking < 0
+    ? x - (align === "right" ? measured.right : align === "center" ? (measured.left + measured.right) / 2 : measured.left)
+    : x - (align === "right" ? fit.width : align === "center" ? fit.width / 2 : 0);
+  return {
+    text, font: context.font, fontSize: fit.fontSize, tracking: fit.tracking, left, baseline,
+    color: options.color ?? "#111111",
+    bounds: { left: left + measured.left, right: left + measured.right, top: baseline + measured.top, bottom: baseline + measured.bottom },
+  };
+}
+
+function paintCardText(context: CanvasRenderingContext2D, text: PreparedCardText, translation: { x: number; y: number }) {
+  context.font = text.font;
+  context.fillStyle = text.color;
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+  let cursor = text.left + translation.x;
+  const baseline = text.baseline + translation.y;
+  if (!text.tracking) context.fillText(text.text, cursor, baseline);
   else {
-    for (const character of Array.from(text)) {
+    for (const character of Array.from(text.text)) {
       context.fillText(character, cursor, baseline);
-      cursor += context.measureText(character).width + fit.tracking;
+      cursor += context.measureText(character).width + text.tracking;
     }
   }
-  return { left, fontSize: fit.fontSize };
+}
+
+function drawCardText(
+  context: CanvasRenderingContext2D, text: string, x: number, baseline: number,
+  width: number, preferred: number, minimum: number, options: CardTextOptions = {},
+) {
+  const prepared = prepareCardText(context, text, x, baseline, width, preferred, minimum, options);
+  if (prepared) paintCardText(context, prepared, cardBoundsTranslation([prepared.bounds]));
 }
 
 /** Render a complete 2400×1240 bitmap. Asset failures reject, never export a partial card. */
@@ -331,30 +473,57 @@ export async function renderMemberCard(canvas: HTMLCanvasElement, input: MemberC
 
   // Match the reference's light title, widely spaced Latin line and quieter name weight.
   const textRight = 2280;
-  drawCardText(context, data.role, textRight, 284, 700, 174, 48, { weight: 100, tracking: 2 });
-  if (data.role && data.roleEnglish) {
-    context.strokeStyle = "#111111";
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(textRight - 390, 307);
-    context.lineTo(textRight, 307);
-    context.stroke();
-  }
-  drawCardText(context, data.roleEnglish, textRight, 382, 700, 82, 18, { weight: 100, tracking: 35 });
-  drawCardText(context, data.name, textRight, 550, 1610, 132, 48, { weight: 400, tracking: Array.from(data.name).length <= 6 ? 32 : 4 });
-  memberCardBiographyLines(data.biography).forEach((line, index) => {
-    const baseline = 695 + index * 116;
-    const layout = drawCardText(context, line.replace(/^[·•]\s*/u, ""), textRight, baseline, 1590, 90, 18, { weight: 300, tracking: 4 });
-    if (layout) {
-      // A small square marker matches the reference without inheriting a font's oversized bullet.
-      const scale = layout.fontSize / 90;
-      const size = Math.max(2, 7 * scale);
-      context.fillRect(layout.left - 45 * scale - size / 2, baseline - layout.fontSize * 0.38 - size / 2, size, size);
+  const roleStyle = getMemberCardTextStyle(data, "role");
+  const role = prepareCardText(context, data.role, textRight + roleStyle.offsetX, 284 + roleStyle.offsetY, 700, roleStyle.fontSize, 48, { weight: 100, tracking: roleStyle.tracking });
+  if (role) {
+    // Scale from the chosen size, so old drafts keep their original divider even when a long title fits smaller.
+    const scale = roleStyle.fontSize / 174;
+    const divider = data.roleEnglish ? {
+      left: textRight + roleStyle.offsetX - 390 * scale,
+      right: textRight + roleStyle.offsetX,
+      top: role.baseline + 23 * scale - 1,
+      bottom: role.baseline + 23 * scale + 1,
+    } : undefined;
+    const translation = cardBoundsTranslation([role.bounds, ...(divider ? [divider] : [])]);
+    paintCardText(context, role, translation);
+    if (divider) {
+      context.strokeStyle = "#111111";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(divider.left + translation.x, divider.top + 1 + translation.y);
+      context.lineTo(divider.right + translation.x, divider.top + 1 + translation.y);
+      context.stroke();
     }
+  }
+  const englishStyle = getMemberCardTextStyle(data, "roleEnglish");
+  drawCardText(context, data.roleEnglish, textRight + englishStyle.offsetX, 382 + englishStyle.offsetY, 700, englishStyle.fontSize, 18, { weight: 100, tracking: englishStyle.tracking });
+  const nameStyle = getMemberCardTextStyle(data, "name");
+  drawCardText(context, data.name, textRight + nameStyle.offsetX, 550 + nameStyle.offsetY, 1610, nameStyle.fontSize, 48, { weight: 400, tracking: nameStyle.tracking });
+  const biographyStyle = getMemberCardTextStyle(data, "biography");
+  const biography = memberCardBiographyLines(data.biography).flatMap((line, index) => {
+    const baseline = 695 + biographyStyle.offsetY + index * biographyStyle.lineHeight;
+    const text = prepareCardText(context, line.replace(/^[·•]\s*/u, ""), textRight + biographyStyle.offsetX, baseline, 1590, biographyStyle.fontSize, 18, { weight: 300, tracking: biographyStyle.tracking });
+    if (text) {
+      const scale = text.fontSize / 90;
+      const size = Math.max(2, 7 * scale);
+      const textLeft = text.tracking < 0 ? Math.min(text.left, text.bounds.left) : text.left;
+      const markerX = textLeft - 45 * scale - size / 2;
+      const markerY = baseline - text.fontSize * 0.38 - size / 2;
+      return [{ text, marker: { left: markerX, top: markerY, right: markerX + size, bottom: markerY + size } }];
+    }
+    return [];
   });
-  drawCardText(context, data.contact, textRight, 1065, 1640, 33, 18, { color: "#666666" });
+  const biographyTranslation = cardBoundsTranslation(biography.flatMap(({ text, marker }) => [text.bounds, marker]));
+  for (const { text, marker } of biography) {
+    paintCardText(context, text, biographyTranslation);
+    // Keep the small square and every line in the same translated group.
+    context.fillRect(marker.left + biographyTranslation.x, marker.top + biographyTranslation.y, marker.right - marker.left, marker.bottom - marker.top);
+  }
+  const contactStyle = getMemberCardTextStyle(data, "contact");
+  drawCardText(context, data.contact, textRight + contactStyle.offsetX, 1065 + contactStyle.offsetY, 1640, contactStyle.fontSize, 18, { tracking: contactStyle.tracking, color: "#666666" });
   if (data.organization) {
-    drawCardText(context, data.organization, MEMBER_CARD_WIDTH / 2, 1185, 1850, 44, 32, { align: "center", serif: true, weight: 700, tracking: 15, color: "#7c7c79" });
+    const organizationStyle = getMemberCardTextStyle(data, "organization");
+    drawCardText(context, data.organization, MEMBER_CARD_WIDTH / 2 + organizationStyle.offsetX, 1185 + organizationStyle.offsetY, 1850, organizationStyle.fontSize, 32, { align: "center", serif: true, weight: 700, tracking: organizationStyle.tracking, color: "#7c7c79" });
   }
 
   // Commit only after every text and image has rendered successfully.
