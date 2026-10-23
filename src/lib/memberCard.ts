@@ -126,6 +126,7 @@ export function memberCardAvatarCrop(width: number, height: number, zoom: number
 }
 
 const FONT_FAMILY = "AnticoMemberCard";
+const SERIF_FONT_FAMILY = "AnticoMemberCardSerif";
 type FontCoverage = [number, number][];
 let fontPromise: Promise<FontCoverage> | undefined;
 let logoPromise: Promise<HTMLImageElement> | undefined;
@@ -139,18 +140,18 @@ async function loadCardFonts(): Promise<FontCoverage> {
   if (!fontPromise) {
     fontPromise = (async () => {
       const load = async (file: string) => {
-        const response = await fetch(resourcePath(`fonts/${file}`), { signal: AbortSignal.timeout(60_000) });
+        const response = await fetch(resourcePath(`fonts/card/${file}`), { signal: AbortSignal.timeout(60_000) });
         if (!response.ok) throw new Error(`字体加载失败：${response.status}`);
         return response;
       };
-      const [regular, bold, coverage] = await Promise.all([
-        load("NotoSansSC-Regular.ttf").then((response) => response.arrayBuffer()),
-        load("NotoSansSC-Bold.ttf").then((response) => response.arrayBuffer()),
+      const [sans, serif, coverage] = await Promise.all([
+        load("NotoSansSC-Variable.woff2").then((response) => response.arrayBuffer()),
+        load("NotoSerifSC-Bold.woff2").then((response) => response.arrayBuffer()),
         load("coverage.json").then((response) => response.json() as Promise<FontCoverage>),
       ]);
       const fonts = await Promise.all([
-        new FontFace(FONT_FAMILY, regular, { weight: "400" }).load(),
-        new FontFace(FONT_FAMILY, bold, { weight: "700" }).load(),
+        new FontFace(FONT_FAMILY, sans, { weight: "100 500" }).load(),
+        new FontFace(SERIF_FONT_FAMILY, serif, { weight: "700" }).load(),
       ]);
       for (const font of fonts) document.fonts.add(font);
       return coverage;
@@ -211,23 +212,25 @@ function drawCardText(
   width: number,
   preferred: number,
   minimum: number,
-  options: { bold?: boolean; tracking?: number; color?: string; align?: "left" | "center" | "right" } = {},
+  options: { weight?: 100 | 300 | 400 | 500 | 700; serif?: boolean; tracking?: number; color?: string; align?: "left" | "center" | "right" } = {},
 ) {
   if (!text) return;
-  const weight = options.bold ? 700 : 400;
+  const weight = options.weight ?? 400;
+  const family = options.serif ? SERIF_FONT_FAMILY : FONT_FAMILY;
   const measure: CardTextMeasure = (value, size) => {
-    context.font = `${weight} ${size}px "${FONT_FAMILY}"`;
+    context.font = `${weight} ${size}px "${family}"`;
     return options.tracking
       ? Array.from(value).reduce((width, character) => width + context.measureText(character).width, 0)
       : context.measureText(value).width;
   };
   const fit = fitMemberCardText(text, width, preferred, minimum, measure, options.tracking);
-  context.font = `${weight} ${fit.fontSize}px "${FONT_FAMILY}"`;
+  context.font = `${weight} ${fit.fontSize}px "${family}"`;
   context.fillStyle = options.color ?? "#111111";
   context.textAlign = "left";
   context.textBaseline = "alphabetic";
   const align = options.align ?? "right";
   let cursor = x - (align === "right" ? fit.width : align === "center" ? fit.width / 2 : 0);
+  const left = cursor;
   if (!fit.tracking) context.fillText(text, cursor, baseline);
   else {
     for (const character of Array.from(text)) {
@@ -235,6 +238,7 @@ function drawCardText(
       cursor += context.measureText(character).width + fit.tracking;
     }
   }
+  return { left, fontSize: fit.fontSize };
 }
 
 /** Render a complete 2400×1240 bitmap. Asset failures reject, never export a partial card. */
@@ -325,24 +329,32 @@ export async function renderMemberCard(canvas: HTMLCanvasElement, input: MemberC
   }
   context.restore();
 
-  const textRight = 2272;
-  drawCardText(context, data.role, textRight, 285, 700, 160, 48, { tracking: 9 });
+  // Match the reference's light title, widely spaced Latin line and quieter name weight.
+  const textRight = 2280;
+  drawCardText(context, data.role, textRight, 284, 700, 174, 48, { weight: 100, tracking: 2 });
   if (data.role && data.roleEnglish) {
     context.strokeStyle = "#111111";
     context.lineWidth = 2;
     context.beginPath();
-    context.moveTo(textRight - 440, 320);
-    context.lineTo(textRight, 320);
+    context.moveTo(textRight - 390, 307);
+    context.lineTo(textRight, 307);
     context.stroke();
   }
-  drawCardText(context, data.roleEnglish, textRight, 397, 700, 74, 18, { tracking: 15 });
-  drawCardText(context, data.name, textRight, 558, 1610, 132, 48, { bold: true, tracking: Array.from(data.name).length <= 6 ? 18 : 4 });
+  drawCardText(context, data.roleEnglish, textRight, 382, 700, 82, 18, { weight: 100, tracking: 35 });
+  drawCardText(context, data.name, textRight, 550, 1610, 132, 48, { weight: 400, tracking: Array.from(data.name).length <= 6 ? 32 : 4 });
   memberCardBiographyLines(data.biography).forEach((line, index) => {
-    drawCardText(context, /^[·•]/u.test(line) ? line : `· ${line}`, textRight, 715 + index * 116, 1640, 74, 18);
+    const baseline = 695 + index * 116;
+    const layout = drawCardText(context, line.replace(/^[·•]\s*/u, ""), textRight, baseline, 1590, 90, 18, { weight: 300, tracking: 4 });
+    if (layout) {
+      // A small square marker matches the reference without inheriting a font's oversized bullet.
+      const scale = layout.fontSize / 90;
+      const size = Math.max(2, 7 * scale);
+      context.fillRect(layout.left - 45 * scale - size / 2, baseline - layout.fontSize * 0.38 - size / 2, size, size);
+    }
   });
   drawCardText(context, data.contact, textRight, 1065, 1640, 33, 18, { color: "#666666" });
   if (data.organization) {
-    drawCardText(context, data.organization, MEMBER_CARD_WIDTH / 2, 1190, 1850, 44, 32, { align: "center", bold: true, tracking: 15, color: "#7c7c79" });
+    drawCardText(context, data.organization, MEMBER_CARD_WIDTH / 2, 1185, 1850, 44, 32, { align: "center", serif: true, weight: 700, tracking: 15, color: "#7c7c79" });
   }
 
   // Commit only after every text and image has rendered successfully.
