@@ -78,6 +78,7 @@
 
   /* Layout */
   --ac-container: 1100px;
+  --ac-container-wide: 1280px;
   --ac-gutter: 30px;
   --ac-page-inset: 15px;
   --ac-rule-heavy: 4px;

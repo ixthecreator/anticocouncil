@@ -218,20 +218,21 @@
 }
 
 /*
- * The workspace is a working tool with tables and boards, so it fills the
- * window instead of the public site's fixed 1100px container: every frame
- * row (header, navigation, service strip, content, footer) spans the full
- * width with the gutter on each side. Running text still keeps to
- * --ac-reading-width where pages set it.
+ * The workspace is a working tool with tables and boards, so it uses the
+ * wider --ac-container-wide on a white page instead of the public site's
+ * 1100px container. Every frame row (header, navigation, service strip,
+ * content, footer) keeps its band full width and centres its content in
+ * the same column, so rules and rows stop at a readable length on wide
+ * screens and the side margins stay white.
  */
 .workspace-shell .ac-container {
-  width: auto;
+  width: min(var(--ac-container-wide), 100% - 2 * var(--ac-gutter));
   max-width: none;
-  margin-inline: var(--ac-gutter);
+  margin-inline: auto;
 }
 @media (max-width: 767px) {
   .workspace-shell .ac-container {
-    margin-inline: var(--ac-page-inset);
+    width: calc(100% - 2 * var(--ac-page-inset));
   }
 }
 
