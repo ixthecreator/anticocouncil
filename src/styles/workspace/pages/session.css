@@ -1,428 +1,469 @@
 /*
- * Meeting session pages: MeetingManager.tsx, SessionView.tsx,
- * AttendanceView.tsx, ParliamentChart.tsx and the session statistics row in
- * App.tsx. .agenda-title is also used by PostMeetingView.tsx.
+ * Meeting pages: the meeting toolbar (MeetingManager.tsx, shown on the
+ * session and post-meeting pages), the meeting figures row (App.tsx), the
+ * session view with agenda, minutes and the division (SessionView.tsx) and
+ * the weekly report table (AttendanceView.tsx). .agenda-title is also used
+ * by PostMeetingView.tsx. Values come from src/design-system/tokens.css.
+ * Shared primitives (buttons, form groups, tags, tables, empty states) are
+ * styled in components.css; this file only lays them out.
  */
 
-.session-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
-}
-.session-workspace p {
-  font-size: 1rem;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-}
-.checkin-form {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  margin: 1rem 0;
-}
-.checkin-form .workspace-field {
-  flex: 1;
-}
-.attendance-list {
-  margin-top: 1rem;
-}
-.attendance-list li {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 0.6rem;
-  border-top: 1px solid color-mix(in srgb, var(--theme-border) 25%, transparent);
-}
-.attendance-list li.next-speaker {
-  background: var(--theme-accent-light);
-  border-left: 3px solid var(--theme-accent);
-}
-.queue-number {
-  font: 500 1.25rem var(--font-mono);
-  color: var(--theme-text-secondary);
-}
-.attendance-person {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.attendance-person strong {
-  font: 600 1rem var(--font-sans);
-}
-.agenda-list article {
-  border-top: 1px solid color-mix(in srgb, var(--theme-border) 25%, transparent);
-  padding: 1rem 0;
-}
-.agenda-title {
-  font: 600 1.125rem/1.5 var(--font-sans);
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-.agenda-title:hover {
-  text-decoration: underline;
-}
-.voting-title {
-  font: 700 1.5rem/1.6 var(--font-serif);
-  text-align: center;
-  margin: 1.5rem 0 0.5rem;
-}
-.voting-panel > p {
-  margin-bottom: 1rem;
-}
-.voting-panel > .workspace-fields {
-  margin: 1rem 0;
-}
-.vote-totals {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  text-align: center;
-  margin: 1.25rem 0;
-  font: 500 0.875rem var(--font-sans);
-}
-.vote-totals strong {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.4rem;
-}
-.vote-totals > div:first-child {
-  color: #168047;
-}
-.vote-totals > div:nth-child(2) {
-  color: #bf3c37;
-}
-.vote-buttons > button {
-  flex: 1;
-}
-.manual-votes {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-.manual-votes > div {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-@media (max-width: 900px) {
-  .session-columns {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 600px) {
-  .attendance-list li {
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-  .attendance-person {
-    min-width: 55%;
-  }
-}
+/* ------------------------------------------------------------------ */
+/* Meeting toolbar: choose, rename or create a meeting                 */
+/* ------------------------------------------------------------------ */
+
 .meeting-toolbar {
+  margin: 0 0 var(--ac-space-7);
+  padding: 0 0 var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+  background: var(--ac-color-surface);
+}
+.meeting-toolbar-row {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 20px;
-  padding: 20px 22px;
-  border: 1px solid var(--theme-border);
-  border-radius: 12px;
-  background: var(--theme-card-bg);
-  margin-bottom: 22px;
-}
-.meeting-toolbar-title {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-.meeting-icon {
-  display: grid;
-  place-items: center;
-  width: 43px;
-  height: 43px;
-  border-radius: 10px;
-  color: var(--theme-accent);
-  background: var(--theme-accent-light);
-}
-.meeting-toolbar-title strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-}
-.meeting-toolbar-title div > span {
-  display: block;
-  margin-top: 5px;
-  font-size: 11px;
-  color: var(--theme-text-secondary);
+  align-items: flex-end;
+  gap: var(--ac-space-4) var(--ac-space-5);
 }
 .meeting-select {
-  flex: 1;
-  min-width: 180px;
-  margin-left: auto;
+  flex: 1 1 320px;
+  max-width: var(--ac-reading-width);
 }
-.meeting-select select {
-  width: 100%;
-  padding: 11px 13px;
-  border: 1px solid var(--theme-border);
-  font-size: 13px;
-  min-height: 43px;
+.meeting-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
 }
-/* The workspace form-control border colour in components.css used to load after this rule. */
-.parliament-app .meeting-select select {
-  border-color: var(--theme-text-secondary);
+
+/* The rename and create forms open under the row. */
+.meeting-form {
+  margin: var(--ac-space-6) 0 0;
 }
-.meeting-create-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 16px;
-  flex-basis: 100%;
-  padding-top: 20px;
-  border-top: 1px solid var(--theme-border);
+.meeting-form-heading {
+  margin: 0 0 var(--ac-space-5);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
 }
-.meeting-create-form .workspace-field {
-  font-size: 12px;
+.meeting-form > .workspace-field {
+  max-width: var(--ac-reading-width);
 }
-.meeting-create-form .workspace-field small {
-  color: var(--theme-text-secondary);
-  font-size: 11px;
-  font-weight: 400;
-  margin-left: 5px;
+.meeting-form > .workspace-error {
+  margin: 0 0 var(--ac-space-6);
 }
-.meeting-create-form .workspace-error {
-  grid-column: 1/-1;
-}
+
+/* ------------------------------------------------------------------ */
+/* Meeting figures: three numbers separated by 1px rules              */
+/* ------------------------------------------------------------------ */
+
 .meeting-stats {
+  margin: 0 0 var(--ac-space-8);
+}
+.meeting-stats dl {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 24px;
+  margin: 0;
 }
-.stat-card {
+/* The label comes first in the source and sits under the number. */
+.meeting-stats dl > div {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px;
-  border: 1px solid var(--theme-border);
-  border-radius: 12px;
-  background: var(--theme-card-bg);
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: var(--ac-space-1);
+  min-width: 0;
+  padding: 0 var(--ac-space-5);
+  border-left: 1px solid var(--ac-color-border);
 }
-.stat-icon {
-  display: grid;
-  place-items: center;
-  width: 43px;
-  height: 43px;
-  border-radius: 12px;
-  background: var(--theme-accent-light);
-  color: var(--theme-accent);
-  flex-shrink: 0;
+.meeting-stats dl > div:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
-.stat-icon.amber {
-  background: #f9f1e6;
-  color: #a37436;
+.meeting-stats dt {
+  color: var(--ac-color-text);
+  font: var(--ac-type-small);
 }
-.stat-icon.green {
-  background: #eaf5ef;
-  color: #42866a;
+.meeting-stats dd {
+  margin: 0;
+  color: var(--ac-color-brand);
+  font: 700 var(--ac-font-size-h1) / 40px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
 }
-.stat-card div > span {
-  font-size: 11px;
-  color: var(--theme-text-secondary);
-  display: block;
-  margin-bottom: 4px;
+.meeting-stats dd span {
+  color: var(--ac-color-text-secondary);
 }
-.stat-card strong {
-  display: block;
-  font: 600 27px/1.2 var(--font-sans);
-}
-.stat-card strong small {
-  color: var(--theme-text-secondary);
-  font-size: 11px;
-  font-weight: 400;
+
+/* ------------------------------------------------------------------ */
+/* Session layout: agenda and minutes beside the division              */
+/* ------------------------------------------------------------------ */
+
+.session-workspace p {
+  overflow-wrap: anywhere;
 }
 .session-columns {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 24px;
-}
-.session-workspace p {
-  font-size: 14px;
-  line-height: 1.8;
-}
-.checkin-form {
-  flex-wrap: wrap;
-}
-.attendance-list li {
-  padding: 15px 12px;
-  border-top-color: var(--theme-border);
-}
-.attendance-list li.next-speaker {
-  border-radius: 8px;
-  border-top-color: transparent;
-}
-.queue-number {
   display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--theme-bg);
-  font-size: 13px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--ac-space-8) var(--ac-space-7);
+  align-items: start;
 }
-.attendance-person strong {
-  font-size: 14px;
+.session-main {
+  min-width: 0;
 }
-.agenda-list article {
-  border-top-color: var(--theme-border);
-  padding: 19px 0;
+@media (max-width: 991px) {
+  .session-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.agenda-list .workspace-heading {
-  margin-bottom: 10px;
+
+/* A small heading inside a section, e.g. "会议摘要". */
+.session-subheading {
+  margin: var(--ac-space-6) 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
 }
+.workspace-fields > .session-subheading {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Agenda: one row per issue, the title is the link                   */
+/* ------------------------------------------------------------------ */
+
+.agenda-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agenda-item {
+  padding: var(--ac-space-5) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.agenda-item:first-child {
+  padding-top: 0;
+}
+.agenda-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ac-space-3) var(--ac-space-4);
+}
+.agenda-item-head h3 {
+  min-width: 0;
+  margin: 0;
+  font: var(--ac-type-h4);
+}
+.agenda-item-head .council-tag {
+  flex: none;
+  margin-top: var(--ac-space-1);
+}
+.agenda-item > .council-meta {
+  margin-top: var(--ac-space-2);
+}
+.agenda-discussion {
+  margin: var(--ac-space-3) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+
+/* A title that opens the issue: a link-styled button. */
 .agenda-title {
-  font-size: 15px;
-  line-height: 1.7;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ac-color-link);
+  font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.agenda-title:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Division: three result figures, one result sentence, no chart      */
+/* ------------------------------------------------------------------ */
+
+.voting-switch {
+  margin: 0 0 var(--ac-space-6);
 }
 .voting-title {
-  font-family: var(--font-sans);
-  font-size: 20px;
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+  overflow-wrap: anywhere;
 }
-.vote-totals {
-  border: 1px solid var(--theme-border);
-  border-radius: 10px;
-  background: var(--theme-bg);
-  padding: 18px 0;
-  font-size: 12px;
+.voting-description {
+  margin: var(--ac-space-3) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
 }
-.vote-totals > div + div {
-  border-left: 1px solid var(--theme-border);
+.voting-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ac-space-6) var(--ac-space-7);
+  margin: var(--ac-space-6) 0 0;
 }
-.vote-totals strong {
-  font-size: 28px;
+
+.division-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--ac-space-7) 0 0;
 }
-@media (max-width: 1200px) {
-  .session-columns {
-    grid-template-columns: 1fr;
-  }
-  .stat-card {
-    padding: 16px 12px;
-    gap: 10px;
-  }
-  .stat-card strong small {
-    display: block;
-    margin-top: 5px;
-  }
-  .meeting-toolbar {
-    gap: 15px;
-  }
-  .meeting-toolbar-title div > span {
-    display: none;
-  }
+/* Colour on the top rule supports the label; it never stands alone. */
+.division-figure {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: var(--ac-space-3) var(--ac-space-4) 0;
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-text-secondary);
 }
-@media (max-width: 900px) {
-  .meeting-create-form {
-    grid-template-columns: 1fr 1fr;
-  }
-  .meeting-create-form > button {
-    grid-column: 1/-1;
-    justify-self: end;
-  }
+.division-figure + .division-figure {
+  border-left: 1px solid var(--ac-color-border);
 }
-@media (max-width: 600px) {
-  .meeting-toolbar {
-    padding: 17px;
-    gap: 13px;
-  }
-  .meeting-toolbar-title {
-    flex: 1;
-  }
-  .meeting-select {
-    order: 3;
-    flex-basis: 100%;
-  }
-  .meeting-create-form {
-    order: 4;
-    grid-template-columns: 1fr;
-  }
-  .meeting-create-form .workspace-field small {
-    display: block;
-    margin: 4px 0 0;
-  }
-  .meeting-stats {
-    gap: 8px;
-    margin-bottom: 18px;
-  }
-  .stat-card {
-    display: block;
-    padding: 13px 9px;
-  }
-  .stat-icon {
-    display: none;
-  }
-  .stat-card strong {
-    font-size: 24px;
-  }
-  .stat-card strong small {
-    font-size: 10px;
-    line-height: 1.6;
-  }
-  .stat-card div > span {
-    font-size: 10px;
-  }
-  .checkin-form .workspace-field {
-    min-width: 100%;
-  }
-  .checkin-form > button {
-    width: 100%;
-  }
-  .session-columns {
-    gap: 0;
-  }
+.division-figure:first-child {
+  padding-left: 0;
 }
-.parliament-app .meeting-toolbar {
-  border-radius: 0;
-  box-shadow: none;
-  background: var(--theme-card-bg);
+.division-figure.is-approve {
+  border-top-color: var(--ac-color-success);
 }
-.parliament-app .meeting-toolbar {
-  border-top: 4px solid var(--theme-accent);
+.division-figure.is-reject {
+  border-top-color: var(--ac-color-error);
 }
-.parliament-app .meeting-toolbar .meeting-icon {
-  border-radius: 0;
+.division-figure dt {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.parliament-app .meeting-stats {
-  gap: 20px;
+.division-figure dd {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-display) / 56px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
 }
-.parliament-app .stat-card {
+
+.division-result {
+  margin: var(--ac-space-5) 0 0;
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-body);
+}
+.division-result .council-tag {
+  margin-right: var(--ac-space-2);
+}
+
+/* Member voting: choose a member, then one of three buttons. */
+.voting-ballot {
+  margin: var(--ac-space-6) 0 0;
+}
+.vote-buttons > .workspace-button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vote-buttons > .workspace-button.is-chosen {
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.vote-buttons > .workspace-button.is-chosen:hover {
+  border-color: var(--ac-color-brand-dark);
+  background: var(--ac-color-brand-dark);
+}
+.voting-ballot > .council-meta,
+.voting-ballot > .workspace-help {
+  margin: var(--ac-space-3) 0 0;
+}
+
+/* Manual tally: one labelled row per option with − / + steps. */
+.manual-votes {
+  min-width: 0;
+  margin: var(--ac-space-6) 0 0;
+  padding: 0;
   border: 0;
-  border-left: 3px solid var(--theme-border);
-  border-radius: 0;
-  padding: 8px 18px;
-  background: transparent;
-  box-shadow: none;
 }
-.parliament-app .stat-icon {
-  display: none;
+.manual-votes legend {
+  margin: 0 0 var(--ac-space-3);
+  padding: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
 }
-.parliament-app .stat-card strong {
-  font-size: 28px;
+.manual-vote {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  padding: var(--ac-space-3) 0;
+  border-bottom: 1px solid var(--ac-color-border);
 }
-.parliament-app .stat-card span,
-.parliament-app .stat-card small {
-  font-size: 14px;
+.manual-vote:first-of-type {
+  border-top: 1px solid var(--ac-color-border);
 }
-.parliament-app .agenda-list > article {
-  border: 0;
-  border-bottom: 1px solid var(--theme-border);
-  border-radius: 0;
-  padding: 20px 0;
-  background: transparent;
+.manual-vote-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.parliament-app .agenda-title {
-  color: var(--council-link);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  font-size: 18px;
+.manual-vote-count {
+  min-width: var(--ac-space-8);
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-h3) / 28px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.workspace-button.manual-vote-step {
+  width: 44px;
+  padding-inline: 0;
+}
+
+.voting-finish {
+  margin-top: var(--ac-space-6);
+}
+.voting-finish + .workspace-help {
+  margin: var(--ac-space-3) 0 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Weekly reports: arrange a speaker, then the queue as a table        */
+/* ------------------------------------------------------------------ */
+
+.checkin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ac-space-4) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-7);
+}
+.checkin-form > .workspace-field {
+  flex: 1 1 280px;
+  max-width: var(--ac-reading-width);
+}
+.checkin-form > .workspace-button {
+  flex: none;
+}
+
+.attendance-summary {
+  margin: 0 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+
+/* Room for the next speaker's 4px rule in front of every first cell. */
+.attendance-table tr > :first-child {
+  padding-left: var(--ac-space-4);
+}
+.attendance-table .attendance-queue {
+  width: var(--ac-space-9);
+  color: var(--ac-color-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.attendance-table tbody th {
+  width: auto;
+}
+/* Status and action columns shrink to their content. */
+.attendance-table .attendance-status,
+.attendance-table .attendance-action {
+  width: 1%;
+  white-space: nowrap;
+}
+.attendance-table tbody tr.is-next {
+  background: var(--ac-color-surface-alt);
+}
+/* The next speaker: a heavy brand rule down the left edge of the row. */
+.attendance-table tbody tr > :first-child {
+  position: relative;
+}
+.attendance-table tbody tr.is-next > :first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--ac-rule-heavy);
+  background: var(--ac-color-brand);
+}
+.attendance-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font-weight: 600;
+}
+.attendance-note {
+  display: block;
+  margin-top: var(--ac-space-2);
+  color: var(--ac-color-text);
+  font-weight: 400;
+}
+.attendance-table .attendance-action {
+  text-align: right;
+}
+
+@media (max-width: 767px) {
+  .attendance-table tbody tr {
+    position: relative;
+    padding-left: var(--ac-space-4);
+  }
+  .attendance-table tbody tr > :first-child {
+    position: static;
+    padding-left: 0;
+  }
+  .attendance-table tbody tr.is-next > :first-child::before {
+    content: none;
+  }
+  .attendance-table tbody tr.is-next::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--ac-rule-heavy);
+    background: var(--ac-color-brand);
+  }
+  .attendance-table tbody .attendance-queue {
+    flex: none;
+    align-self: flex-start;
+    width: var(--ac-space-5);
+  }
+  /* Number and name share the first line; status and action wrap below,
+     the status lined up under the name. */
+  .attendance-table tbody th {
+    flex: 1 1 calc(100% - var(--ac-space-8));
+    min-width: 0;
+  }
+  .attendance-table tbody td.attendance-status {
+    width: auto;
+    margin-left: calc(2 * var(--ac-space-5));
+  }
+  .attendance-table tbody td.attendance-action {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phones                                                              */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 575px) {
+  .meeting-toolbar-actions {
+    flex: 1 1 100%;
+  }
+  .meeting-toolbar-actions > .workspace-button {
+    flex: 1 1 0;
+  }
+  .meeting-stats dl > div {
+    padding: 0 var(--ac-space-3);
+  }
+  .checkin-form > .workspace-button {
+    flex: 1 1 100%;
+  }
+  .division-figure {
+    padding-inline: var(--ac-space-3);
+  }
 }

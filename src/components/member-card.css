@@ -1,83 +1,559 @@
-.card-studio { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 44px; }
-.card-editor { background: var(--theme-panel-bg); border: 1px solid var(--theme-border); border-radius: 14px; padding: 24px; }
-.card-section-heading { display: flex; gap: 12px; align-items: center; }
-.card-section-heading h2 { font-size: 17px; font-weight: 700; margin: 0 0 4px; color: var(--theme-text-primary); }
-.card-section-heading p { font-size: 12px; color: var(--theme-text-secondary); margin: 0; }
-.card-step { display: grid; place-items: center; background: var(--theme-accent-light); color: var(--theme-accent); border-radius: 9px; width: 34px; height: 38px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-.card-editor-modes { display: flex; gap: 4px; margin-top: 22px; padding: 4px; background: var(--theme-accent-light); border-radius: 8px; }
-.card-editor-modes button { flex: 1; border: 0; border-radius: 5px; padding: 9px 6px; background: transparent; color: var(--theme-text-secondary); font-size: 12px; cursor: pointer; }
-.card-editor-modes button[aria-pressed="true"] { background: var(--theme-panel-bg); color: var(--theme-accent); font-weight: 600; box-shadow: 0 1px 4px #0000000a; }
-.card-editor-modes button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
-.card-fields { display: grid; gap: 16px; margin-top: 24px; }
-.card-fields label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; min-width: 0; color: var(--theme-text-primary); font-size: 12px; font-weight: 600; }
-.card-fields input, .card-fields textarea, .card-fields select { width: 100%; min-width: 0; color: var(--theme-text-primary); background: var(--theme-card-bg); border: 1px solid var(--theme-border); border-radius: 7px; padding: 10px 11px; font: inherit; font-size: 13px; font-weight: 400; line-height: 1.6; }
-.card-fields textarea { resize: vertical; min-height: 100px; }
-.card-fields input:focus-visible, .card-fields select:focus-visible, .card-fields textarea:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 2px; }
-.card-fields small, .card-optional { font-size: 11px; line-height: 1.6; color: var(--theme-text-secondary); font-weight: 400; }
-.card-field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.card-avatar-editor { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--theme-border); }
-.card-avatar-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: 12px; }
-.card-avatar-heading span { color: var(--theme-text-secondary); font-size: 10px; }
-.card-avatar-controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 12px; }
-.card-avatar-thumb { width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--theme-accent-light); color: var(--theme-accent); overflow: hidden; }
-.card-avatar-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.card-file-button { position: relative; overflow: hidden; cursor: pointer; }
-.card-file-button input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-.card-file-button:focus-within { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
-.card-file-button.is-busy { opacity: .6; }
-.card-zoom { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--theme-text-secondary); }
-.card-zoom input { width: 100%; min-width: 30px; flex: 1; accent-color: var(--theme-accent); }
-.card-zoom output { min-width: 30px; }
-.card-preview-section { min-width: 0; padding-top: 7px; }
-.card-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 20px; }
-.card-size { font-size: 10px; letter-spacing: .05em; color: var(--theme-text-secondary); white-space: nowrap; }
-.card-preview-stage { position: relative; padding: 22px; border: 1px solid var(--theme-border); border-radius: 12px; background-color: var(--theme-accent-light); background-image: radial-gradient(var(--theme-border) 1px, transparent 1px); background-size: 12px 12px; }
-.card-preview-stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 2400 / 1240; background: white; box-shadow: 0 5px 20px #00000012; }
-.card-preview-stage.is-updating canvas { opacity: .55; }
-.card-preview-placeholder { position: absolute; inset: 22px; display: grid; place-items: center; padding: 20px; text-align: center; background: #fff; color: #666; font-size: 13px; }
-.card-preview-status { min-height: 36px; padding: 12px 2px 4px; color: var(--theme-text-secondary); font-size: 11px; }
-.card-layout-editor { margin: 20px 0 0; }
-.card-layout-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: flex-start; }
-.card-layout-heading h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; color: var(--theme-text-primary); }
-.card-layout-heading p { margin: 6px 0 0; font-size: 11px; color: var(--theme-text-secondary); }
-.card-layout-heading > button { flex-shrink: 0; font-size: 11px; }
-.card-layout-targets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 17px; }
-.card-layout-targets button { padding: 7px 11px; border: 1px solid var(--theme-border); border-radius: 6px; background: var(--theme-card-bg); color: var(--theme-text-secondary); font-size: 12px; cursor: pointer; }
-.card-layout-targets button[aria-pressed="true"] { border-color: var(--theme-accent); background: var(--theme-accent-light); color: var(--theme-accent); font-weight: 600; }
-.card-layout-selection { display: flex; align-items: center; justify-content: space-between; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--theme-border); font-size: 11px; color: var(--theme-text-secondary); }
-.card-layout-selection strong { color: var(--theme-text-primary); font-weight: 600; }
-.card-layout-selection button { font-size: 11px; }
-.card-layout-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
-.card-layout-control { min-width: 0; }
-.card-layout-control-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.card-layout-control-heading label { font-size: 12px; color: var(--theme-text-primary); font-weight: 500; }
-.card-layout-number { display: flex; align-items: center; width: 100%; gap: 5px; color: var(--theme-text-secondary); font-size: 10px; }
-.card-layout-number input { width: 100%; min-width: 0; padding: 5px 6px; border: 1px solid var(--theme-border); border-radius: 5px; background: var(--theme-card-bg); color: var(--theme-text-primary); font: inherit; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.card-layout-control > input { display: block; width: 100%; height: 20px; margin: 6px 0 2px; accent-color: var(--theme-accent); cursor: pointer; }
-.card-layout-control small { font-size: 10px; color: var(--theme-text-secondary); }
-.card-layout-editor input:focus-visible, .card-layout-targets button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
-.card-layout-help { margin: 15px 0 0; font-size: 10px; line-height: 1.8; color: var(--theme-text-secondary); }
-.card-layout-empty { margin: 5px 0 0; font-size: 11px; color: var(--theme-accent); }
-.card-export-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 15px; }
-.card-export-actions .workspace-button { min-height: 42px; }
-.card-studio button:disabled { opacity: .5; cursor: not-allowed; }
-.card-text-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 0; font-size: 12px; font-weight: 500; color: var(--theme-accent); background: none; border: none; cursor: pointer; }
-.card-text-button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
-.card-text-button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; }
-.card-small { font-size: 11px; color: var(--theme-text-secondary); line-height: 1.8; margin: 10px 0 0; }
-.card-message { font-size: 12px; line-height: 1.8; padding: 11px 14px; border-radius: 8px; margin: 12px 0; }
-.card-message p { margin: 0; }
-.card-message.error { background: #fff1f0; color: #9a2c23; }
-.card-message.success { background: var(--theme-accent-light); color: var(--theme-accent); }
-.card-draft-panel { border-top: 1px solid var(--theme-border); margin-top: 28px; padding-top: 22px; }
-.card-draft-panel strong { font-size: 13px; font-weight: 600; }
-.card-draft-panel p { font-size: 12px; line-height: 1.8; color: var(--theme-text-secondary); margin: 7px 0 10px; }
-.card-draft-actions { display: flex; flex-wrap: wrap; gap: 18px; }
-.card-reset-confirm { margin-top: 10px; padding: 13px; background: var(--theme-accent-light); border-radius: 8px; }
-.card-reset-confirm .workspace-button { margin-right: 8px; }
-.card-privacy { margin: 20px 0 0; font-size: 11px; line-height: 1.9; color: var(--theme-text-secondary); }
-@media (min-width: 1100px) { .card-preview-section { position: sticky; top: 22px; } }
-@media (max-width: 1000px) { .card-studio { grid-template-columns: 280px minmax(0, 1fr); gap: 20px; } .card-editor { padding: 20px; } .card-preview-stage { padding: 12px; } .card-preview-placeholder { inset: 12px; } }
-@media (max-width: 760px) { .card-studio { grid-template-columns: 1fr; gap: 24px; } .card-preview-section { grid-row: 1; } .card-preview-heading { margin-bottom: 14px; } .card-preview-stage { padding: 10px; } .card-preview-placeholder { inset: 10px; } .card-draft-panel { margin-top: 20px; padding-top: 18px; } .card-fields { grid-template-columns: 1fr 1fr; } .card-fields > label:has(textarea), .card-field-pair { grid-column: 1 / -1; } }
-@media (max-width: 440px) { .card-editor { padding: 18px; } .card-fields { grid-template-columns: 1fr; } .card-preview-heading .card-section-heading p { font-size: 11px; } .card-size { display: none; } .card-export-actions > .workspace-button { flex: 1 1 160px; justify-content: center; } }
-@media (max-width: 440px) { .card-layout-targets button { padding: 7px 9px; } }
+/*
+ * Member card studio (名片制作): the editor and the frame around the
+ * preview. The card itself is drawn on the <canvas> by src/lib/memberCard.ts
+ * with its own fonts and sizes; nothing in this file styles the artwork.
+ * Buttons use the shared .workspace-button primitives; focus rings are the
+ * global ones in src/design-system/base.css. Values come from tokens.css.
+ */
+
+.card-studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-7);
+  align-items: start;
+}
+@media (min-width: 992px) {
+  .card-studio {
+    grid-template-columns: 340px minmax(0, 1fr);
+  }
+  /* Line the preview heading up with the editor heading. */
+  .card-preview-section {
+    position: sticky;
+    top: var(--ac-space-5);
+    padding-top: var(--ac-space-5);
+  }
+}
+/* One column: the preview comes first, the editor below it, so the
+   step labels would read out of order and are left out. */
+@media (max-width: 991px) {
+  .card-preview-section {
+    grid-row: 1;
+  }
+  .card-section-heading > .card-step {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Section headings: step label, heading, one-line description          */
+/* ------------------------------------------------------------------ */
+
+.card-section-heading {
+  min-width: 0;
+}
+.card-section-heading h2 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
+}
+.card-section-heading > p {
+  margin: var(--ac-space-2) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.card-section-heading > .card-step {
+  margin: 0 0 var(--ac-space-1);
+  color: var(--ac-color-text-secondary);
+  font: 600 var(--ac-font-size-small) / 22px var(--ac-font-family);
+}
+
+/* ------------------------------------------------------------------ */
+/* Editor                                                              */
+/* ------------------------------------------------------------------ */
+
+.card-editor {
+  min-width: 0;
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface-alt);
+}
+
+/* Two pressed-state buttons: 填写信息 / 排版微调. */
+.card-editor-modes {
+  display: flex;
+  margin-top: var(--ac-space-5);
+}
+.card-editor-modes button {
+  flex: 1;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3) var(--ac-space-4);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  cursor: pointer;
+}
+.card-editor-modes button + button {
+  border-left-width: 0;
+}
+.card-editor-modes button:hover {
+  background: var(--ac-color-brand-tint);
+}
+.card-editor-modes button[aria-pressed="true"] {
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+
+/* Form groups: label, optional hint, then the control. */
+.card-fields {
+  display: grid;
+  gap: var(--ac-space-6);
+  margin-top: var(--ac-space-6);
+}
+.card-fields label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ac-space-2) 0;
+  min-width: 0;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.card-fields :is(input, textarea, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+}
+.card-fields textarea {
+  line-height: 28px;
+  resize: vertical;
+}
+.card-fields small {
+  flex-basis: 100%;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.card-optional {
+  color: var(--ac-color-text-secondary);
+  font-weight: 400;
+}
+.card-field-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ac-space-6) var(--ac-space-4);
+}
+
+/* Avatar */
+.card-avatar-editor {
+  margin-top: var(--ac-space-6);
+  padding-top: var(--ac-space-6);
+  border-top: 1px solid var(--ac-color-border);
+}
+.card-avatar-heading h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+}
+.card-avatar-heading p {
+  margin: var(--ac-space-1) 0 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.card-avatar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-3) var(--ac-space-4);
+  margin: var(--ac-space-4) 0 0;
+}
+/* A round avatar thumbnail: the one place with a radius. */
+.card-avatar-thumb {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--ac-color-brand-tint);
+  color: var(--ac-color-brand);
+}
+.card-avatar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* A file input covered by a secondary button. */
+.card-file-button {
+  position: relative;
+  overflow: hidden;
+}
+.card-file-button input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+/* The input is transparent, so the button shows the global focus ring. */
+.card-file-button:has(> input:focus-visible) {
+  outline: 2px solid var(--ac-color-focus-inner);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px var(--ac-color-focus-outer);
+}
+.card-file-button.is-busy {
+  border-color: var(--ac-color-border);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  cursor: progress;
+}
+.card-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--ac-space-4);
+  margin-top: var(--ac-space-4);
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.card-zoom input {
+  flex: 1;
+  min-width: 120px;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--ac-color-brand);
+  cursor: pointer;
+}
+.card-zoom output {
+  min-width: 3em;
+  color: var(--ac-color-text);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.card-small {
+  margin: var(--ac-space-3) 0 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout editor (排版微调)                                             */
+/* ------------------------------------------------------------------ */
+
+.card-layout-editor {
+  margin-top: var(--ac-space-6);
+}
+.card-layout-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0 var(--ac-space-4);
+}
+.card-layout-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+}
+.card-layout-heading h3 svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.card-layout-heading p {
+  margin: var(--ac-space-2) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-small);
+}
+.card-layout-heading > button {
+  flex-shrink: 0;
+}
+/* Which text to adjust: pressed-state buttons. */
+.card-layout-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-4);
+}
+.card-layout-targets button {
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3) var(--ac-space-4);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  cursor: pointer;
+}
+.card-layout-targets button:hover {
+  background: var(--ac-color-brand-tint);
+}
+.card-layout-targets button[aria-pressed="true"] {
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.card-layout-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--ac-space-4);
+  margin-top: var(--ac-space-5);
+  padding-top: var(--ac-space-3);
+  border-top: 1px solid var(--ac-color-border);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.card-layout-selection strong {
+  color: var(--ac-color-heading);
+  font-weight: 700;
+}
+.card-layout-empty {
+  margin: var(--ac-space-3) 0 0;
+  padding: var(--ac-space-3) var(--ac-space-4);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text);
+  font: var(--ac-type-small);
+}
+.card-layout-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ac-space-5) var(--ac-space-4);
+  margin-top: var(--ac-space-4);
+}
+.card-layout-control {
+  min-width: 0;
+}
+.card-layout-control-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ac-space-2);
+}
+.card-layout-control-heading label {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.card-layout-number {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.card-layout-number input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.card-layout-control > input {
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--ac-color-brand);
+  cursor: pointer;
+}
+.card-layout-control small {
+  display: block;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.card-layout-help {
+  margin: var(--ac-space-5) 0 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* ------------------------------------------------------------------ */
+/* Preview: a plain frame around the canvas                             */
+/* ------------------------------------------------------------------ */
+
+.card-preview-section {
+  min-width: 0;
+}
+.card-preview-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ac-space-2) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+}
+.card-size {
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.card-preview-stage {
+  position: relative;
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface-alt);
+}
+.card-preview-stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2400 / 1240;
+  background: var(--ac-color-surface);
+  outline: 1px solid var(--ac-color-border);
+}
+.card-preview-stage.is-updating canvas {
+  opacity: 0.55;
+}
+.card-preview-placeholder {
+  position: absolute;
+  inset: var(--ac-space-5);
+  display: grid;
+  place-items: center;
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-body);
+  text-align: center;
+}
+.card-preview-status {
+  min-height: 32px;
+  padding-top: var(--ac-space-3);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* Messages: a heavy rule on the left and a text label. */
+.card-message {
+  margin: var(--ac-space-4) 0 0;
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-border);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.card-message p {
+  margin: 0;
+}
+.card-message p + p {
+  margin-top: var(--ac-space-2);
+}
+.card-message.error {
+  border-left-color: var(--ac-color-error);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-error-text);
+  font-weight: 700;
+}
+.card-message.success {
+  border-left-color: var(--ac-color-success);
+  background: var(--ac-color-success-bg);
+  color: var(--ac-color-success-text);
+}
+
+.card-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-3) var(--ac-space-4);
+  margin-top: var(--ac-space-5);
+}
+
+/* A low-emphasis action that reads as a link, on a 44px target. */
+.card-text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ac-color-link);
+  font: 400 var(--ac-font-size-body) / 24px var(--ac-font-family);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.card-text-button:hover:not(:disabled) {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+.card-text-button svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.card-text-button:disabled {
+  color: var(--ac-color-text-secondary);
+  text-decoration: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* Draft backup */
+.card-draft-panel {
+  margin-top: var(--ac-space-7);
+  padding-top: var(--ac-space-6);
+  border-top: 1px solid var(--ac-color-border);
+}
+.card-draft-panel h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+}
+.card-draft-panel p {
+  margin: var(--ac-space-2) 0 var(--ac-space-3);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.card-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--ac-space-6);
+}
+.card-reset-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-3);
+  padding: var(--ac-space-5);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface-alt);
+}
+.card-reset-confirm p {
+  flex-basis: 100%;
+  margin: 0 0 var(--ac-space-2);
+}
+.card-privacy {
+  max-width: var(--ac-reading-width);
+  margin: var(--ac-space-5) 0 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+@media (max-width: 575px) {
+  .card-editor {
+    padding: var(--ac-space-4);
+  }
+  .card-preview-stage {
+    padding: var(--ac-space-3);
+  }
+  .card-preview-placeholder {
+    inset: var(--ac-space-3);
+  }
+  .card-export-actions > .workspace-button {
+    flex: 1 1 160px;
+  }
+}

@@ -1,108 +1,358 @@
 /*
- * Daily work pages: ActivityView.tsx and OperationsView.tsx (editorial,
- * assets, inventory). The member card studio keeps its own member-card.css.
+ * Daily work pages: ActivityView.tsx (月度沙龙) and OperationsView.tsx
+ * (编辑部, 资料库, 文创库存). Page-specific layout only: buttons, fields,
+ * tags, tables, empty states and the filter toolbar are the shared
+ * primitives in ../components.css. The member card studio keeps its own
+ * src/components/member-card.css. Values come from tokens.css only.
  */
 
-.record-card p {
-  font-size: 1rem;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-}
-.record-list {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-.record-card {
-  padding: 1.25rem;
-  border: 1px solid color-mix(in srgb, var(--theme-border) 35%, transparent);
-  background: var(--theme-card-bg);
-  min-width: 0;
-}
-.record-card h3 {
-  font: 600 1.125rem/1.5 var(--font-sans);
-  margin: 0.5rem 0;
-}
-.resource-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 0.75rem 0 1rem;
-}
-.resource-links a,
-.resource-link {
+/* ------------------------------------------------------------------ */
+/* Shared by the daily pages                                           */
+/* ------------------------------------------------------------------ */
+
+/* Filters on the left, a related external document on the right. */
+.daily-toolbar .daily-toolbar-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  text-decoration: underline;
-  font: 500 0.875rem/1.5 var(--font-sans);
-  color: var(--theme-accent);
+  min-height: 44px;
+  margin-left: auto;
 }
+.daily-toolbar .daily-toolbar-link svg,
+.daily-related svg {
+  margin-left: var(--ac-space-2);
+}
+@media (max-width: 575px) {
+  .daily-toolbar .daily-toolbar-link {
+    margin-left: 0;
+  }
+}
+/* A related document when the page has no filters. */
+.daily-related {
+  margin: 0 0 var(--ac-space-5);
+}
+
+/* A heading at the top of an add or edit form. */
+.daily-form-title {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+
+/* Label and value pairs in a wrapping line, e.g. "举办者：外联部". */
+.daily-meta,
+.daily-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--ac-space-6);
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.daily-meta > div,
+.daily-roles > div {
+  display: flex;
+  min-width: 0;
+}
+.daily-meta dt,
+.daily-roles dt {
+  flex: none;
+  color: var(--ac-color-text-secondary);
+}
+.daily-meta dt::after,
+.daily-roles dt::after {
+  content: "：";
+}
+.daily-meta dd,
+.daily-roles dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Notes typed by members keep their line breaks. */
+.daily-notes {
+  max-width: var(--ac-reading-width);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ */
+/* 月度沙龙: events grouped by month, date on the left                  */
+/* ------------------------------------------------------------------ */
+
+.activity-month {
+  margin-top: var(--ac-space-7);
+}
+.activity-month > h3 {
+  margin: 0;
+  padding-bottom: var(--ac-space-3);
+  border-bottom: 2px solid var(--ac-color-heading);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+.activity-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-5) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.activity-when {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+  font-variant-numeric: tabular-nums;
+}
+.activity-when time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--ac-space-3);
+}
+.activity-body {
+  min-width: 0;
+}
+.activity-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-4);
+  margin-bottom: var(--ac-space-3);
+}
+.activity-title h4 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+  overflow-wrap: anywhere;
+}
+.activity-body .daily-notes {
+  margin: var(--ac-space-3) 0 0;
+}
+@media (min-width: 768px) {
+  .activity-row {
+    grid-template-columns: 170px minmax(0, 1fr);
+    column-gap: var(--ac-space-7);
+  }
+  .activity-when time {
+    flex-direction: column;
+  }
+  .activity-when time > span + span {
+    color: var(--ac-color-text);
+    font-weight: 400;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 编辑部 and 文创库存: tables                                         */
+/* ------------------------------------------------------------------ */
+
+.daily-table tbody th {
+  width: auto;
+}
+.daily-table tbody th .daily-notes {
+  font-weight: 400;
+}
+.daily-table .council-tag {
+  vertical-align: baseline;
+}
+/* 分工: one line per role; a card link follows the author's name. */
+.daily-roles {
+  flex-direction: column;
+}
+.daily-roles dd {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--ac-space-3);
+}
+/* The actions column takes only the room its buttons need. */
+.daily-table .daily-table-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+.daily-table-actions .workspace-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+@media (min-width: 992px) {
+  .editorial-table tbody th {
+    width: 25%;
+  }
+}
+@media (min-width: 1220px) {
+  .editorial-table tbody th {
+    width: 30%;
+  }
+}
+
+/*
+ * Stacked rows. components.css stacks every .council-table below 768px.
+ * The editorial table has too many columns for 768-991px as well, so it
+ * stacks the same way up to 991px.
+ */
+@media (min-width: 768px) and (max-width: 991px) {
+  .editorial-table,
+  .editorial-table tbody {
+    display: block;
+  }
+  .editorial-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .editorial-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ac-space-3) var(--ac-space-5);
+    padding: var(--ac-space-4) 0;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .editorial-table tbody tr:first-child {
+    border-top: 2px solid var(--ac-color-heading);
+  }
+  .editorial-table td,
+  .editorial-table tbody th {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .editorial-table tbody th {
+    flex: 1 1 100%;
+  }
+  .editorial-table td[data-label]::before {
+    content: attr(data-label) "：";
+    color: var(--ac-color-heading);
+    font-weight: 600;
+  }
+}
+/* Tweaks for stacked rows: the editorial table up to 991px ... */
+@media (max-width: 991px) {
+  .daily-toolbar:has(+ .council-table-wrap > .editorial-table) {
+    border-bottom: 0;
+  }
+  .editorial-table td:has(> .daily-roles),
+  .editorial-table .daily-table-actions {
+    flex: 1 1 100%;
+    width: auto;
+    white-space: normal;
+  }
+  .editorial-table .daily-table-actions .workspace-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  /* Role labels match the labels the stacked cells show. */
+  .editorial-table .daily-roles dt {
+    color: var(--ac-color-heading);
+    font-weight: 600;
+  }
+}
+/* ... and the inventory table below 768px. */
+@media (max-width: 767px) {
+  .inventory-table .daily-table-actions {
+    flex: 1 1 100%;
+    width: auto;
+    white-space: normal;
+  }
+  .inventory-table .daily-table-actions .workspace-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+/* Quantity: a tabular number with its unit in body text. */
+.inventory-count {
+  color: var(--ac-color-heading);
+  white-space: nowrap;
+}
+.inventory-count strong {
+  font: 700 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* 资料库: a grid of cards, 3 / 2 / 1 columns                          */
+/* ------------------------------------------------------------------ */
+
 .asset-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
-  margin-top: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-7);
+  margin: var(--ac-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 576px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 992px) {
+  .asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.asset-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-bottom: var(--ac-space-5);
+  border-bottom: 1px solid var(--ac-color-border);
 }
 .asset-preview {
-  height: 170px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--theme-accent-light);
-  margin-bottom: 1rem;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
 }
 .asset-preview img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
-.inventory-count {
-  font: 600 2rem var(--font-sans);
+.asset-preview svg {
+  width: 50px;
+  height: 50px;
 }
-@media (max-width: 900px) {
-  .asset-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.asset-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ac-space-3);
+  min-width: 0;
+  padding-top: var(--ac-space-4);
 }
-@media (max-width: 600px) {
-  .asset-grid {
-    grid-template-columns: 1fr;
-  }
+.asset-body h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+  overflow-wrap: anywhere;
 }
-.record-card p {
-  font-size: 14px;
-  line-height: 1.8;
+.asset-body .daily-notes {
+  margin: 0;
 }
-.record-card {
-  border: 1px solid var(--theme-border);
-  border-radius: 11px;
-  padding: 20px;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+.asset-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--ac-space-5);
 }
-.record-card:hover {
-  border-color: color-mix(
-    in srgb,
-    var(--theme-accent) 35%,
-    var(--theme-border)
-  );
-  box-shadow: 0 5px 18px #17334a07;
+.asset-footer .council-link svg {
+  margin: 0 var(--ac-space-2) 0 0;
 }
-.record-card h3 {
-  font-size: 16px;
-}
-.asset-preview {
-  border-radius: 8px;
-}
-@media (max-width: 900px) {
-  .asset-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 600px) {
-  .asset-grid {
-    grid-template-columns: 1fr;
-  }
+.asset-body .workspace-actions {
+  margin-top: auto;
+  padding-top: var(--ac-space-3);
 }

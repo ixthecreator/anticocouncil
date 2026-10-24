@@ -20,7 +20,6 @@ import { ProposalIndex } from "./components/ProposalIndex";
 import "./styles/workspace/index.css";
 import { Empty } from "./components/WorkspaceForms";
 import { AuthLoadingContent } from "./components/AuthPageFrame";
-import { Users, ListChecks, CircleCheck } from "lucide-react";
 import { MeetingManager } from "./components/MeetingManager";
 import { IssueDetailModal } from "./components/IssueDetailModal";
 import { SessionView } from "./components/SessionView";
@@ -504,48 +503,29 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
           />
         )}
         {activeTab === "session" && selectedMeeting && ready && (
-          <div className="meeting-stats" aria-label="本次会议概览">
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Users size={21} />
-              </span>
+          <section className="meeting-stats" aria-label="本次会议概览">
+            <dl>
               <div>
-                <span>本周安排汇报</span>
-                <strong>
-                  {currentReports.length}
-                  <small> 位成员</small>
-                </strong>
+                <dt>本周安排汇报的成员</dt>
+                <dd>{currentReports.length}</dd>
               </div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon amber">
-                <ListChecks size={21} />
-              </span>
               <div>
-                <span>本次议题</span>
-                <strong>
-                  {currentIssues.length}
-                  <small> 项议题</small>
-                </strong>
+                <dt>本次例会议题</dt>
+                <dd>{currentIssues.length}</dd>
               </div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon green">
-                <CircleCheck size={21} />
-              </span>
               <div>
-                <span>汇报进度</span>
-                <strong>
+                <dt>已汇报或免汇报</dt>
+                <dd>
                   {
                     currentReports.filter(
                       (row) => row.reportStatus !== "pending",
                     ).length
                   }
-                  <small> / {currentReports.length} 人已汇报或免汇报</small>
-                </strong>
+                  <span> / {currentReports.length}</span>
+                </dd>
               </div>
-            </div>
-          </div>
+            </dl>
+          </section>
         )}
         {activeTab === "cards" && <React.Suspense fallback={<p role="status">正在打开名片制作…</p>}>
           <MemberCardStudio key={props.draftScope} draftScope={props.draftScope} libraryReady={ready}

@@ -1,6 +1,9 @@
 /*
  * Workspace overrides of Tailwind utility classes that are still used inside
- * the workspace TSX. Loaded only with the workspace chunk.
+ * the workspace TSX (ArchiveView, IssueDetailModal, PostMeetingView). The
+ * design system uses 1px rules for decoration, so heavy 2px utility borders
+ * are thinned. Delete this file once no workspace TSX uses border-2,
+ * border-t-2 or border-b-2.
  */
 
 .border-2 {

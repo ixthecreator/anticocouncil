@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import type { Issue, Meeting } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import {
@@ -10,9 +11,25 @@ import {
   voteTotals,
   votingResult,
 } from "../lib/workspace";
-import { ParliamentChart } from "./ParliamentChart";
 import { AttendanceView } from "./AttendanceView";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
+
+/* Tag colours support the text label; they never carry the status alone. */
+const statusTone: Record<Issue["status"], string> = {
+  agenda: "grey",
+  voting: "blue",
+  passed: "green",
+  rejected: "red",
+  authorization: "purple",
+  execution: "purple",
+  completed: "green",
+};
+const voteChoices = ["approve", "reject", "abstain"] as const;
+const voteLabels = { approve: "赞成", reject: "反对", abstain: "弃权" } as const;
+const ruleLabels = {
+  simple: "赞成多于反对",
+  absolute: "赞成超过已投票数的一半",
+} as const;
 
 export function SessionView({
   currentMeeting,
@@ -56,21 +73,27 @@ export function SessionView({
       if (!old || old.status !== "voting") throw new Error("此表决已结束。");
       return { ...update(old), updatedAt: new Date().toISOString() };
     });
+  const ballotCount = totals.approve + totals.reject + totals.abstain;
+  const memberBallot = active?.ballots?.[memberId];
+  const memberName = data.members.find((member) => member.id === memberId)?.name;
+  const passing = !!active && votingResult(active) === "passed";
   return (
     <div className="session-workspace">
       <AttendanceView meeting={currentMeeting} workspace={workspace} />
       <div className="session-columns">
-        <div className="space-y-6">
-          <section className="workspace-panel">
+        <div className="session-main">
+          <section className="workspace-panel" aria-labelledby="agenda-heading">
             <div className="workspace-heading">
-              <div>
-                <span className="eyebrow">02 / AGENDA</span>
-                <h2>
-                  议程与执行 <small>{allIssues.length}</small>
-                </h2>
-              </div>
-              <button className="workspace-button primary" onClick={onAddIssue}>
-                ＋ 新增议题
+              <h2 id="agenda-heading">
+                议程与执行 <small>{allIssues.length} 项</small>
+              </h2>
+              <button
+                type="button"
+                className="workspace-button primary"
+                onClick={onAddIssue}
+              >
+                <Plus size={18} aria-hidden="true" />
+                新增议题
               </button>
             </div>
             {!issues.length ? (
@@ -80,78 +103,72 @@ export function SessionView({
                   : "暂无议题。记录本次需要讨论或执行的事项。"}
               </Empty>
             ) : (
-              <div className="agenda-list">
+              <ul className="agenda-list">
                 {issues.map((i) => (
-                  <article key={i.id}>
-                    <div className="workspace-heading">
-                      <button
-                        className="agenda-title"
-                        onClick={() => onOpenDetail(i)}
-                      >
-                        {i.title}
-                      </button>
-                      <span className="workspace-badge">
+                  <li key={i.id} className="agenda-item">
+                    <div className="agenda-item-head">
+                      <h3>
+                        <button
+                          type="button"
+                          className="agenda-title"
+                          onClick={() => onOpenDetail(i)}
+                        >
+                          {i.title}
+                        </button>
+                      </h3>
+                      <span className={`council-tag ${statusTone[i.status]}`}>
                         {statusLabels[i.status]}
                       </span>
                     </div>
-                    <p className="workspace-help">
+                    <p className="council-meta">
                       {i.category} · {i.signature || "待安排负责人"}
                       {i.dueDate ? ` · 截止 ${i.dueDate}` : ""}
                     </p>
-                    {i.discussion && <p>{i.discussion}</p>}
-                    <div className="workspace-actions">
-                      <button
-                        className="workspace-button"
-                        onClick={() => onOpenDetail(i)}
-                      >
-                        编辑与记录
-                      </button>
-                      {i.status === "agenda" && (
-                        <>
-                          <Action
-                            onClick={async () => {
-                              await change("issues", i.id, (old) => {
-                                if (!old || old.status !== "agenda")
-                                  throw new Error("议题状态已改变，请重试。");
-                                return {
-                                  ...old,
-                                  status: "voting",
-                                  voteMode: "members",
-                                  voteRule: "simple",
-                                  ballots: {},
-                                  votes: { approve: 0, reject: 0, abstain: 0 },
-                                  updatedAt: new Date().toISOString(),
-                                };
-                              });
-                              setActiveId(i.id);
-                            }}
-                          >
-                            发起表决
-                          </Action>
-                          <Action
-                            onClick={() =>
-                              change("issues", i.id, (old) => {
-                                if (!old) throw new Error("议题不存在");
-                          return advanceIssue(old, 'agenda', 'execution');
-                              })
-                            }
-                          >
-                            直接执行
-                          </Action>
-                        </>
-                      )}
-                    </div>
-                  </article>
+                    {i.discussion && (
+                      <p className="agenda-discussion">{i.discussion}</p>
+                    )}
+                    {i.status === "agenda" && (
+                      <div className="workspace-actions">
+                        <Action
+                          onClick={async () => {
+                            await change("issues", i.id, (old) => {
+                              if (!old || old.status !== "agenda")
+                                throw new Error("议题状态已改变，请重试。");
+                              return {
+                                ...old,
+                                status: "voting",
+                                voteMode: "members",
+                                voteRule: "simple",
+                                ballots: {},
+                                votes: { approve: 0, reject: 0, abstain: 0 },
+                                updatedAt: new Date().toISOString(),
+                              };
+                            });
+                            setActiveId(i.id);
+                          }}
+                        >
+                          发起表决
+                        </Action>
+                        <Action
+                          onClick={() =>
+                            change("issues", i.id, (old) => {
+                              if (!old) throw new Error("议题不存在");
+                              return advanceIssue(old, "agenda", "execution");
+                            })
+                          }
+                        >
+                          直接执行
+                        </Action>
+                      </div>
+                    )}
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </section>
-          <section className="workspace-panel">
+          <section className="workspace-panel" aria-labelledby="minutes-heading">
             <div className="workspace-heading">
-              <div>
-                <span className="eyebrow">03 / MINUTES</span>
-                <h2>会议记录</h2>
-              </div>
+              <h2 id="minutes-heading">会议记录</h2>
               <Action
                 onClick={() =>
                   downloadText(
@@ -165,24 +182,30 @@ export function SessionView({
             </div>
             {!editingNotes ? (
               <>
-                <p className="notes-text">
-                  {currentMeeting.regularReport || "暂无会议记录。"}
-                </p>
-                {currentMeeting.summary && (
-                  <p className="notes-text">
-                    会议摘要：{currentMeeting.summary}
-                  </p>
+                {currentMeeting.regularReport ? (
+                  <p className="notes-text">{currentMeeting.regularReport}</p>
+                ) : (
+                  <Empty>暂无会议记录。</Empty>
                 )}
-                <button
-                  className="workspace-button"
-                  onClick={() => {
-                    setReport(currentMeeting.regularReport || "");
-                    setSummary(currentMeeting.summary || "");
-                    setEditingNotes(true);
-                  }}
-                >
-                  编辑会议记录
-                </button>
+                {currentMeeting.summary && (
+                  <>
+                    <h3 className="session-subheading">会议摘要</h3>
+                    <p className="notes-text">{currentMeeting.summary}</p>
+                  </>
+                )}
+                <div className="workspace-actions">
+                  <button
+                    type="button"
+                    className="workspace-button"
+                    onClick={() => {
+                      setReport(currentMeeting.regularReport || "");
+                      setSummary(currentMeeting.summary || "");
+                      setEditingNotes(true);
+                    }}
+                  >
+                    编辑会议记录
+                  </button>
+                </div>
               </>
             ) : (
               <SaveForm
@@ -213,13 +236,13 @@ export function SessionView({
             )}
           </section>
         </div>
-        <section className="workspace-panel voting-panel">
+        <section
+          className="workspace-panel voting-panel"
+          aria-labelledby="voting-heading"
+        >
           <div className="workspace-heading">
-            <div>
-              <span className="eyebrow">LIVE / VOTING</span>
-              <h2>会议表决</h2>
-            </div>
-            <span className="workspace-badge">
+            <h2 id="voting-heading">会议表决</h2>
+            <span className={`council-tag ${voting.length ? "blue" : "grey"}`}>
               {voting.length ? "表决进行中" : "尚未开始"}
             </span>
           </div>
@@ -228,22 +251,26 @@ export function SessionView({
           ) : (
             <>
               {voting.length > 1 && (
-                <Field label="切换表决议题">
-                  <select
-                    value={active.id}
-                    onChange={(e) => setActiveId(e.target.value)}
-                  >
-                    {voting.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.title}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <div className="voting-switch">
+                  <Field label="切换表决议题">
+                    <select
+                      value={active.id}
+                      onChange={(e) => setActiveId(e.target.value)}
+                    >
+                      {voting.map((i) => (
+                        <option key={i.id} value={i.id}>
+                          {i.title}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
               )}
               <h3 className="voting-title">{active.title}</h3>
-              <p>{active.description}</p>
-              <div className="workspace-fields">
+              {active.description && (
+                <p className="voting-description">{active.description}</p>
+              )}
+              <div className="voting-settings">
                 <Field label="计票方式">
                   <select
                     value={active.voteMode || "manual"}
@@ -278,29 +305,34 @@ export function SessionView({
                       })).catch(() => {});
                     }}
                   >
-                    <option value="simple">赞成多于反对</option>
-                    <option value="absolute">赞成超过已投票数的一半</option>
+                    <option value="simple">{ruleLabels.simple}</option>
+                    <option value="absolute">{ruleLabels.absolute}</option>
                   </select>
                 </Field>
               </div>
-              <ParliamentChart
-                approve={totals.approve}
-                reject={totals.reject}
-                abstain={totals.abstain}
-              />
-              <div className="vote-totals">
-                <div>
-                  <strong>{totals.approve}</strong>赞成
-                </div>
-                <div>
-                  <strong>{totals.reject}</strong>反对
-                </div>
-                <div>
-                  <strong>{totals.abstain}</strong>弃权
-                </div>
-              </div>
+              <dl className="division-figures">
+                {voteChoices.map((vote) => (
+                  <div key={vote} className={`division-figure is-${vote}`}>
+                    <dt>{voteLabels[vote]}</dt>
+                    <dd>{totals[vote]}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="division-result" aria-live="polite">
+                {ballotCount === 0 ? (
+                  "尚未收到投票。"
+                ) : (
+                  <>
+                    <span className={`council-tag ${passing ? "green" : "red"}`}>
+                      {passing ? "将获通过" : "不获通过"}
+                    </span>{" "}
+                    共 {ballotCount} 票，按“{ruleLabels[active.voteRule || "simple"]}”计算，
+                    {passing ? "现在结束表决即获通过。" : "现在结束表决将被否决。"}
+                  </>
+                )}
+              </p>
               {active.voteMode === "members" ? (
-                <>
+                <div className="voting-ballot">
                   <Field label="投票成员">
                     <select
                       value={memberId}
@@ -314,13 +346,15 @@ export function SessionView({
                       ))}
                     </select>
                   </Field>
-                  <div className="workspace-actions vote-buttons">
-                    {(["approve", "reject", "abstain"] as const).map((vote) => (
+                  <div
+                    className="workspace-actions vote-buttons"
+                    role="group"
+                    aria-label="投出一票"
+                  >
+                    {voteChoices.map((vote) => (
                       <Action
                         key={vote}
-                        className={
-                          active.ballots?.[memberId] === vote ? "primary" : ""
-                        }
+                        className={memberBallot === vote ? "is-chosen" : ""}
                         disabled={!data.members.some((member) => member.id === memberId)}
                         onClick={() =>
                           updateVoting((old) =>
@@ -328,71 +362,99 @@ export function SessionView({
                           )
                         }
                       >
-                        {
-                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
-                            vote
-                          ]
-                        }
+                        {voteLabels[vote]}
+                        {memberBallot === vote && (
+                          <span className="ac-visually-hidden">（已选）</span>
+                        )}
                       </Action>
                     ))}
                   </div>
+                  {memberName && (
+                    <p className="council-meta">
+                      {memberBallot
+                        ? `${memberName}当前投票：${voteLabels[memberBallot]}。`
+                        : `${memberName}尚未投票。`}
+                    </p>
+                  )}
                   <p className="workspace-help">
                     每个成员计一票，结束前可改票。姓名由成员自行选择，请仅代表本人操作；此处不验证账号身份。
                   </p>
-                </>
+                </div>
               ) : (
-                <div className="manual-votes">
-                  {(["approve", "reject", "abstain"] as const).map((vote) => (
-                    <div key={vote}>
-                      <span>
-                        {
-                          { approve: "赞成", reject: "反对", abstain: "弃权" }[
-                            vote
-                          ]
-                        }
+                <fieldset className="manual-votes">
+                  <legend>主持人录票</legend>
+                  {voteChoices.map((vote) => (
+                    <div
+                      key={vote}
+                      className="manual-vote"
+                      role="group"
+                      aria-labelledby={`manual-vote-${vote} manual-vote-${vote}-count`}
+                    >
+                      <span id={`manual-vote-${vote}`} className="manual-vote-label">
+                        {voteLabels[vote]}票
                       </span>
-                      {[-1, 1].map((delta) => (
-                        <Action
-                          key={delta}
-                          onClick={() =>
-                            updateVoting((old) => {
-                              if (old.voteMode === "members")
-                                throw new Error(
-                                  "当前为成员投票，不能手动修改票数。",
-                                );
-                              return {
-                                ...old,
-                                votes: {
-                                  ...voteTotals(old),
-                                  [vote]: Math.max(
-                                    0,
-                                    voteTotals(old)[vote] + delta,
-                                  ),
-                                },
-                              };
-                            })
-                          }
-                        >
-                          {delta < 0 ? "−" : "＋"}
-                        </Action>
+                      {([-1, 1] as const).map((delta) => (
+                        <Fragment key={delta}>
+                          {delta > 0 && (
+                            <span
+                              id={`manual-vote-${vote}-count`}
+                              className="manual-vote-count"
+                            >
+                              {totals[vote]}
+                            </span>
+                          )}
+                          <Action
+                            className="manual-vote-step"
+                            disabled={delta < 0 && totals[vote] === 0}
+                            onClick={() =>
+                              updateVoting((old) => {
+                                if (old.voteMode === "members")
+                                  throw new Error(
+                                    "当前为成员投票，不能手动修改票数。",
+                                  );
+                                return {
+                                  ...old,
+                                  votes: {
+                                    ...voteTotals(old),
+                                    [vote]: Math.max(
+                                      0,
+                                      voteTotals(old)[vote] + delta,
+                                    ),
+                                  },
+                                };
+                              })
+                            }
+                          >
+                            {delta < 0 ? (
+                              <Minus size={18} aria-hidden="true" />
+                            ) : (
+                              <Plus size={18} aria-hidden="true" />
+                            )}
+                            <span className="ac-visually-hidden">
+                              {delta < 0 ? "减少一票" : "增加一票"}
+                            </span>
+                          </Action>
+                        </Fragment>
                       ))}
                     </div>
                   ))}
-                </div>
+                </fieldset>
               )}
-              <Action
-                className="primary full-width"
-                disabled={!Object.values(totals).some((n) => n > 0)}
-                onClick={() =>
-                  updateVoting((old) => ({
-                    ...old,
-                    status: votingResult(old),
-                    votes: voteTotals(old),
-                  }))
-                }
-              >
-                结束表决并保存结果
-              </Action>
+              <div className="workspace-actions voting-finish">
+                <Action
+                  className="primary"
+                  disabled={!Object.values(totals).some((n) => n > 0)}
+                  onClick={() =>
+                    updateVoting((old) => ({
+                      ...old,
+                      status: votingResult(old),
+                      votes: voteTotals(old),
+                    }))
+                  }
+                >
+                  结束表决并保存结果
+                </Action>
+              </div>
               <p className="workspace-help">
                 平票不通过。规则以实际收到的票数计算，未投票成员不计入分母。
               </p>

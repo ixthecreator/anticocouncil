@@ -98,6 +98,16 @@ textarea {
   color: var(--ac-color-heading);
   border-color: var(--ac-color-input-border);
   border-radius: 0;
+  accent-color: var(--ac-color-brand);
+}
+:where(input, textarea)::placeholder {
+  color: var(--ac-color-text-secondary);
+  opacity: 1;
+}
+:where(input, select, textarea):disabled {
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  cursor: not-allowed;
 }
 button,
 a,
@@ -110,7 +120,8 @@ button,
 summary {
   touch-action: manipulation;
 }
+/* Disabled buttons stay legible; components set their own muted colours. */
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }

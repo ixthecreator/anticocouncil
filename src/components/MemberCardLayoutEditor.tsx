@@ -64,8 +64,8 @@ export default function MemberCardLayoutEditor({ data, onChange }: {
     onChange({ ...data.layout, [field]: { ...data.layout?.[field], [property]: value } });
   }
   return <section className="card-layout-editor" aria-labelledby="card-layout-title">
-    <div className="card-layout-heading"><div><h3 id="card-layout-title"><SlidersHorizontal size={16} aria-hidden="true" />排版微调</h3><p>先选择文字，再拖动滑块或输入数值。</p></div>
-      <button type="button" className="card-text-button" disabled={!anyChanged} onClick={() => onChange({})}><RotateCcw size={13} aria-hidden="true" />恢复全部排版</button>
+    <div className="card-layout-heading"><div><h3 id="card-layout-title"><SlidersHorizontal size={18} aria-hidden="true" />排版微调</h3><p>先选择文字，再拖动滑块或输入数值。</p></div>
+      <button type="button" className="card-text-button" disabled={!anyChanged} onClick={() => onChange({})}><RotateCcw size={16} aria-hidden="true" />恢复全部排版</button>
     </div>
     <div className="card-layout-targets" role="group" aria-label="选择要调整的文字">
       {MEMBER_CARD_TEXT_FIELDS.map(key => <button type="button" key={key} aria-pressed={field === key} onClick={() => setField(key)}>{labels[key]}</button>)}

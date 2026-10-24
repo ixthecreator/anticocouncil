@@ -1,274 +1,243 @@
-/* Overview page: CouncilOverview.tsx. */
+/*
+ * Overview page: CouncilOverview.tsx. A main column (the meeting feature and
+ * the agenda list) and a side column of small widgets. Each widget has a
+ * heavy brand rule above it; rows inside are separated by 1px rules. Shared
+ * primitives (.council-link, .council-tag, .council-meta, .workspace-button,
+ * .workspace-empty) come from components.css.
+ */
 
 .council-overview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 326px;
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-8);
 }
-.council-meeting-feature {
-  background: var(--theme-accent-light);
-  border-top: 5px solid var(--theme-accent);
-  padding: 23px 28px 25px;
+@media (min-width: 992px) {
+  .council-overview-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
 }
-.council-section-kicker {
+.council-overview-main,
+.council-overview-side {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  color: var(--theme-accent);
-  font-size: 14px;
-  font-weight: 650;
-  margin-bottom: 22px;
-}
-.council-meeting-title-row {
-  display: flex;
-  align-items: center;
-  gap: 23px;
-}
-.council-meeting-title-row > div:last-child {
+  flex-direction: column;
+  gap: var(--ac-space-8);
   min-width: 0;
 }
-.council-date-block {
-  background: var(--theme-card-bg);
-  border: 1px solid var(--theme-border);
-  border-top: 3px solid var(--theme-accent);
-  width: 78px;
-  flex-shrink: 0;
-  text-align: center;
-  line-height: 1.4;
-  padding: 7px 0;
+/* Tablet: the side widgets pair up under the main column. */
+@media (min-width: 768px) and (max-width: 991px) {
+  .council-overview-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ac-space-8) var(--ac-space-7);
+  }
+  .council-overview-side > :first-child {
+    grid-column: 1 / -1;
+  }
 }
-.council-date-block > span {
-  display: block;
-  font-size: 12px;
-  color: var(--theme-accent);
+
+/* ------------------------------------------------------------------ */
+/* Featured meeting                                                    */
+/* ------------------------------------------------------------------ */
+
+.council-meeting-feature {
+  padding: var(--ac-space-5) var(--ac-space-7) var(--ac-space-7);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text);
 }
-.council-date-block > strong {
-  display: block;
-  font:
-    600 36px/1.2 Georgia,
-    serif;
-  color: var(--theme-text-primary);
+.council-feature-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3) var(--ac-space-4);
 }
-.council-date-block > small {
-  font-size: 12px;
-  color: var(--theme-text-secondary);
+.council-feature-label {
+  margin: 0;
+  color: var(--ac-color-brand);
+  font: var(--ac-type-h5);
 }
-.council-meeting-title-row h2 {
-  margin: 5px 0 8px;
-  font-size: 27px;
-  line-height: 1.4;
-  font-weight: 700;
+.council-feature-date {
+  margin: var(--ac-space-4) 0 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+  font-weight: 400;
+}
+.council-feature-title {
+  margin: var(--ac-space-2) 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
   overflow-wrap: anywhere;
 }
-.council-title-link {
-  color: var(--theme-text-primary);
-  cursor: pointer;
-  text-align: left;
-}
-.council-title-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
 .council-feature-description {
-  margin: 22px 0;
-  font-size: 16px;
-  color: var(--theme-text-secondary);
+  max-width: var(--ac-reading-width);
+  margin: var(--ac-space-4) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
-.council-feature-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
+.council-meeting-feature .workspace-actions {
+  margin-top: var(--ac-space-6);
 }
-.council-feature-bottom .workspace-button {
-  gap: 20px;
+
+/* ------------------------------------------------------------------ */
+/* Widgets                                                             */
+/* ------------------------------------------------------------------ */
+
+.council-widget {
+  padding-top: var(--ac-space-4);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
 }
-.council-section {
-  margin-top: 34px;
-}
-.council-section-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 4px;
-}
-.council-section-title h2,
-.council-side-section h2 {
-  font-size: 23px;
-  line-height: 1.4;
-  font-weight: 700;
+.council-widget h2 {
   margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
 }
-.council-section-title > .council-link {
-  font-size: 14px;
+.council-widget > h2 {
+  margin-bottom: var(--ac-space-4);
 }
+.council-widget-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3) var(--ac-space-5);
+}
+.council-widget > .workspace-empty {
+  margin: var(--ac-space-4) 0 0;
+}
+
+/* "全部议题 →": an emphasised link. */
+.council-more-link {
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.council-widget > .council-more-link {
+  display: inline-block;
+  margin-top: var(--ac-space-5);
+}
+
+/* The number of open items next to a widget title. */
+.council-widget-count {
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.council-widget-count strong {
+  margin-right: var(--ac-space-1);
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-h2) / 32px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+.council-widget-note {
+  margin-top: var(--ac-space-4);
+}
+
+/* Rows: one link (the title) per row, 1px rules between rows. */
+.council-row-list {
+  margin: var(--ac-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.council-row-list > li {
+  padding: var(--ac-space-4) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.council-row-list h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  overflow-wrap: anywhere;
+}
+.council-row-list > li > .council-meta,
+.council-issue-row-text > .council-meta {
+  margin-top: var(--ac-space-2);
+  overflow-wrap: anywhere;
+}
+
+/* Agenda rows: title and meta on the left, status tag on the right. */
 .council-issue-row {
   display: flex;
-  gap: 20px;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--theme-border);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ac-space-3) var(--ac-space-5);
 }
-.council-issue-row > div {
+.council-issue-row-text {
   min-width: 0;
 }
 .council-issue-row h3 {
-  margin: 8px 0;
-  font-size: 18px;
-  line-height: 1.6;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+  font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
 }
-.council-row-number {
-  font:
-    400 22px/1.3 Georgia,
-    serif;
-  color: var(--theme-text-secondary);
-  margin-top: 3px;
-  min-width: 28px;
+.council-issue-row > .council-tag {
+  flex: none;
 }
-.council-row-arrow {
-  margin-left: auto;
-  align-self: center;
-  color: var(--theme-accent);
-  flex-shrink: 0;
+
+/* Side widgets: smaller titles. */
+.council-action-item h3,
+.council-recent-record h3 {
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.council-action-panel {
-  border-top: 5px solid var(--theme-accent);
-  padding-top: 19px;
-}
-.council-number-label {
-  font:
-    400 24px/1.3 Georgia,
-    serif;
-  color: var(--theme-accent);
-}
-.council-action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  width: 100%;
-  text-align: left;
-  padding: 19px 0;
-  border-bottom: 1px solid var(--theme-border);
-  cursor: pointer;
-}
-.council-action-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  width: 100%;
-}
-.council-action-heading strong {
-  min-width: 0;
-  color: var(--council-link);
-  font-size: 16px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  overflow-wrap: anywhere;
-}
-.council-action-heading > .council-tag {
-  flex-shrink: 0;
-  margin-left: auto;
-}
-.council-action-item:hover strong {
-  text-decoration-thickness: 2px;
-}
-.council-action-item > .council-meta {
-  overflow-wrap: anywhere;
-}
-.council-side-section h2 {
-  font-size: 20px;
-  margin-bottom: 16px;
-}
-.council-side-section > .council-link {
-  font-size: 14px;
-}
-.council-progress-line {
+.council-action-due {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ac-space-2) var(--ac-space-3);
+}
+
+/* Progress */
+.council-progress-line {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  font-size: 14px;
-  color: var(--theme-text-secondary);
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
 }
 .council-progress-line strong {
-  font-weight: 500;
+  color: var(--ac-color-heading);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .council-progress {
-  appearance: none;
   display: block;
   width: 100%;
-  height: 7px;
+  height: var(--ac-space-3);
+  margin: var(--ac-space-3) 0 0;
   border: 0;
-  background: var(--theme-border);
-  margin: 12px 0 16px;
+  border-radius: 0;
+  background: var(--ac-color-border);
+  color: var(--ac-color-brand);
+  appearance: none;
 }
 .council-progress::-webkit-progress-bar {
-  background: var(--theme-border);
+  border-radius: 0;
+  background: var(--ac-color-border);
 }
 .council-progress::-webkit-progress-value {
-  background: var(--theme-accent);
+  border-radius: 0;
+  background: var(--ac-color-brand);
 }
 .council-progress::-moz-progress-bar {
-  background: var(--theme-accent);
+  border-radius: 0;
+  background: var(--ac-color-brand);
 }
-.council-recent-record {
-  margin-bottom: 16px;
-}
-.council-recent-record h3 {
-  margin-top: 7px;
-  font-size: 16px;
-  font-weight: 600;
-}
-.council-empty-note {
-  color: var(--theme-text-secondary);
-  font-size: 15px;
-  padding-top: 20px;
-}
-@media (max-width: 1000px) {
-  .council-overview-grid {
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: 28px;
+
+@media (max-width: 575px) {
+  .council-overview-grid,
+  .council-overview-main,
+  .council-overview-side {
+    gap: var(--ac-space-7);
   }
   .council-meeting-feature {
-    padding: 20px;
+    padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-5);
   }
-  .council-meeting-title-row {
-    gap: 15px;
+  .council-meeting-feature .workspace-actions .workspace-button {
+    width: 100%;
   }
-  .council-meeting-title-row h2 {
-    font-size: 24px;
-  }
-}
-@media (max-width: 760px) {
-  .council-overview-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-  .council-meeting-title-row h2 {
-    font-size: 23px;
-  }
-  .council-date-block {
-    width: 66px;
-  }
-  .council-section-title h2 {
-    font-size: 21px;
-  }
+  /* Narrow rows: the status tag sits above the title. */
   .council-issue-row {
-    gap: 13px;
-  }
-  .council-issue-row h3 {
-    font-size: 17px;
-  }
-  .council-row-number {
-    min-width: 22px;
-    font-size: 20px;
+    flex-direction: column-reverse;
+    align-items: flex-start;
   }
 }

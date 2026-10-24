@@ -1,14 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Issue, Member, Priority, Status } from "../types";
-import {
-  X,
-  Calendar,
-  User,
-  Tag,
-  AlertTriangle,
-  ArrowRight,
-  MessageSquare,
-} from "lucide-react";
+import { X } from "lucide-react";
+import { statusLabels } from "../lib/workspace";
+import { StatusTag } from "./CouncilOverview";
 
 interface IssueDetailModalProps {
   issue: Issue;
@@ -18,6 +12,18 @@ interface IssueDetailModalProps {
   onUpdate: (updated: Issue) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
+
+const TITLE_ERROR = "填写议题标题";
+const SIGNATURE_ERROR = "填写经办人";
+const statusOrder: Status[] = [
+  "agenda",
+  "voting",
+  "passed",
+  "rejected",
+  "authorization",
+  "execution",
+  "completed",
+];
 
 export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   issue,
@@ -71,11 +77,11 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
 
   const handleSave = async () => {
     if (!title.trim()) {
-      setErrorMsg("标题不能为空");
+      setErrorMsg(TITLE_ERROR);
       return;
     }
     if (!signature.trim()) {
-      setErrorMsg("经办落款不能为空");
+      setErrorMsg(SIGNATURE_ERROR);
       return;
     }
     setErrorMsg("");
@@ -101,313 +107,335 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
     }
   };
 
-  const getStatusLabel = (s: Status) => {
-    switch (s) {
-      case "agenda":
-        return "议程";
-      case "voting":
-        return "表决中";
-      case "passed":
-        return "已通过";
-      case "rejected":
-        return "已否决";
-      case "authorization":
-        return "授权";
-      case "execution":
-        return "执行";
-      case "completed":
-        return "归档完成";
-    }
-  };
+  const titleError = errorMsg === TITLE_ERROR;
+  const signatureError = errorMsg === SIGNATURE_ERROR;
+  const customCategory =
+    !categories.includes(category) || category === "其他";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/50 backdrop-blur-sm">
+    <div className="issue-dialog-backdrop">
       <div
         id="issue-detail-panel"
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="议题详情"
-        className="w-full max-w-2xl bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] border-2 border-[var(--theme-border,#171717)] flex flex-col max-h-[90vh]"
+        aria-labelledby="issue-detail-title"
+        className="issue-dialog"
       >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))]">
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-xs tracking-normal uppercase px-2 py-0.5 border border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)]">
-              {getStatusLabel(status)}
-            </span>
-            <span className="font-sans text-xs text-[var(--theme-text-secondary,#525252)]">
-              议题详情
-            </span>
+        <header className="issue-dialog-header">
+          <div className="issue-dialog-heading">
+            <h2 id="issue-detail-title">
+              {issue.title ? "议题详情" : "新建议题"}
+            </h2>
+            <p className="council-meta issue-dialog-status">
+              {issue.serialNumber && (
+                <>
+                  <span>编号 {issue.serialNumber}</span>
+                  <span className="issue-dialog-status-sep" aria-hidden="true">
+                    ·
+                  </span>
+                </>
+              )}
+              <span className="issue-dialog-status-item">
+                当前状态 <StatusTag status={status} />
+              </span>
+            </p>
           </div>
           <button
             id="close-modal-btn"
-            aria-label="关闭议题详情"
+            type="button"
             disabled={saving}
             onClick={onClose}
-            className="p-1 hover:bg-[var(--theme-accent-light,#eaeaea)] border border-transparent hover:border-[var(--theme-border,#171717)] transition-all cursor-pointer"
+            className="issue-dialog-close"
           >
-            <X className="w-5 h-5 text-[var(--theme-text-primary,#171717)]" />
+            <X aria-hidden="true" />
+            关闭<span className="ac-visually-hidden">议题详情</span>
           </button>
-        </div>
+        </header>
 
-        {/* Modal Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Main Form Fields */}
-          <div className="space-y-4">
-            <div>
-              <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                议题标题 · 必填
+        <div className="issue-dialog-body">
+          <div className="issue-dialog-form">
+            <div
+              className={`workspace-field${titleError ? " workspace-field--error" : ""}`}
+            >
+              <label className="workspace-label" htmlFor="issue-title">
+                议题标题
               </label>
+              {titleError && (
+                <p className="workspace-field-error" id="issue-title-error">
+                  {TITLE_ERROR}
+                </p>
+              )}
               <input
+                id="issue-title"
                 type="text"
-                aria-label="议题标题"
                 aria-required="true"
+                aria-invalid={titleError || undefined}
+                aria-describedby={titleError ? "issue-title-error" : undefined}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-lg focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
-                placeholder="在此录入议题标题..."
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                  议题部门
-                </label>
-                <select
-                  aria-label="议题部门"
-                  value={categories.includes(category) ? category : "其他"}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCategory(val === "其他" ? "" : val);
-                  }}
-                  className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none mb-2"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                {(!categories.includes(category) || category === "其他") && (
-                  <input
-                    type="text"
-                    value={category === "其他" ? "" : category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
-                    placeholder="请输入自定义部门..."
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                  优先级
-                </label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as Priority)}
-                  className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none"
-                >
-                  <option value="low">低</option>
-                  <option value="medium">中</option>
-                  <option value="high">高</option>
-                  <option value="urgent">紧急</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                  状态
-                </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as Status)}
-                  className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none"
-                >
-                  <option value="agenda">议程 (Agenda)</option>
-                  <option value="voting">表决中 (Voting)</option>
-                  <option value="passed">已通过 (Passed)</option>
-                  <option value="rejected">已否决 (Rejected)</option>
-                  <option value="authorization">授权 (Authorization)</option>
-                  <option value="execution">执行 (Execution)</option>
-                  <option value="completed">归档完成 (Completed)</option>
-                </select>
-              </div>
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-category">
+                议题部门
+              </label>
+              <select
+                id="issue-category"
+                value={categories.includes(category) ? category : "其他"}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCategory(val === "其他" ? "" : val);
+                }}
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div>
-              <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-secondary,#525252)] mb-1">
-                议题阐述与背景
+            {customCategory && (
+              <div className="workspace-field">
+                <label
+                  className="workspace-label"
+                  htmlFor="issue-custom-category"
+                >
+                  部门名称（选填）
+                </label>
+                <span className="workspace-help" id="issue-custom-category-hint">
+                  不在列表中的部门，在这里填写名称；留空则记为“其他”。
+                </span>
+                <input
+                  id="issue-custom-category"
+                  type="text"
+                  aria-describedby="issue-custom-category-hint"
+                  value={category === "其他" ? "" : category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-priority">
+                优先级
               </label>
+              <select
+                id="issue-priority"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as Priority)}
+              >
+                <option value="low">低</option>
+                <option value="medium">中</option>
+                <option value="high">高</option>
+                <option value="urgent">紧急</option>
+              </select>
+            </div>
+
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-status">
+                状态
+              </label>
+              <select
+                id="issue-status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Status)}
+              >
+                {statusOrder.map((value) => (
+                  <option key={value} value={value}>
+                    {statusLabels[value]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-description">
+                议题背景（选填）
+              </label>
+              <span className="workspace-help" id="issue-description-hint">
+                说明议题的来由、遇到的问题和需要讨论的事项。
+              </span>
               <textarea
+                id="issue-description"
+                aria-describedby="issue-description-hint"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))] resize-none"
-                placeholder="详细阐述议题的相关背景、遇到的障碍与核心待议事宜..."
+                rows={4}
               />
             </div>
-          </div>
 
-          <hr className="border-t-2 border-[var(--theme-border,#171717)] opacity-30" />
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-due-date">
+                执行截止日期（选填）
+              </label>
+              <input
+                id="issue-due-date"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
 
-          {/* Discussion & Resolution */}
-          <label className="workspace-field">
-            <span>执行截止日期</span>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </label>
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <MessageSquare className="w-4 h-4 text-[var(--theme-text-primary,#171717)]" />
-                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-primary,#171717)] font-bold">
-                  会商决议与执行要点
-                </label>
-              </div>
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="issue-discussion">
+                会商决议与执行要点（选填）
+              </label>
+              <span className="workspace-help" id="issue-discussion-hint">
+                记录例会就此议题达成的结论、决议或指导意见。
+              </span>
               <textarea
+                id="issue-discussion"
+                aria-describedby="issue-discussion-hint"
                 value={discussion}
                 onChange={(e) => setDiscussion(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
-                placeholder="在此记录例会就此议题达成的一致结论、行动决议或指导意见..."
               />
             </div>
 
-            {/* Signature / 落款 */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <User className="w-4 h-4 text-[var(--theme-text-primary,#171717)]" />
-                <label className="block font-sans text-xs tracking-normal uppercase text-[var(--theme-text-primary,#171717)] font-bold">
-                  经办落款 · 必填
-                </label>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <select
-                    aria-label="指派经办成员"
-                    value={
-                      members.some(
-                        (m) => m.name === signature || m.id === signature,
-                      )
-                        ? signature
-                        : ""
-                    }
-                    onChange={(e) => setSignature(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none"
-                  >
-                    <option value="">-- 指派参会成员 --</option>
-                    {members.map((m) => (
-                      <option key={m.id} value={m.name}>
-                        {m.name} [{m.role}]
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <input
-                    type="text"
-                    aria-label="经办落款"
-                    aria-required="true"
-                    value={signature}
-                    onChange={(e) => setSignature(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-card-bg,#ffffff)] text-[var(--theme-text-primary,#171717)] font-sans text-xs focus:outline-none focus:bg-[var(--theme-accent-light,rgba(0,0,0,0.01))]"
-                    placeholder="或手写其他执行落款..."
-                  />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-[var(--theme-text-secondary,#525252)] font-sans">
-                *
-                每次状态流转或修改，均需指明明确的执行负责人或经办代表，确立核心责任。
+            <fieldset
+              className={`issue-dialog-fieldset${signatureError ? " workspace-field--error" : ""}`}
+              aria-describedby="issue-signature-hint"
+            >
+              <legend className="workspace-label">经办人</legend>
+              <p className="workspace-help" id="issue-signature-hint">
+                每次修改状态或内容，都要写明负责执行或经办的成员。
               </p>
-            </div>
-          </div>
+              {signatureError && (
+                <p className="workspace-field-error" id="issue-signature-error">
+                  {SIGNATURE_ERROR}
+                </p>
+              )}
+              <div className="workspace-field">
+                <label className="workspace-label" htmlFor="issue-signature-member">
+                  从成员中选择
+                </label>
+                <select
+                  id="issue-signature-member"
+                  value={
+                    members.some(
+                      (m) => m.name === signature || m.id === signature,
+                    )
+                      ? signature
+                      : ""
+                  }
+                  onChange={(e) => setSignature(e.target.value)}
+                >
+                  <option value="">选择成员</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {m.name}（{m.role}）
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="workspace-field">
+                <label className="workspace-label" htmlFor="issue-signature">
+                  经办人姓名
+                </label>
+                <span className="workspace-help" id="issue-signature-name-hint">
+                  选择成员后自动填入；不在名单中的经办人可直接填写。
+                </span>
+                <input
+                  id="issue-signature"
+                  type="text"
+                  aria-required="true"
+                  aria-invalid={signatureError || undefined}
+                  aria-describedby={
+                    signatureError
+                      ? "issue-signature-error issue-signature-name-hint"
+                      : "issue-signature-name-hint"
+                  }
+                  value={signature}
+                  onChange={(e) => setSignature(e.target.value)}
+                />
+              </div>
+            </fieldset>
 
+            <p className="council-meta issue-dialog-timestamps">
+              <span>
+                创建于 {new Date(issue.createdAt).toLocaleString("zh-CN")}
+              </span>
+              <span>
+                更新于 {new Date(issue.updatedAt).toLocaleString("zh-CN")}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <footer className="issue-dialog-footer">
           {errorMsg && (
-            <div className="p-3 border-2 border-[var(--theme-border,#171717)] bg-red-50 text-red-700 font-sans text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-700" />
+            <div className="workspace-error issue-dialog-error" role="alert">
               <span>{errorMsg}</span>
             </div>
           )}
-
-          {/* Timestamps */}
-          <div className="flex flex-wrap gap-4 text-xs font-sans text-[var(--theme-text-secondary,#525252)] pt-4 border-t border-neutral-100">
-            <div>
-              创建于: {new Date(issue.createdAt).toLocaleString("zh-CN")}
-            </div>
-            <div>
-              更新于: {new Date(issue.updatedAt).toLocaleString("zh-CN")}
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="p-4 border-t-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent-light,rgba(0,0,0,0.02))] flex items-center justify-between">
           {showDeleteConfirm ? (
-            <div className="flex items-center gap-2 border-2 border-red-500 bg-red-50 p-2 text-xs font-sans">
-              <span className="text-red-700 font-bold">
-                确定要彻底删除该议题吗？此操作不可逆。
-              </span>
+            <div className="issue-dialog-confirm">
+              <p>确定要删除这项议题吗？删除后无法恢复。</p>
+              <div className="workspace-actions">
+                <button
+                  type="button"
+                  className="workspace-button danger"
+                  disabled={saving}
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await onDelete(issue.id);
+                      onClose();
+                    } catch (err) {
+                      setErrorMsg(
+                        err instanceof Error ? err.message : "删除失败",
+                      );
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >
+                  确定删除
+                </button>
+                <button
+                  type="button"
+                  className="workspace-button"
+                  autoFocus
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  保留议题
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="issue-dialog-actions">
               <button
+                id="save-issue-btn"
+                type="button"
                 disabled={saving}
-                onClick={async () => {
-                  setSaving(true);
-                  try {
-                    await onDelete(issue.id);
-                    onClose();
-                  } catch (err) {
-                    setErrorMsg(
-                      err instanceof Error ? err.message : "删除失败",
-                    );
-                  } finally {
-                    setSaving(false);
-                  }
-                }}
-                className="px-2 py-1 bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer font-bold"
+                onClick={handleSave}
+                className="workspace-button primary"
               >
-                确定删除
+                保存
               </button>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-2 py-1 border border-neutral-300 text-neutral-600 hover:text-neutral-950 bg-white transition-all cursor-pointer font-bold"
+                id="cancel-modal-btn"
+                type="button"
+                disabled={saving}
+                onClick={onClose}
+                className="workspace-button"
               >
                 取消
               </button>
+              <button
+                id="delete-issue-btn"
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="workspace-button danger issue-dialog-delete"
+              >
+                删除议题
+              </button>
             </div>
-          ) : (
-            <button
-              id="delete-issue-btn"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 border border-neutral-400 text-neutral-500 hover:text-red-600 hover:border-red-600 text-xs font-sans transition-colors cursor-pointer"
-            >
-              彻底删除
-            </button>
           )}
-
-          <div className="flex gap-2">
-            <button
-              id="cancel-modal-btn"
-              disabled={saving}
-              onClick={onClose}
-              className="px-4 py-2 border border-[var(--theme-border,#171717)] hover:bg-[var(--theme-accent-light,#eaeaea)] text-xs font-sans transition-colors cursor-pointer"
-            >
-              取消
-            </button>
-            <button
-              id="save-issue-btn"
-              disabled={saving}
-              onClick={handleSave}
-              className="px-4 py-2 border-2 border-[var(--theme-border,#171717)] bg-[var(--theme-accent,#171717)] text-white hover:opacity-90 text-xs font-bold font-sans transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              存盘落款 <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        </footer>
       </div>
     </div>
   );

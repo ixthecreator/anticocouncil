@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { EditorialItem, InventoryItem, LibraryAsset } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import { safeUrl } from "../lib/workspace";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
-import { FileImage, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, FileImage, Plus } from "lucide-react";
 
 type Kind = "editorial" | "assets" | "inventory";
 const labels = {
@@ -11,6 +11,30 @@ const labels = {
   assets: "作者名片与素材库",
   inventory: "文创库存与存放地点",
 };
+// Status and kind tags: the text carries the meaning, colour only supports it.
+const editorialTone: Record<EditorialItem["status"], string> = {
+  选题: "grey",
+  撰稿: "purple",
+  编辑: "blue",
+  排版: "amber",
+  已发布: "green",
+};
+const assetTone: Record<LibraryAsset["kind"], string> = {
+  作者名片: "purple",
+  美工素材: "blue",
+  往期成果: "grey",
+};
+/** "2026-10-28" or an ISO timestamp → "2026年10月28日". */
+function longDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || "");
+  return match
+    ? `${Number(match[1])}年${Number(match[2])}月${Number(match[3])}日`
+    : value;
+}
+/** Words a screen reader hears after a repeated button label. */
+function Context({ children }: { children: ReactNode }) {
+  return <span className="ac-visually-hidden">：{children}</span>;
+}
 const freshEditorial = (): EditorialItem => ({
   id: crypto.randomUUID(),
   title: "",
@@ -42,7 +66,13 @@ const freshInventory = (): InventoryItem => ({
   keeper: "",
   notes: "",
 });
-function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
+function DeleteButton({
+  name,
+  onDelete,
+}: {
+  name: string;
+  onDelete: () => Promise<void>;
+}) {
   const [confirm, setConfirm] = useState(false);
   return confirm ? (
     <span className="workspace-actions">
@@ -59,6 +89,7 @@ function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
       onClick={() => setConfirm(true)}
     >
       删除
+      <Context>{name}</Context>
     </button>
   );
 }
@@ -90,21 +121,46 @@ export function OperationsView({
       : kind === "assets"
         ? setAsset(freshAsset())
         : setInventory(freshInventory());
+  const filterId = useId();
+  const editorialRows = data.editorial.filter(
+    (row) =>
+      matched(row) && (filter === "全部" || row.department === filter),
+  );
+  const assetRows = data.assets.filter(
+    (row) => matched(row) && (filter === "全部" || row.kind === filter),
+  );
+  const inventoryRows = data.inventory.filter(matched);
+  const count =
+    kind === "editorial"
+      ? editorialRows.length
+      : kind === "assets"
+        ? assetRows.length
+        : inventoryRows.length;
+  const titleId = `${kind}-title`;
+  const externalLink =
+    kind === "editorial"
+      ? {
+          href: "https://docs.qq.com/form/page/DUVpiSktzanZmZWFr",
+          label: "编辑部招新表",
+        }
+      : kind === "inventory"
+        ? {
+            href: "https://docs.qq.com/sheet/DSmJCU0dJQ0xHbW9N?tab=BB08J2",
+            label: "原文创存放表",
+          }
+        : null;
   return (
-    <section className="workspace-panel operations-view">
+    <section
+      className={`workspace-panel operations-view ${kind}-view`}
+      aria-labelledby={titleId}
+    >
       <div className="workspace-heading">
-        <div>
-          <span className="eyebrow">
-            {kind === "editorial"
-              ? "EDITORIAL"
-              : kind === "assets"
-                ? "LIBRARY"
-                : "LOGISTICS"}
-          </span>
-          <h2>{labels[kind]}</h2>
-        </div>
+        <h2 id={titleId}>
+          {labels[kind]}
+          {count > 0 && <small>{count} 项</small>}
+        </h2>
         <button className="workspace-button primary" onClick={edit}>
-          ＋{" "}
+          <Plus aria-hidden="true" />
           {kind === "editorial"
             ? "新增选题"
             : kind === "assets"
@@ -112,31 +168,16 @@ export function OperationsView({
               : "登记库存"}
         </button>
       </div>
-      {kind === "editorial" && (
-        <div className="resource-links">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href="https://docs.qq.com/form/page/DUVpiSktzanZmZWFr"
+      {kind !== "inventory" ? (
+        <div className="council-filter-toolbar daily-toolbar">
+          <label htmlFor={filterId}>
+            {kind === "editorial" ? "筛选编辑部" : "筛选资料类型"}
+          </label>
+          <select
+            id={filterId}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
           >
-            编辑部招新表 <ExternalLink size={14} />
-          </a>
-        </div>
-      )}
-      {kind === "inventory" && (
-        <div className="resource-links">
-          <a
-            target="_blank"
-            rel="noreferrer"
-            href="https://docs.qq.com/sheet/DSmJCU0dJQ0xHbW9N?tab=BB08J2"
-          >
-            原文创存放表 <ExternalLink size={14} />
-          </a>
-        </div>
-      )}
-      {kind !== "inventory" && (
-        <Field label={kind === "editorial" ? "筛选编辑部" : "筛选资料类型"}>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
             {(kind === "editorial"
               ? ["全部", "微信编辑部", "QQ编辑部"]
               : ["全部", "作者名片", "美工素材", "往期成果"]
@@ -144,7 +185,34 @@ export function OperationsView({
               <option key={value}>{value}</option>
             ))}
           </select>
-        </Field>
+          {externalLink && (
+            <a
+              className="council-link daily-toolbar-link"
+              target="_blank"
+              rel="noreferrer"
+              href={externalLink.href}
+            >
+              {externalLink.label}
+              <ExternalLink aria-hidden="true" />
+              <span className="ac-visually-hidden">（在新窗口打开）</span>
+            </a>
+          )}
+        </div>
+      ) : (
+        externalLink && (
+          <p className="daily-related">
+            <a
+              className="council-link"
+              target="_blank"
+              rel="noreferrer"
+              href={externalLink.href}
+            >
+              {externalLink.label}
+              <ExternalLink aria-hidden="true" />
+              <span className="ac-visually-hidden">（在新窗口打开）</span>
+            </a>
+          </p>
+        )
       )}
       {editorial && (
         <SaveForm
@@ -159,6 +227,11 @@ export function OperationsView({
             setEditorial(null);
           }}
         >
+          <h3 className="daily-form-title">
+            {data.editorial.some((row) => row.id === editorial.id)
+              ? "编辑选题安排"
+              : "新增选题"}
+          </h3>
           <Field label="选题名称">
             <input
               required
@@ -269,6 +342,11 @@ export function OperationsView({
             setAsset(null);
           }}
         >
+          <h3 className="daily-form-title">
+            {data.assets.some((row) => row.id === asset.id)
+              ? "编辑资料"
+              : "添加资料"}
+          </h3>
           <Field label="资料名称">
             <input
               required
@@ -312,7 +390,10 @@ export function OperationsView({
               placeholder="https://"
             />
           </Field>
-          <Field label="上传名片或资料（PNG / JPG / WEBP / PDF，最多 400 KB）">
+          <Field
+            label="上传名片或资料"
+            hint="PNG、JPG、WEBP 或 PDF，最多 400 KB；更大的文件请填写资料链接。"
+          >
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,application/pdf"
@@ -358,7 +439,9 @@ export function OperationsView({
               }}
             />
             {asset.fileName && (
-              <span>{fileBusy ? "正在读取…" : asset.fileName}</span>
+              <span className="workspace-help">
+                {fileBusy ? "正在读取…" : `已选择：${asset.fileName}`}
+              </span>
             )}
           </Field>
           {asset.fileData && (
@@ -399,6 +482,11 @@ export function OperationsView({
             setInventory(null);
           }}
         >
+          <h3 className="daily-form-title">
+            {data.inventory.some((row) => row.id === inventory.id)
+              ? "更新库存"
+              : "登记库存"}
+          </h3>
           <Field label="文创名称">
             <input
               required
@@ -448,142 +536,285 @@ export function OperationsView({
           </Field>
         </SaveForm>
       )}
-      <div className={kind === "assets" ? "asset-grid" : "record-list"}>
-        {kind === "editorial" &&
-          data.editorial
-            .filter(
-              (row) =>
-                matched(row) &&
-                (filter === "全部" || row.department === filter),
-            )
-            .map((row) => (
-              <article className="record-card" key={row.id}>
-                <div className="workspace-heading">
-                  <h3>{row.title}</h3>
-                  <span className="workspace-badge">{row.status}</span>
-                </div>
-                <p className="workspace-help">
-                  {row.department} · {row.dueDate || "日期待安排"}
-                </p>
-                <p>
-                  作者：{row.author || "待安排"}　编辑：{row.editor || "待安排"}
-                  　排版：{row.designer || "待安排"}
-                </p>
-                {row.notes && <p className="notes-text">{row.notes}</p>}
-                <div className="resource-links">
-                  {authorCards
-                    .filter(
-                      (a) =>
-                        a.author.trim() === row.author.trim() &&
-                        row.author.trim(),
-                    )
-                    .map((a) =>
-                      a.fileData ? (
-                        <a key={a.id} href={a.fileData} download={a.fileName}>
-                          下载 {a.author} 的名片
-                        </a>
+      {kind === "editorial" && editorialRows.length > 0 && (
+        <div className="council-table-wrap">
+          <table className="council-table daily-table editorial-table">
+            <caption className="ac-visually-hidden">
+              编辑部选题，共 {editorialRows.length} 项
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">选题</th>
+                <th scope="col">编辑部</th>
+                <th scope="col">分工</th>
+                <th scope="col">计划发布</th>
+                <th scope="col">进度</th>
+                <th scope="col">
+                  <span className="ac-visually-hidden">操作</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {editorialRows.map((row) => {
+                const cards = authorCards.filter(
+                  (a) =>
+                    a.author.trim() === row.author.trim() &&
+                    row.author.trim(),
+                );
+                return (
+                  <tr key={row.id}>
+                    <th scope="row">
+                      {row.title}
+                      {row.notes && (
+                        <span className="council-meta daily-notes">
+                          {row.notes}
+                        </span>
+                      )}
+                    </th>
+                    <td data-label="编辑部" className="council-nowrap">
+                      {row.department}
+                    </td>
+                    <td>
+                      <dl className="daily-roles">
+                        <div>
+                          <dt>作者</dt>
+                          <dd>
+                            {row.author || "待安排"}
+                            {cards.map((a) =>
+                              a.fileData ? (
+                                <a
+                                  key={a.id}
+                                  className="council-link"
+                                  href={a.fileData}
+                                  download={a.fileName}
+                                >
+                                  下载名片
+                                  <Context>{a.author}</Context>
+                                </a>
+                              ) : (
+                                <a
+                                  key={a.id}
+                                  className="council-link"
+                                  href={safeUrl(a.url)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  打开名片
+                                  <span className="ac-visually-hidden">
+                                    ：{a.author}（在新窗口打开）
+                                  </span>
+                                </a>
+                              ),
+                            )}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>编辑</dt>
+                          <dd>{row.editor || "待安排"}</dd>
+                        </div>
+                        <div>
+                          <dt>排版</dt>
+                          <dd>{row.designer || "待安排"}</dd>
+                        </div>
+                      </dl>
+                    </td>
+                    <td data-label="计划发布" className="council-nowrap">
+                      {row.dueDate ? (
+                        <time dateTime={row.dueDate}>
+                          {longDate(row.dueDate)}
+                        </time>
                       ) : (
-                        <a
-                          key={a.id}
-                          href={safeUrl(a.url)}
-                          target="_blank"
-                          rel="noreferrer"
+                        "待安排"
+                      )}
+                    </td>
+                    <td data-label="进度">
+                      <span className={`council-tag ${editorialTone[row.status]}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="daily-table-actions">
+                      <div className="workspace-actions">
+                        <button
+                          className="workspace-button"
+                          onClick={() => setEditorial(row)}
                         >
-                          打开 {a.author} 的名片
-                        </a>
-                      ),
-                    )}
-                </div>
-                <div className="workspace-actions">
-                  <button
-                    className="workspace-button"
-                    onClick={() => setEditorial(row)}
-                  >
-                    编辑安排
-                  </button>
-                  <DeleteButton onDelete={() => remove("editorial", row.id)} />
-                </div>
-              </article>
-            ))}
-        {kind === "assets" &&
-          data.assets
-            .filter(
-              (row) =>
-                matched(row) && (filter === "全部" || row.kind === filter),
-            )
-            .map((row) => (
-              <article className="record-card asset-card" key={row.id}>
+                          编辑安排
+                          <Context>{row.title}</Context>
+                        </button>
+                        <DeleteButton
+                          name={row.title}
+                          onDelete={() => remove("editorial", row.id)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {kind === "assets" && assetRows.length > 0 && (
+        <ul className="asset-grid">
+          {assetRows.map((row) => {
+            const url = safeUrl(row.url);
+            return (
+              <li className="asset-card" key={row.id}>
                 <div className="asset-preview">
                   {row.fileData.startsWith("data:image/") ? (
-                    <img src={row.fileData} alt={row.title} loading="lazy" />
+                    <img src={row.fileData} alt="" loading="lazy" />
                   ) : (
-                    <FileImage size={42} />
+                    <FileImage aria-hidden="true" />
                   )}
                 </div>
-                <span className="workspace-badge">{row.kind}</span>
-                <h3>{row.title}</h3>
-                <p>
-                  {row.author}
-                  {row.tags ? ` · ${row.tags}` : ""}
-                </p>
-                {row.notes && <p className="workspace-help">{row.notes}</p>}
-                <div className="resource-links">
-                  {row.fileData && (
-                    <a href={row.fileData} download={row.fileName || row.title}>
-                      下载文件
-                    </a>
+                <div className="asset-body">
+                  <span className={`council-tag ${assetTone[row.kind]}`}>
+                    {row.kind}
+                  </span>
+                  <h3>
+                    {url ? (
+                      <a
+                        className="council-link"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {row.title}
+                        <span className="ac-visually-hidden">
+                          （在新窗口打开）
+                        </span>
+                      </a>
+                    ) : row.fileData ? (
+                      <a
+                        className="council-link"
+                        href={row.fileData}
+                        download={row.fileName || row.title}
+                      >
+                        {row.title}
+                        <span className="ac-visually-hidden">（下载文件）</span>
+                      </a>
+                    ) : (
+                      row.title
+                    )}
+                  </h3>
+                  <dl className="daily-meta">
+                    {row.author && (
+                      <div>
+                        <dt>作者</dt>
+                        <dd>{row.author}</dd>
+                      </div>
+                    )}
+                    {row.tags && (
+                      <div>
+                        <dt>标签</dt>
+                        <dd>{row.tags}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {row.notes && (
+                    <p className="notes-text daily-notes">{row.notes}</p>
                   )}
-                  {safeUrl(row.url) && (
-                    <a href={safeUrl(row.url)} target="_blank" rel="noreferrer">
-                      打开资料 <ExternalLink size={14} />
-                    </a>
-                  )}
+                  {(url && row.fileData) || row.updatedAt ? (
+                    <p className="council-meta asset-footer">
+                      {url && row.fileData && (
+                        <a
+                          className="council-link"
+                          href={row.fileData}
+                          download={row.fileName || row.title}
+                        >
+                          <Download aria-hidden="true" />
+                          下载文件
+                          <Context>{row.title}</Context>
+                        </a>
+                      )}
+                      {row.updatedAt && (
+                        <span>
+                          更新于{" "}
+                          <time dateTime={row.updatedAt}>
+                            {longDate(row.updatedAt)}
+                          </time>
+                        </span>
+                      )}
+                    </p>
+                  ) : null}
+                  <div className="workspace-actions">
+                    <button
+                      className="workspace-button"
+                      onClick={() => setAsset(row)}
+                    >
+                      编辑
+                      <Context>{row.title}</Context>
+                    </button>
+                    <DeleteButton
+                      name={row.title}
+                      onDelete={() => remove("assets", row.id)}
+                    />
+                  </div>
                 </div>
-                <div className="workspace-actions">
-                  <button
-                    className="workspace-button"
-                    onClick={() => setAsset(row)}
-                  >
-                    编辑
-                  </button>
-                  <DeleteButton onDelete={() => remove("assets", row.id)} />
-                </div>
-              </article>
-            ))}
-        {kind === "inventory" &&
-          data.inventory.filter(matched).map((row) => (
-            <article className="record-card" key={row.id}>
-              <div className="workspace-heading">
-                <h3>{row.title}</h3>
-                <strong className="inventory-count">
-                  {row.quantity}
-                  <small> 件</small>
-                </strong>
-              </div>
-              <p>
-                存放：{row.location}　保管：{row.keeper || "未填写"}
-              </p>
-              {row.notes && <p className="workspace-help">{row.notes}</p>}
-              <div className="workspace-actions">
-                <button
-                  className="workspace-button"
-                  onClick={() => setInventory(row)}
-                >
-                  更新数量与地点
-                </button>
-                <DeleteButton onDelete={() => remove("inventory", row.id)} />
-              </div>
-            </article>
-          ))}
-      </div>
-      {!(data[kind] as any[]).some(
-        (row) =>
-          matched(row) &&
-          (filter === "全部" ||
-            kind === "inventory" ||
-            row.department === filter ||
-            row.kind === filter),
-      ) && (
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {kind === "inventory" && inventoryRows.length > 0 && (
+        <div className="council-table-wrap">
+          <table className="council-table daily-table inventory-table">
+            <caption className="ac-visually-hidden">
+              文创库存，共 {inventoryRows.length} 项
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">物品</th>
+                <th scope="col">存放地点</th>
+                <th scope="col">保管人</th>
+                <th scope="col" className="is-numeric">
+                  现存数量
+                </th>
+                <th scope="col">
+                  <span className="ac-visually-hidden">操作</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {inventoryRows.map((row) => (
+                <tr key={row.id}>
+                  <th scope="row">
+                    {row.title}
+                    {row.notes && (
+                      <span className="council-meta daily-notes">
+                        {row.notes}
+                      </span>
+                    )}
+                  </th>
+                  <td data-label="存放地点">{row.location}</td>
+                  <td data-label="保管人">{row.keeper || "未填写"}</td>
+                  <td data-label="现存数量" className="is-numeric">
+                    <span className="inventory-count">
+                      <strong>{row.quantity}</strong> 件
+                    </span>
+                  </td>
+                  <td className="daily-table-actions">
+                    <div className="workspace-actions">
+                      <button
+                        className="workspace-button"
+                        onClick={() => setInventory(row)}
+                      >
+                        更新库存
+                        <Context>{row.title}</Context>
+                      </button>
+                      <DeleteButton
+                        name={row.title}
+                        onDelete={() => remove("inventory", row.id)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {count === 0 && (
         <Empty>
           {search || filter !== "全部"
             ? "没有匹配的记录，请调整搜索或筛选。"

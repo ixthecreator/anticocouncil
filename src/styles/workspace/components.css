@@ -1,618 +1,685 @@
 /*
- * Workspace components shared by several pages: panels, headings, buttons,
- * form fields, notices, empty states, badges, tags, links, tables and the
- * workspace-wide form-control and focus defaults.
+ * Workspace primitives shared by every page: sections and headings, buttons
+ * and link buttons, form groups, alerts, empty states, tags, tables, stat
+ * numbers, filter toolbars and the loading row. Values come from
+ * src/design-system/tokens.css only. Focus rings are the global ones in
+ * src/design-system/base.css: nothing here sets outline or box-shadow on a
+ * focusable element, so the ring always shows.
  */
 
+/* ------------------------------------------------------------------ */
+/* Sections and headings                                               */
+/* ------------------------------------------------------------------ */
+
+/* A section of the page: a heavy brand rule above, no box around it. */
 .workspace-panel {
-  padding: 1.5rem;
-  background: var(--theme-card-bg);
-  border: 1px solid var(--theme-border);
-  margin-bottom: 1.5rem;
-  color: var(--theme-text-primary);
+  margin: 0 0 var(--ac-space-8);
+  padding: var(--ac-space-5) 0 0;
+  border: 0;
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text);
 }
+.workspace-panel:last-child {
+  margin-bottom: 0;
+}
+
 .workspace-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  gap: var(--ac-space-4) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+}
+.workspace-heading > :first-child {
+  min-width: 0;
 }
 .workspace-heading h2 {
-  font-family: var(--font-serif);
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-.workspace-heading h3 {
-  font-size: 1.125rem;
-  font-weight: 700;
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
   overflow-wrap: anywhere;
 }
-.workspace-heading small {
-  font: 500 0.875rem var(--font-sans);
-  margin-left: 0.5rem;
-  color: var(--theme-text-secondary);
+.workspace-heading h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+  overflow-wrap: anywhere;
 }
+/* A count after a heading, e.g. "议程与执行 3". */
+.workspace-heading :is(h2, h3) small {
+  margin-left: var(--ac-space-3);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A short label above a heading, in plain words. */
 .eyebrow {
   display: block;
-  font: 500 0.75rem var(--font-sans);
-  letter-spacing: 0.1em;
-  color: var(--theme-text-secondary);
-  margin-bottom: 0.5rem;
+  margin: 0 0 var(--ac-space-2);
+  color: var(--ac-color-text-secondary);
+  font: 600 var(--ac-font-size-small) / 22px var(--ac-font-family);
+  letter-spacing: normal;
+  text-transform: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Secondary (default): white, brand text, 2px brand border. */
 .workspace-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.9rem;
-  font: 500 0.875rem var(--font-sans);
-  border: 1px solid var(--theme-border);
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
-  color: var(--theme-text-primary);
-  background: var(--theme-card-bg);
-  transition: background 0.15s;
 }
 .workspace-button:hover {
-  background: var(--theme-accent-light);
+  background: var(--ac-color-surface-alt);
 }
+.workspace-button svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* Primary: one per group. */
 .workspace-button.primary {
-  background: var(--theme-accent);
-  color: var(--theme-accent-text);
+  border-color: var(--ac-color-brand);
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
 }
+.workspace-button.primary:hover {
+  border-color: var(--ac-color-brand-dark);
+  background: var(--ac-color-brand-dark);
+}
+
+/* Destructive: the secondary style in error colours. */
 .workspace-button.danger {
-  background: #b42318;
-  color: white;
-  border-color: #b42318;
+  border-color: var(--ac-color-error-text);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-error-text);
 }
+.workspace-button.danger:hover {
+  background: var(--ac-color-surface-alt);
+}
+
+/* Low-emphasis action: looks like a link, keeps the 44px target. */
 .workspace-button.subtle {
+  padding-inline: 0;
   border-color: transparent;
-  color: var(--theme-text-secondary);
+  background: transparent;
+  color: var(--ac-color-link);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
-.workspace-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-  font: 500 0.875rem var(--font-sans);
+.workspace-button.subtle:hover {
+  background: transparent;
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
 }
-.workspace-field input,
-.workspace-field select,
-.workspace-field textarea {
-  padding: 0.65rem 0.75rem;
-  width: 100%;
-  border: 1px solid var(--theme-border);
-  font: 400 1rem/1.5 var(--font-sans);
+
+/* A button that reads as a link, e.g. a title that opens a record. */
+.council-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ac-color-link);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
 }
-.workspace-field textarea {
-  resize: vertical;
+.council-link:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
 }
-.workspace-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+.council-link svg {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: var(--ac-space-2);
+  vertical-align: -0.15em;
 }
-.workspace-form {
-  margin: 1.25rem 0;
-  padding: 1.25rem;
-  background: var(--theme-accent-light);
-  border: 1px solid var(--theme-border);
+
+/* Disabled: a muted token style, never faded text. */
+.workspace-button:disabled,
+.workspace-button[aria-disabled="true"],
+.workspace-button.primary:disabled,
+.workspace-button.danger:disabled {
+  border-color: var(--ac-color-border);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  text-decoration: none;
+  opacity: 1;
+  cursor: not-allowed;
 }
-.workspace-form .workspace-actions {
-  margin-top: 1rem;
-  justify-content: flex-end;
+.workspace-button.subtle:disabled,
+.council-link:disabled {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ac-color-text-secondary);
+  text-decoration: none;
+  opacity: 1;
+  cursor: not-allowed;
 }
+
+/* A button rendered as a link element takes the link focus colours. */
+a.workspace-button:focus-visible {
+  border-color: var(--ac-color-focus-inner);
+  background: var(--ac-color-surface);
+}
+
+/* A row of buttons. */
 .workspace-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-4);
 }
-.workspace-empty {
-  padding: 2.5rem 1rem;
-  border: 1px dashed var(--theme-border);
-  text-align: center;
-  color: var(--theme-text-secondary);
-  font: 400 1rem/1.8 var(--font-sans);
-  margin: 1rem 0;
+.workspace-actions:has(> .workspace-field) {
+  align-items: flex-end;
 }
-.workspace-help {
-  color: var(--theme-text-secondary);
-  font: 400 0.875rem/1.7 var(--font-sans);
+.workspace-actions .workspace-actions {
+  margin-top: 0;
 }
-.workspace-error {
-  padding: 0.8rem 1rem;
-  color: #912018;
-  background: #fff1f0;
-  border: 1px solid #eaa69e;
+/* A text link in a row of buttons is centred on the same 44px line. */
+.workspace-actions > a:not(.workspace-button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Forms                                                               */
+/* ------------------------------------------------------------------ */
+
+/* A form block: secondary background, single column on small screens. */
+.workspace-form {
+  margin: var(--ac-space-5) 0;
+  padding: var(--ac-space-5);
+  border: 0;
+  background: var(--ac-color-surface-alt);
+}
+.workspace-form .workspace-actions {
+  justify-content: flex-start;
+  margin-top: var(--ac-space-6);
+}
+.workspace-form > .workspace-error {
+  margin: var(--ac-space-6) 0 0;
+}
+
+.workspace-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-6);
+}
+@media (min-width: 768px) {
+  /* Short fields pair up on wide screens; long ones take the full row. */
+  .workspace-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--ac-space-7);
+  }
+}
+.workspace-fields > :is(.workspace-field:has(textarea), :not(.workspace-field)) {
+  grid-column: 1 / -1;
+}
+.workspace-fields > .workspace-button {
+  justify-self: start;
+}
+
+/* A form group: label, optional hint and error, then the control. */
+.workspace-field {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font: 400 0.875rem/1.5 var(--font-sans);
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
 }
-.workspace-error button {
-  padding: 0 0.5rem;
+.workspace-field > span:first-child,
+.workspace-label {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.workspace-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  background: var(--theme-accent-light);
-  color: var(--theme-text-primary);
-  font: 500 0.8125rem var(--font-sans);
+.workspace-field small,
+.workspace-field .workspace-help {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.workspace-field > span:first-child small {
+  margin-left: var(--ac-space-2);
+}
+
+.workspace-field
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+}
+.workspace-field textarea {
+  line-height: 28px;
+  resize: vertical;
+}
+.workspace-field :is(input, select, textarea):disabled {
+  border-color: var(--ac-color-border);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  cursor: not-allowed;
+}
+.workspace-field :is(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--ac-color-error);
+}
+.workspace-field :is(input, textarea)::placeholder {
+  color: var(--ac-color-text-secondary);
+  opacity: 1;
+}
+
+/* File upload: the chooser button looks like a secondary button. */
+.workspace-field input[type="file"] {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.workspace-field input[type="file"]::file-selector-button {
+  min-height: 44px;
+  margin: 0 var(--ac-space-3) 0 0;
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  cursor: pointer;
+}
+.workspace-field input[type="file"]::file-selector-button:hover {
+  background: var(--ac-color-surface-alt);
+}
+
+.workspace-field :is(input[type="checkbox"], input[type="radio"]) {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ac-color-brand);
+}
+
+/* A group with an error: heavy error rule on the left, bold message. */
+.workspace-field--error {
+  padding-left: var(--ac-space-4);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-error);
+}
+.workspace-field-error {
+  margin: 0;
+  color: var(--ac-color-error-text);
+  font: 700 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+
+/* A fieldset that disables the whole page while data loads. */
+.workspace-editable {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Text helpers                                                        */
+/* ------------------------------------------------------------------ */
+
+.workspace-help {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.council-meta {
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.council-spaced {
+  margin-top: var(--ac-space-5);
+}
+.council-nowrap {
   white-space: nowrap;
 }
-.workspace-badge.success {
-  background: #dcfce7;
-  color: #166534;
-}
 .notes-text {
+  margin: var(--ac-space-3) 0;
   white-space: pre-wrap;
-  margin: 0.75rem 0;
 }
 .full-width {
   width: 100%;
-  margin: 1rem 0;
+  margin: var(--ac-space-4) 0;
 }
-@media (max-width: 600px) {
-  .workspace-panel {
-    padding: 1rem;
-  }
-  .workspace-fields {
-    grid-template-columns: 1fr;
-  }
-  .workspace-heading h2 {
-    font-size: 1.2rem;
-  }
+
+/* ------------------------------------------------------------------ */
+/* Empty states, alerts and loading                                    */
+/* ------------------------------------------------------------------ */
+
+.workspace-empty {
+  margin: var(--ac-space-5) 0;
+  padding: var(--ac-space-5);
+  border: 0;
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-body);
+  text-align: left;
 }
+.workspace-empty > :first-child {
+  margin-top: 0;
+}
+.workspace-empty > :last-child {
+  margin-bottom: 0;
+}
+
+/* Error alert: heavy error rule on the left, bold error-coloured message. */
+.workspace-error,
 .workspace-connection-error {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
   flex-wrap: wrap;
-  border: 1px solid var(--theme-border);
-  border-left: 3px solid #b78037;
-  padding: 15px 18px;
-  margin-bottom: 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  line-height: 1.7;
+  gap: var(--ac-space-3) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 0;
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-error);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-error-text);
+  font: 700 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.workspace-editable { border: 0; padding: 0; margin: 0; min-width: 0; }
+.workspace-error > :not(button):first-child,
+.workspace-connection-error > :not(button):first-child {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+/* A plain message with a close button stays on one row. */
+.workspace-error:has(> button:not(.workspace-button)) {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+/* A plain close button such as "×" inside an alert. */
+.workspace-error > button:not(.workspace-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  margin: calc(-1 * var(--ac-space-3)) calc(-1 * var(--ac-space-3)) calc(-1 * var(--ac-space-3)) auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ac-color-error-text);
+  font: 400 var(--ac-font-size-h3) / 1 var(--ac-font-family);
+  cursor: pointer;
+}
+.workspace-error > button:not(.workspace-button):hover {
+  background: var(--ac-color-error-bg);
+}
+
+/* Success notice: success colours with an icon and text. */
 .workspace-notice {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 15px;
-  margin-bottom: 20px;
-  background: var(--theme-accent-light);
-  font-size: 13px;
-  border-radius: 8px;
+  gap: var(--ac-space-3);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 0;
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-success);
+  background: var(--ac-color-success-bg);
+  color: var(--ac-color-success-text);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
+.workspace-notice svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* The loading row; AuthLoadingContent draws its own progress bar. */
 .workspace-loading {
-  min-height: 240px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  color: var(--theme-text-secondary);
-}
-.workspace-loading span {
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  border: 2px solid var(--theme-border);
-  border-top-color: var(--theme-accent);
-  animation: workspace-spin 1s linear infinite;
-}
-@keyframes workspace-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.workspace-panel {
-  padding: 24px;
-  border-radius: 13px;
-  border-color: var(--theme-border);
-  margin-bottom: 24px;
-  box-shadow: 0 3px 8px #122a4403;
-}
-.workspace-heading {
-  margin-bottom: 20px;
-}
-.workspace-heading h2 {
-  font-family: var(--font-sans);
-  font-size: 17px;
-  font-weight: 600;
-}
-.workspace-heading h3 {
-  font-size: 16px;
-  font-weight: 600;
-}
-.workspace-heading small {
-  font-size: 11px;
-  background: var(--theme-accent-light);
-  padding: 3px 7px;
-  border-radius: 6px;
-  vertical-align: middle;
-}
-.eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  margin-bottom: 6px;
-}
-.workspace-button {
-  border-radius: 8px;
-  font-size: 12px;
-  min-height: 40px;
-  padding: 9px 13px;
-  gap: 6px;
-  transition:
-    background 0.15s,
-    box-shadow 0.15s;
-}
-.workspace-button.primary {
-  border-color: var(--theme-accent);
-  box-shadow: 0 3px 7px #163b6110;
-}
-.workspace-button.primary:hover {
-  background: color-mix(in srgb, var(--theme-accent) 88%, #000);
-}
-.workspace-button.subtle {
-  background: transparent;
-}
-.workspace-field {
-  gap: 7px;
-  font-size: 12px;
-}
-.workspace-field input,
-.workspace-field select,
-.workspace-field textarea {
-  border-radius: 8px;
-  font-size: 14px;
-  padding: 10px 12px;
-}
-.workspace-field input,
-.workspace-field select {
-  min-height: 43px;
-}
-.workspace-field:has(textarea) {
-  grid-column: 1/-1;
-}
-.workspace-fields {
-  gap: 18px;
-}
-.workspace-form {
-  border-radius: 10px;
-  background: color-mix(
-    in srgb,
-    var(--theme-accent-light) 60%,
-    var(--theme-card-bg)
-  );
-  padding: 22px;
-}
-.workspace-help {
-  font-size: 12px;
-}
-.workspace-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  min-height: 175px;
-  margin: 12px 0;
-  padding: 28px 24px;
-  border: 1px dashed var(--theme-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--theme-bg) 70%, var(--theme-card-bg));
-  font-size: 13px;
-}
-.workspace-empty > div {
-  max-width: 470px;
-}
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--theme-card-bg);
-  color: var(--theme-text-secondary);
-  box-shadow: 0 4px 12px #19384c06;
-}
-.page-body > .workspace-empty {
-  min-height: 330px;
-  background: var(--theme-card-bg);
-}
-.workspace-error {
-  border-radius: 8px;
-  margin-bottom: 18px;
-}
-.workspace-badge {
-  border-radius: 6px;
-  font-size: 11px;
-  padding: 4px 8px;
-}
-@media (max-width: 600px) {
-  .workspace-panel {
-    padding: 18px;
-    margin-bottom: 18px;
-  }
-  .workspace-heading {
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .workspace-heading h2 {
-    font-size: 16px;
-  }
-  .workspace-empty {
-    min-height: 160px;
-    padding: 22px 14px;
-    font-size: 12px;
-  }
-  .workspace-form {
-    padding: 17px;
-  }
-  .workspace-fields {
-    grid-template-columns: 1fr;
-  }
-  .page-body > .workspace-empty {
-    min-height: 270px;
-  }
-  .workspace-field input,
-  .workspace-field select,
-  .workspace-field textarea {
-    font-size: 16px;
-  }
-}
-.parliament-app :is(a, button, summary, input, select, textarea):focus-visible {
-  outline: 3px solid #ffdd00;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 5px #17181c;
-}
-.parliament-app :is(input, select, textarea) {
-  border-radius: 0;
-  border-color: var(--theme-text-secondary);
-}
-.parliament-app .workspace-field input,
-.parliament-app .workspace-field select,
-.parliament-app .workspace-field textarea {
-  min-height: 44px;
-  font-size: 16px;
-  border-width: 2px;
-}
-.parliament-app .workspace-field > span {
-  font-size: 15px;
-}
-.parliament-app .workspace-button {
-  border-radius: 0;
-  min-height: 44px;
-  font-size: 15px;
-  font-weight: 600;
-}
-.parliament-app .workspace-button.primary {
-  border-color: var(--theme-accent);
-  box-shadow: 0 2px 0 var(--theme-sidebar);
-}
-.parliament-app .workspace-panel {
-  border-radius: 0;
-  box-shadow: none;
-  background: var(--theme-card-bg);
-}
-.parliament-app .workspace-panel {
-  border: 0;
-  border-top: 4px solid var(--theme-accent);
-  padding: 22px 0;
-}
-.parliament-app .workspace-heading h2 {
-  font: 700 23px/1.5 var(--theme-font, var(--font-sans));
-}
-.parliament-app .workspace-help {
-  font-size: 14px;
-  line-height: 1.7;
-}
-.parliament-app .workspace-empty {
-  background: var(--theme-accent-light);
-  border: 0;
-  border-left: 4px solid var(--theme-border);
-  border-radius: 0;
-  padding: 22px;
-  font-size: 15px;
-}
-.parliament-app .workspace-empty .empty-icon {
-  display: none;
-}
-.parliament-app .workspace-badge {
-  border: 0;
-  border-radius: 0;
-  font-size: 14px;
-  padding: 3px 8px;
-}
-.parliament-app .workspace-error,
-.parliament-app .workspace-connection-error,
-.parliament-app .workspace-notice {
-  border-radius: 0;
-  font-size: 15px;
-}
-.parliament-app .workspace-error {
-  border: 3px solid #ad2329;
-}
-.parliament-app .workspace-editable {
-  min-width: 0;
-}
-.parliament-app .workspace-editable:disabled {
-  opacity: 0.8;
-}
-.parliament-app .council-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  display: block;
+  margin: 0;
   padding: 0;
-  color: var(--council-link);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  background: none;
-  border: 0;
+  color: var(--ac-color-text);
 }
-.parliament-app .council-link:hover {
-  text-decoration-thickness: 2px;
-}
-.council-tag {
+
+/* ------------------------------------------------------------------ */
+/* Tags and badges: a text label, colour only as support               */
+/* ------------------------------------------------------------------ */
+
+.council-tag,
+.workspace-badge {
   display: inline-block;
-  padding: 2px 8px;
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.5;
-  white-space: nowrap;
+  padding: var(--ac-space-1) var(--ac-space-3);
+  border: 0;
   border-radius: 0;
+  background: var(--ac-color-page);
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-small) / 22px var(--ac-font-family);
+  white-space: nowrap;
 }
 .council-tag.purple {
-  background: #e6ddef;
-  color: #51266c;
+  background: var(--ac-color-brand-tint);
+  color: var(--ac-color-brand);
 }
 .council-tag.blue {
-  background: #dcebf6;
-  color: #144d77;
+  background: var(--ac-color-info-bg);
+  color: var(--ac-color-info-text);
 }
-.council-tag.green {
-  background: #dcece3;
-  color: #195b3b;
-}
-.council-tag.grey {
-  background: #e9eaec;
-  color: #454b55;
+.council-tag.green,
+.workspace-badge.success {
+  background: var(--ac-color-success-bg);
+  color: var(--ac-color-success-text);
 }
 .council-tag.amber {
-  background: #fff0c2;
-  color: #755004;
+  background: var(--ac-color-warning-bg);
+  color: var(--ac-color-warning-text);
 }
 .council-tag.red {
-  background: #fbe2e2;
-  color: #9d2329;
+  background: var(--ac-color-error-bg);
+  color: var(--ac-color-error-text);
 }
-.parliament-app .council-meta {
-  font-size: 14px;
-  color: var(--theme-text-secondary);
-  margin: 0;
-  font-weight: 400;
+.council-tag.grey {
+  background: var(--ac-color-page);
+  color: var(--ac-color-heading);
 }
-.parliament-app .council-spaced {
-  margin-top: 22px;
+
+/* ------------------------------------------------------------------ */
+/* Stat numbers                                                        */
+/* ------------------------------------------------------------------ */
+
+.council-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-5) var(--ac-space-8);
+  margin: 0 0 var(--ac-space-7);
 }
+.council-stat-strip > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+}
+.council-stat-strip strong {
+  color: var(--ac-color-brand);
+  font: 700 var(--ac-font-size-h1) / 40px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+.council-stat-strip span {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* ------------------------------------------------------------------ */
+/* Filter toolbar                                                      */
+/* ------------------------------------------------------------------ */
+
 .council-filter-toolbar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 0;
-  border-block: 1px solid var(--theme-border);
+  gap: var(--ac-space-3) var(--ac-space-4);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) 0;
+  border-block: 1px solid var(--ac-color-border);
+  background: var(--ac-color-surface);
 }
 .council-filter-toolbar label {
-  font-size: 15px;
-  font-weight: 600;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.council-filter-toolbar select {
-  font-size: 15px;
-  padding: 9px;
-  border: 2px solid var(--theme-text-secondary);
+.council-filter-toolbar :is(select, input) {
+  max-width: 100%;
   min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
 }
-.council-filter-toolbar > .council-meta {
+/* The result count sits at the end of the row. */
+.council-filter-toolbar > .council-meta,
+.council-filter-toolbar > span:last-child {
   margin-left: auto;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
 }
+
+/* ------------------------------------------------------------------ */
+/* Tables                                                              */
+/* ------------------------------------------------------------------ */
+
+/* position: relative keeps visually hidden captions inside the scroll box. */
 .council-table-wrap {
+  position: relative;
+  max-width: 100%;
   overflow-x: auto;
 }
 .council-table {
   width: 100%;
   border-collapse: collapse;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  font-variant-numeric: tabular-nums;
   text-align: left;
-  font-size: 15px;
 }
-.council-table th {
-  font-weight: 600;
+.council-table caption {
+  text-align: left;
 }
 .council-table thead th {
-  border-bottom: 2px solid var(--theme-text-primary);
-  padding: 16px 16px 16px 0;
+  padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-4) 0;
+  border-bottom: 2px solid var(--ac-color-heading);
+  color: var(--ac-color-heading);
+  font-weight: 700;
+  vertical-align: bottom;
   white-space: nowrap;
 }
 .council-table td,
 .council-table tbody th {
-  padding: 21px 16px 21px 0;
-  border-bottom: 1px solid var(--theme-border);
+  padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-4) 0;
+  border-bottom: 1px solid var(--ac-color-border);
   vertical-align: top;
 }
 .council-table tbody th {
   width: 44%;
+  color: var(--ac-color-heading);
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 .council-table tbody th .council-meta {
   display: block;
-  margin-top: 6px;
+  margin-top: var(--ac-space-2);
 }
-.council-table td:last-child {
+.council-table :is(th, td):last-child {
   padding-right: 0;
 }
-.council-stat-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 28px 56px;
-  margin-bottom: 30px;
+.council-table :is(th, td).is-numeric {
+  text-align: right;
 }
-.council-stat-strip > div {
-  border-left: 3px solid var(--theme-border);
-  padding-left: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.council-stat-strip strong {
-  font-size: 34px;
-  line-height: 1;
-  color: var(--theme-accent);
-  font-weight: 600;
-}
-.council-stat-strip span {
-  font-size: 14px;
-  color: var(--theme-text-secondary);
-}
-@media (max-width: 760px) {
-  .council-filter-toolbar {
-    gap: 10px;
-  }
-  .council-filter-toolbar select {
-    max-width: 100%;
-  }
-  .council-table {
-    min-width: 640px;
-  }
+
+@media (max-width: 767px) {
   .council-stat-strip {
-    gap: 18px;
-    justify-content: space-between;
+    gap: var(--ac-space-4) var(--ac-space-7);
   }
-  .council-stat-strip > div {
-    padding-left: 12px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 9px;
+  .council-filter-toolbar > .council-meta,
+  .council-filter-toolbar > span:last-child {
+    flex-basis: 100%;
+    margin-left: 0;
   }
-  .council-stat-strip strong {
-    font-size: 29px;
+
+  /*
+   * Small screens: each row becomes a block — the row header first, then
+   * the other cells in a wrapping line. Column headers stay in the markup
+   * for assistive technology; a cell with data-label shows its label.
+   */
+  .council-table,
+  .council-table tbody {
+    display: block;
   }
-  .council-stat-strip span {
-    font-size: 13px;
+  .council-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
-}
-.council-nowrap {
-  white-space: nowrap;
+  .council-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ac-space-3) var(--ac-space-5);
+    padding: var(--ac-space-4) 0;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .council-table tbody tr:first-child {
+    border-top: 2px solid var(--ac-color-heading);
+  }
+  .council-table td,
+  .council-table tbody th {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .council-table tbody th {
+    flex: 1 1 100%;
+  }
+  .council-table td[data-label]::before {
+    content: attr(data-label) "：";
+    color: var(--ac-color-heading);
+    font-weight: 600;
+  }
 }
