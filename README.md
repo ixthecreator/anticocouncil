@@ -147,7 +147,8 @@ bun run check:public
 | `src/content/archive.ts`、`src/components/LandingPage.tsx` | 公开文章、届次与公开页面 |
 | `src/components/AuthPageFrame.tsx`、`WorkspaceGateway.tsx`、`AccountPassword.tsx` | 登录、注册、权限检查、密码与加载页面 |
 | `src/App.tsx`、`src/components/WorkspaceShell.tsx` | 工作台导航、状态、主题与备份入口 |
-| `src/lib/cloudAccess.ts`、`firebase.ts`、`firebaseConnection.ts`、`useWorkspace.ts` | 认证、云端连接、保存与本地数据 |
+| `src/lib/cloudBackend.ts`、`accessPolicy.ts`、`cloudConnection.ts`、`useWorkspace.ts` | 云端服务接口、成员权限规则、连接状态、保存与本地数据 |
+| `src/lib/firebaseBackend.ts`、`cloudAccess.ts`、`firebase.ts`、`firebaseConnection.ts` | 云端服务接口的 Firebase 实现：认证、成员授权与数据读写 |
 | `src/lib/workspace.ts`、`src/types.ts` | 业务规则、数据校验与类型 |
 | `src/lib/meetingExport.ts`、`meetingPdf.ts`、`meetingDocx.ts` | PDF / Word / LaTeX 共用导出模型与格式生成 |
 | `scripts/`、`vercel.json` | 静态页面生成、产物检查与 Vercel 配置 |

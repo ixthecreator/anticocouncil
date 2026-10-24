@@ -10,10 +10,8 @@ import {
   runTransaction,
   writeBatch,
 } from "firebase/firestore";
-import {
-  resolveFirebaseConfiguration,
-  type SnapshotState,
-} from "./firebaseConnection";
+import type { SnapshotState } from "./cloudConnection";
+import { resolveFirebaseConfiguration } from "./firebaseConnection";
 export { legacyFirebaseConfiguration } from "./firebaseConnection";
 
 export const firebaseConfiguration = resolveFirebaseConfiguration(

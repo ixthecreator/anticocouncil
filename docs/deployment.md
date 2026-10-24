@@ -29,7 +29,8 @@
 
 | 文件 | 需要核对的配置 |
 | --- | --- |
-| [`src/lib/cloudAccess.ts`](../src/lib/cloudAccess.ts) | `OWNER_EMAIL`（所有者邮箱）和 `PASSWORD_RESET_RETURN_URL`（密码邮件完成后的返回页） |
+| [`src/lib/accessPolicy.ts`](../src/lib/accessPolicy.ts) | `OWNER_EMAIL`（所有者邮箱） |
+| [`src/lib/cloudAccess.ts`](../src/lib/cloudAccess.ts) | `PASSWORD_RESET_RETURN_URL`（密码邮件完成后的返回页） |
 | [`firestore.rules`](../firestore.rules) | `owner()` 和授权/申请校验中的所有者邮箱，必须与前端一致 |
 | [`vercel.json`](../vercel.json) | `/__/auth/:path*` 与 `/__/firebase/init.json` 的代理目标，必须指向自己的 Firebase 项目 |
 | [`src/SiteRouter.tsx`](../src/SiteRouter.tsx) | `cloudAliases` 中的旧域名，以及云端入口跳转的正式域名 |

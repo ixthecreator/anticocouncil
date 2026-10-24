@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { cloudAccessError, requestPasswordReset, setSitePassword, type CloudIdentity } from "../lib/cloudAccess";
+import type { CloudIdentity } from "../lib/accessPolicy";
+import { cloudBackend } from "../lib/cloudBackend";
 
 const emailNotice = "如果此邮箱对应本站账号，密码邮件将发送到收件箱。请检查收件箱及垃圾邮件，并按邮件中的链接操作。";
 
@@ -28,8 +29,8 @@ export function PasswordRecoveryForm({ setup = false, initialEmail, onBack }: { 
       event.preventDefault();
       if (busy || delay.seconds) return;
       setBusy(true); setError(""); setSent(false);
-      try { await requestPasswordReset(email); setSent(true); delay.start(); }
-      catch (err) { setError(cloudAccessError(err)); }
+      try { await cloudBackend.requestPasswordReset(email); setSent(true); delay.start(); }
+      catch (err) { setError(cloudBackend.accessErrorMessage(err)); }
       finally { setBusy(false); }
     }}>
       <label>账号邮箱<input required type="email" autoComplete="email" value={email} onChange={event => { setEmail(event.target.value); setSent(false); setError(""); }} disabled={busy}/></label>
@@ -84,8 +85,8 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
       event.preventDefault();
       if (busy) return;
       setBusy(true); setError(""); setNotice("");
-      try { await setSitePassword(password, confirmation, identity); setSaved(true); setNotice("本站密码已保存。以后可以使用此邮箱和新密码登录。"); }
-      catch (err) { setError(cloudAccessError(err)); }
+      try { await cloudBackend.setSitePassword(password, confirmation, identity); setSaved(true); setNotice("本站密码已保存。以后可以使用此邮箱和新密码登录。"); }
+      catch (err) { setError(cloudBackend.accessErrorMessage(err)); }
       finally { setPassword(""); setConfirmation(""); setBusy(false); }
     }}>
       <label>新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
@@ -98,8 +99,8 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
     {!saved && <div className="cloud-password-note"><p>如提示需要重新登录，请重新登录后再设置；也可以向当前邮箱发送重置链接，按邮件完成后使用邮箱登录。邮件重置可能改变原 Google 登录关联。</p><button type="button" className="cloud-button" disabled={busy || delay.seconds > 0} onClick={async () => {
       if (busy || delay.seconds) return;
       setBusy(true); setError(""); setNotice(""); setPassword(""); setConfirmation("");
-      try { await requestPasswordReset(identity.email); setNotice(emailNotice); delay.start(); }
-      catch (err) { setError(cloudAccessError(err)); }
+      try { await cloudBackend.requestPasswordReset(identity.email); setNotice(emailNotice); delay.start(); }
+      catch (err) { setError(cloudBackend.accessErrorMessage(err)); }
       finally { setBusy(false); }
     }}>{delay.seconds ? `${delay.seconds} 秒后可重新发送` : "向当前邮箱发送重置链接"}</button></div>}
   </div></div>;

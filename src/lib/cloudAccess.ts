@@ -7,45 +7,20 @@ import {
   signOut, updateCurrentUser, updatePassword, updateProfile, type Auth, type User,
 } from "firebase/auth";
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { deleteDoc, doc, runTransaction, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot, runTransaction, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { getDatabase, getFirebaseApp } from "./firebase";
+import {
+  OWNER_EMAIL, canChangeMemberRole, canManageMember, isWorkspaceOwner, readAccessRequest, readWorkspaceAccess, sameAuthorizationIdentity,
+  type AccessActor, type AccessRequest, type AccessRole, type CloudIdentity, type WorkspaceAccess,
+} from "./accessPolicy";
+import type { CloudAuthenticationState, MembershipListener, OwnAccessListener } from "./cloudBackend";
 
-export const OWNER_EMAIL = "yulun8964@gmail.com";
-export type AccessRole = "member" | "admin";
-export interface CloudIdentity { uid: string; email: string; name: string; verified: boolean; }
-export interface WorkspaceAccess { uid: string; name: string; email: string; role: AccessRole; active: boolean; }
-export interface AccessRequest { uid: string; name: string; email: string; }
-export interface AccessActor extends CloudIdentity { role: AccessRole; }
+// The membership rules and the auth state type are backend-neutral; re-exported so existing imports keep working.
+export * from "./accessPolicy";
+export type { CloudAuthenticationState };
 
-export const isWorkspaceOwner = (identity: CloudIdentity | null) =>
-  !!identity?.verified && identity.email === OWNER_EMAIL;
 export const isConfirmedAccessSnapshot = (metadata: { fromCache: boolean; hasPendingWrites: boolean }) =>
   !metadata.fromCache && !metadata.hasPendingWrites;
-export const sameAuthorizationIdentity = (previous: CloudIdentity | null, next: CloudIdentity) =>
-  !!previous && previous.uid === next.uid && previous.email === next.email && previous.verified === next.verified;
-
-export function hasWorkspaceAccess(identity: CloudIdentity | null, access: WorkspaceAccess | null): boolean {
-  if (!identity?.verified || !identity.uid || !identity.email) return false;
-  return isWorkspaceOwner(identity) || !!access && access.uid === identity.uid && access.email === identity.email && access.active === true && ["member", "admin"].includes(access.role);
-}
-export function canManageMember(actor: AccessActor, target: WorkspaceAccess): boolean {
-  if (!actor.verified || actor.uid === target.uid || target.email === OWNER_EMAIL) return false;
-  return isWorkspaceOwner(actor) || actor.role === "admin" && target.role === "member";
-}
-export function canChangeMemberRole(actor: AccessActor, target: WorkspaceAccess): boolean {
-  return isWorkspaceOwner(actor) && canManageMember(actor, target);
-}
-export function readWorkspaceAccess(uid: string, value: unknown): WorkspaceAccess | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as Record<string, unknown>;
-  if (typeof row.name !== "string" || typeof row.email !== "string" || !["member", "admin"].includes(String(row.role)) || typeof row.active !== "boolean") return null;
-  return { uid, name: row.name, email: row.email, role: row.role as AccessRole, active: row.active };
-}
-export function readAccessRequest(uid: string, value: unknown): AccessRequest | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as Record<string, unknown>;
-  return typeof row.name === "string" && typeof row.email === "string" ? { uid, name: row.name, email: row.email } : null;
-}
 const cloudAuthInstances = new WeakMap<FirebaseApp, Auth>();
 export function getCloudAuth(): Auth {
   const app = getFirebaseApp();
@@ -79,13 +54,6 @@ export async function identityForUser(user: User): Promise<CloudIdentity> {
   return { uid: user.uid, email: typeof token.claims.email === "string" ? token.claims.email : "", name: user.displayName || "", verified: token.claims.email_verified === true };
 }
 
-export interface CloudAuthenticationState {
-  identity: CloudIdentity | null;
-  ready: boolean;
-  error: string;
-  redirectError: string;
-  redirectPending: boolean;
-}
 interface RedirectSession {
   generation: number;
   pending: boolean;
@@ -362,6 +330,28 @@ export async function updateWorkspaceMember(actor: AccessActor, target: Workspac
   if (!canManageMember(actor, target)) throw new Error("不能修改此成员的授权。");
   if (changes.role !== undefined && !canChangeMemberRole(actor, target)) throw new Error("只有议会所有者可以调整管理员角色。");
   await updateDoc(doc(getDatabase(), "workspaceAccess", target.uid), changes);
+}
+export function watchOwnWorkspaceAccess(uid: string, listener: OwnAccessListener): () => void {
+  const database = getDatabase();
+  const stopAccess = onSnapshot(doc(database, "workspaceAccess", uid), { includeMetadataChanges: true }, snapshot => {
+    // An offline cache or a local write awaiting server approval cannot grant access.
+    const confirmed = isConfirmedAccessSnapshot(snapshot.metadata);
+    listener.access(confirmed && snapshot.exists() ? readWorkspaceAccess(snapshot.id, snapshot.data()) : null, confirmed);
+  }, error => listener.accessError(error));
+  const stopRequest = onSnapshot(doc(database, "accessRequests", uid), { includeMetadataChanges: true }, snapshot => {
+    if (!snapshot.metadata.fromCache) listener.request(snapshot.exists() ? readAccessRequest(snapshot.id, snapshot.data()) : null);
+  }, error => listener.requestError(error));
+  return () => { stopAccess(); stopRequest(); };
+}
+export function watchWorkspaceMembership(listener: MembershipListener): () => void {
+  const database = getDatabase();
+  const stopMembers = onSnapshot(collection(database, "workspaceAccess"), { includeMetadataChanges: true }, snapshot => {
+    if (!snapshot.metadata.fromCache) listener.members(snapshot.docs.map(item => readWorkspaceAccess(item.id, item.data())).filter((item): item is WorkspaceAccess => !!item));
+  }, error => listener.error(error));
+  const stopRequests = onSnapshot(collection(database, "accessRequests"), { includeMetadataChanges: true }, snapshot => {
+    if (!snapshot.metadata.fromCache) listener.requests(snapshot.docs.map(item => readAccessRequest(item.id, item.data())).filter((item): item is AccessRequest => !!item));
+  }, error => listener.error(error));
+  return () => { stopMembers(); stopRequests(); };
 }
 export function cloudAccessError(error: unknown): string {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";

@@ -6,21 +6,13 @@ import {
   emptyWorkspace,
   parseBackup,
 } from "./workspace";
-import {
-  changeDoc,
-  importDocs,
-  removeDoc,
-  saveDoc,
-  subscribeToCollection,
-  firebaseConfiguration,
-  firebaseErrorMessage,
-} from "./firebase";
+import { cloudBackend } from "./cloudBackend";
 import {
   newCollectionConnection,
   receiveCollectionSnapshot,
   summarizeCloudConnection,
   type WorkspaceConnection,
-} from "./firebaseConnection";
+} from "./cloudConnection";
 
 const STORAGE_KEY = "antico_workspace_v2";
 export function readLocal(): WorkspaceData {
@@ -94,9 +86,9 @@ export function useWorkspace(control?: {
       return () => window.removeEventListener("storage", onStorage);
     }
     setConnection("connecting");
-    if (firebaseConfiguration.error) {
+    if (cloudBackend.configurationError) {
       setConnection("error");
-      setConnectionError(firebaseConfiguration.error);
+      setConnectionError(cloudBackend.configurationError);
       return;
     }
     let active = true;
@@ -121,7 +113,7 @@ export function useWorkspace(control?: {
         publishStatus();
       };
       try {
-        subscriptions.push(subscribeToCollection(
+        subscriptions.push(cloudBackend.subscribeCollection(
           key,
           (rows, metadata) => {
             if (!active) return;
@@ -135,10 +127,10 @@ export function useWorkspace(control?: {
               fail(`云端 ${key} 数据格式不兼容：${err instanceof Error ? err.message : "请检查数据"}`);
             }
           },
-          (err) => fail(`云端 ${key}：${firebaseErrorMessage(err)}`),
+          (err) => fail(`云端 ${key}：${cloudBackend.dataErrorMessage(err)}`),
         ));
       } catch (err) {
-        fail(firebaseErrorMessage(err));
+        fail(cloudBackend.dataErrorMessage(err));
       }
     }
     publishStatus();
@@ -202,7 +194,7 @@ export function useWorkspace(control?: {
     row: WorkspaceData[K][number],
   ) =>
     run(async () => {
-      if (mode === "firebase") return saveDoc(key, row);
+      if (mode === "firebase") return cloudBackend.saveRecord(key, row);
       const latest = readLocal();
       const rows = latest[key] as { id: string }[];
       const index = rows.findIndex((item) => item.id === row.id);
@@ -212,7 +204,7 @@ export function useWorkspace(control?: {
     });
   const remove = (key: CollectionName, id: string) =>
     run(async () => {
-      if (mode === "firebase") return removeDoc(key, id);
+      if (mode === "firebase") return cloudBackend.removeRecord(key, id);
       const latest = readLocal();
       (latest as any)[key] = latest[key].filter((row) => row.id !== id);
       commitLocal(latest);
@@ -223,7 +215,7 @@ export function useWorkspace(control?: {
     fn: (record: WorkspaceData[K][number] | null) => WorkspaceData[K][number],
   ) =>
     run(async () => {
-      if (mode === "firebase") return changeDoc(key, id, fn);
+      if (mode === "firebase") return cloudBackend.changeRecord(key, id, fn);
       const latest = readLocal();
       const rows = latest[key] as { id: string }[];
       const index = rows.findIndex((row) => row.id === id);
@@ -235,7 +227,7 @@ export function useWorkspace(control?: {
   const importBackup = (input: unknown) =>
     run(async () => {
       const parsed = parseBackup(input);
-      if (mode === "firebase") return importDocs(parsed);
+      if (mode === "firebase") return cloudBackend.importRecords(parsed);
       let next: WorkspaceData;
       if (!readable.current) {
         const raw = localStorage.getItem(STORAGE_KEY);
