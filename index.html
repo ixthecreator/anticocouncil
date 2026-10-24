@@ -5,8 +5,7 @@
     <script data-brand-intro>
       try {
         const path = location.pathname.replace(/\/+$/, "") || "/";
-        const entry = ["/", "/portal", "/workspace", "/local"].includes(path);
-        if (entry && !sessionStorage.getItem("antico-intro-played")) {
+        if (path === "/" && !sessionStorage.getItem("antico-intro-played")) {
           sessionStorage.setItem("antico-intro-played", "1");
           document.documentElement.setAttribute("data-brand-intro", "play");
         }
@@ -16,7 +15,7 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="安提柯议会：一个共同讨论与协作的空间。从例会、沙龙到文章与共同计划，让讨论有回响，让共识有行动。" />
-    <meta name="theme-color" content="#2b173d" />
+    <meta name="theme-color" content="#373151" />
     <meta property="og:title" content="安提柯议会 · Antico Council" />
     <meta property="og:description" content="让讨论有回响，让共识有行动。一起议事，一起推进，一起创作。" />
     <meta property="og:type" content="website" />
@@ -24,6 +23,9 @@
     <title>安提柯议会 · Antico Council</title>
   </head>
   <body>
+    <noscript data-workspace-only>
+      <p class="ac-noscript-banner">工作台需要 JavaScript。请在浏览器设置中开启 JavaScript 后刷新页面；公开档案馆不需要 JavaScript 也能阅读。</p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

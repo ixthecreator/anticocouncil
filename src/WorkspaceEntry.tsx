@@ -1,4 +1,3 @@
-import "./workspace-fonts.css";
 import App from "./App";
 import { WorkspaceGateway } from "./components/WorkspaceGateway";
 

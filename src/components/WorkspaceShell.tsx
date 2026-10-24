@@ -15,15 +15,12 @@ import {
 import {
   workspaceNavigation as navigation,
   type WorkspacePage,
-  type WorkspaceTheme,
 } from "../lib/workspaceNavigation";
-export type { WorkspacePage, WorkspaceTheme } from "../lib/workspaceNavigation";
+export type { WorkspacePage } from "../lib/workspaceNavigation";
 
 export function WorkspaceShell({
   page,
   onNavigate,
-  theme,
-  onThemeChange,
   mode,
   onModeChange,
   pending,
@@ -41,8 +38,6 @@ export function WorkspaceShell({
 }: {
   page: WorkspacePage;
   onNavigate: (page: WorkspacePage) => void;
-  theme: WorkspaceTheme;
-  onThemeChange: (theme: WorkspaceTheme) => void;
   mode: "local" | "firebase";
   onModeChange: (mode: "local" | "firebase") => void;
   pending: number;
@@ -243,21 +238,6 @@ export function WorkspaceShell({
                 </summary>
                 <div className="settings-popover">
                   <h2>工作区设置</h2>
-                  <label className="workspace-field">
-                    <span>界面配色</span>
-                    <select
-                      value={theme}
-                      onChange={(event) =>
-                        onThemeChange(event.target.value as WorkspaceTheme)
-                      }
-                    >
-                      <option value="parliament">议会紫</option>
-                      <option value="prussian">普鲁士蓝</option>
-                      <option value="classic">经典石墨</option>
-                      <option value="burgundy">勃艮第红</option>
-                      <option value="latenight">深夜模式</option>
-                    </select>
-                  </label>
                   <label className="workspace-field">
                     <span>数据位置</span>
                     <select

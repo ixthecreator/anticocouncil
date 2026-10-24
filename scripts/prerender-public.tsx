@@ -13,7 +13,8 @@ if (!template.includes(rootMarker))
 await writeFile(resolve(output, "workspace.html"), template);
 const publicTemplate = template
   .replace(/<script\b(?![^>]*\bdata-brand-intro)[^>]*>[\s\S]*?<\/script>/g, "")
-  .replace(/<link\b[^>]*rel="modulepreload"[^>]*>/g, "");
+  .replace(/<link\b[^>]*rel="modulepreload"[^>]*>/g, "")
+  .replace(/<noscript data-workspace-only>[\s\S]*?<\/noscript>\s*/g, "");
 const escapeAttribute = (value: string) =>
   value.replace(
     /[&<>"']/g,

@@ -1,98 +1,87 @@
 @import "tailwindcss";
 
+@import "./design-system/tokens.css";
+
 @theme {
-  --font-serif: "Noto Serif SC", "Georgia", serif;
-  --font-display: "Playfair Display", "Noto Serif SC", "Georgia", serif;
-  --font-sans:
-    "Noto Sans SC", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: var(--ac-font-family);
+  --font-serif: var(--ac-font-family);
+  --font-display: var(--ac-font-family);
+  --font-mono: var(--ac-font-mono);
 
-  /* Editorial Color Palette mapping to standard neutral names */
-  --color-neutral-50: #f7f7f7; /* c-gray-1 */
-  --color-neutral-100: #eaeaea; /* c-gray-2 */
-  --color-neutral-200: #dcdcdc;
-  --color-neutral-300: #a3a3a3; /* c-gray-3 */
-  --color-neutral-400: #737373;
-  --color-neutral-500: #404040; /* c-gray-4 */
-  --color-neutral-900: #171717; /* c-black */
-  --color-neutral-950: #0a0a0a; /* c-black */
+  /* Breakpoints follow the parliament layout grid. */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1220px;
+
+  /* The smallest text in the system is 14px. */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.5714;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5714;
+
+  /* Neutral and status utilities resolve to design tokens. */
+  --color-neutral-50: var(--ac-color-surface-alt);
+  --color-neutral-100: var(--ac-color-page);
+  --color-neutral-200: var(--ac-color-border);
+  --color-neutral-300: var(--ac-color-border);
+  --color-neutral-400: var(--ac-color-text-secondary);
+  --color-neutral-500: var(--ac-color-text-secondary);
+  --color-neutral-600: var(--ac-color-text);
+  --color-neutral-700: var(--ac-color-text);
+  --color-neutral-800: var(--ac-color-heading);
+  --color-neutral-900: var(--ac-color-heading);
+  --color-neutral-950: var(--ac-color-heading);
+  --color-brand: var(--ac-color-brand);
+  --color-brand-dark: var(--ac-color-brand-dark);
+  --color-brand-tint: var(--ac-color-brand-tint);
+  --color-link: var(--ac-color-link);
+  --color-red-50: var(--ac-color-error-bg);
+  --color-red-200: var(--ac-color-error-bg);
+  --color-red-300: var(--ac-color-error);
+  --color-red-500: var(--ac-color-error);
+  --color-red-600: var(--ac-color-error);
+  --color-red-700: var(--ac-color-error-text);
+  --color-red-800: var(--ac-color-error-text);
+  --color-green-50: var(--ac-color-success-bg);
+  --color-green-600: var(--ac-color-success);
+  --color-green-700: var(--ac-color-success-text);
+  --color-amber-50: var(--ac-color-warning-bg);
+  --color-amber-600: var(--ac-color-warning);
+  --color-amber-700: var(--ac-color-warning-text);
+  --color-blue-50: var(--ac-color-info-bg);
+  --color-blue-600: var(--ac-color-link);
+  --color-blue-700: var(--ac-color-info-text);
 }
 
-/* Scrollbars conforming to the Swiss grid minimal style */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f5f5f5;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #000000;
+html {
+  background-color: var(--ac-color-page);
 }
 
 body {
-  background-color: var(--theme-bg, #ffffff);
-  color: var(--theme-text-primary, #171717);
-  font-family: var(--theme-font, var(--font-sans));
+  margin: 0;
+  background-color: var(--ac-color-page);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Shared, accessible palettes for the public site and working views. */
-.theme-classic {
-  --theme-bg: #f4f5f6;
-  --theme-panel-bg: #ffffff;
-  --theme-card-bg: #ffffff;
-  --theme-border: #e0e3e7;
-  --theme-text-primary: #252a31;
-  --theme-text-secondary: #69727e;
-  --theme-accent: #303b48;
-  --theme-accent-light: #edf0f3;
-  --theme-accent-text: #ffffff;
-  --theme-sidebar: #202832;
-  --theme-font: var(--font-sans);
-}
-.theme-prussian {
-  --theme-bg: #f3f6fa;
-  --theme-panel-bg: #ffffff;
-  --theme-card-bg: #ffffff;
-  --theme-border: #dfe6ef;
-  --theme-text-primary: #1c3049;
-  --theme-text-secondary: #66788f;
-  --theme-accent: #245e88;
-  --theme-accent-light: #edf3f9;
-  --theme-accent-text: #ffffff;
-  --theme-sidebar: #132e49;
-  --theme-font: var(--font-sans);
-}
-.theme-burgundy {
-  --theme-bg: #f8f4f3;
-  --theme-panel-bg: #fffdfb;
-  --theme-card-bg: #fffdfb;
-  --theme-border: #e9dede;
-  --theme-text-primary: #492632;
-  --theme-text-secondary: #856a73;
-  --theme-accent: #85394f;
-  --theme-accent-light: #f5e9ed;
-  --theme-accent-text: #ffffff;
-  --theme-sidebar: #40222e;
-  --theme-font: var(--font-sans);
-}
-.theme-latenight {
-  color-scheme: dark;
-  --theme-bg: #111a24;
-  --theme-panel-bg: #1b2735;
-  --theme-card-bg: #1b2735;
-  --theme-border: #344356;
-  --theme-text-primary: #e9eef5;
-  --theme-text-secondary: #acbcd0;
-  --theme-accent: #8dbdec;
-  --theme-accent-light: #26394e;
-  --theme-accent-text: #12283e;
-  --theme-sidebar: #0e1822;
-  --theme-font: var(--font-sans);
+/* One colour theme. The legacy --theme-* names resolve to design tokens. */
+:root,
+.theme-parliament {
+  --theme-bg: var(--ac-color-page);
+  --theme-panel-bg: var(--ac-color-surface);
+  --theme-card-bg: var(--ac-color-surface);
+  --theme-border: var(--ac-color-border);
+  --theme-text-primary: var(--ac-color-heading);
+  --theme-text-secondary: var(--ac-color-text-secondary);
+  --theme-accent: var(--ac-color-brand);
+  --theme-accent-light: var(--ac-color-surface-alt);
+  --theme-accent-text: var(--ac-color-on-brand);
+  --theme-sidebar: var(--ac-color-brand);
+  --theme-font: var(--ac-font-family);
 }
 
 /* Mixed background styling for urgent priorities */
@@ -142,16 +131,10 @@ body {
 input,
 select,
 textarea {
-  background: var(--theme-card-bg, #fff);
-  color: var(--theme-text-primary, #1c3049);
-  border-color: var(--theme-border, #dfe6ef);
-  border-radius: 8px;
-}
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid var(--theme-accent, #245e88);
-  outline-offset: 2px;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  border-color: var(--ac-color-input-border);
+  border-radius: 0;
 }
 button,
 a,
@@ -235,11 +218,6 @@ summary {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-button:focus-visible,
-a:focus-visible {
-  outline: 3px solid var(--theme-accent);
-  outline-offset: 3px;
 }
 .workspace-field {
   display: flex;
@@ -930,9 +908,6 @@ a:focus-visible {
 .save-status.is-pending {
   color: var(--theme-text-secondary);
 }
-.theme-latenight .save-status {
-  color: #a1d4bd;
-}
 .workspace-notice {
   display: flex;
   align-items: center;
@@ -1405,13 +1380,6 @@ a:focus-visible {
 }
 #issue-detail-panel .text-xs {
   line-height: 1.7;
-}
-.theme-latenight .execution-column > div:first-child {
-  background: var(--theme-accent-light);
-  color: var(--theme-text-primary);
-}
-.theme-latenight .execution-column > div:first-child > span {
-  background: var(--theme-bg);
 }
 @media (min-width: 1700px) {
   .council-shell {

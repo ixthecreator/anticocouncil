@@ -14,11 +14,7 @@ import {
   ActivityEvent,
 } from "./types";
 import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
-import {
-  workspacePageFromHash,
-  workspaceTheme,
-  type WorkspaceTheme,
-} from "./lib/workspaceNavigation";
+import { workspacePageFromHash } from "./lib/workspaceNavigation";
 import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
 import "./components/parliament.css";
@@ -147,15 +143,6 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     useState<string>("all");
   const [selectedPriorityFilter, setSelectedPriorityFilter] =
     useState<string>("all");
-
-  // Theme State
-  const [theme, setTheme] = useState<WorkspaceTheme>(() => {
-    try {
-      return workspaceTheme(localStorage.getItem("app_theme"));
-    } catch {
-      return "parliament";
-    }
-  });
 
   // Modal State
   const [activeIssueForDetail, setActiveIssueForDetail] =
@@ -435,19 +422,10 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   const currentReports = selectedMeeting ? weeklyReports(data, selectedMeeting.date) : [];
 
   return (
-    <div className={`council-app parliament-app theme-${theme}`}>
+    <div className="council-app parliament-app theme-parliament">
       <WorkspaceShell
         page={activeTab}
         onNavigate={navigateTo}
-        theme={theme}
-        onThemeChange={(next) => {
-          setTheme(next);
-          try {
-            localStorage.setItem("app_theme", next);
-          } catch {
-            // Keep the selected theme for this session.
-          }
-        }}
         mode={storageMode}
         onModeChange={setStorageMode}
         pending={pending}

@@ -90,16 +90,7 @@ export const workspaceNavigation = [
 ] as const;
 
 export type WorkspacePage = (typeof workspaceNavigation)[number]["id"];
-export type WorkspaceTheme =
-  "parliament" | "classic" | "prussian" | "burgundy" | "latenight";
 export function workspacePageFromHash(hash: string): WorkspacePage {
   const page = hash.replace(/^#/, "");
   return workspaceNavigation.find((item) => item.id === page)?.id || "overview";
-}
-export function workspaceTheme(value: string | null): WorkspaceTheme {
-  return (
-    (
-      ["parliament", "classic", "prussian", "burgundy", "latenight"] as const
-    ).find((theme) => theme === value) || "parliament"
-  );
 }

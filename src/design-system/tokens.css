@@ -1,0 +1,170 @@
+/*
+ * Antico design tokens.
+ * Structure and values follow the UK Parliament design system (foundations:
+ * colour, focus, layout, spacing, typography); the brand colour is the
+ * parliament deep purple. Components reference these tokens only.
+ */
+:root {
+  /* Colour */
+  --ac-color-brand: #373151;
+  --ac-color-brand-dark: #29253d;
+  --ac-color-brand-tint: #efedf3;
+  --ac-color-text: #4d4d4d;
+  --ac-color-heading: #212121;
+  --ac-color-text-secondary: #717171;
+  --ac-color-link: #3569cc;
+  --ac-color-link-hover: #214282;
+  --ac-color-page: #ebe9e8;
+  --ac-color-surface: #ffffff;
+  --ac-color-surface-alt: #f8f7f7;
+  --ac-color-border: #cbc9cd;
+  --ac-color-input-border: #717171;
+  --ac-color-on-brand: #ffffff;
+  --ac-color-on-brand-muted: #d6d3e0;
+  --ac-color-error: #da1014;
+  --ac-color-error-bg: #f7cbcc;
+  --ac-color-error-text: #a72326;
+  --ac-color-success-bg: #d9fff0;
+  --ac-color-success: #0d9d56;
+  --ac-color-success-text: #0a6b3b;
+  --ac-color-warning-bg: #fef3c7;
+  --ac-color-warning: #e0b507;
+  --ac-color-warning-text: #6f5303;
+  --ac-color-info-bg: #e3ebf9;
+  --ac-color-info-text: #214282;
+  --ac-color-focus-inner: #212121;
+  --ac-color-focus-outer: #96dcbe;
+
+  /* Typography */
+  --ac-font-family:
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ac-font-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --ac-type-h1: 700 32px/40px var(--ac-font-family);
+  --ac-type-h2: 700 24px/32px var(--ac-font-family);
+  --ac-type-h3: 700 20px/28px var(--ac-font-family);
+  --ac-type-h4: 700 18px/26px var(--ac-font-family);
+  --ac-type-h5: 700 16px/24px var(--ac-font-family);
+  --ac-type-body: 400 16px/28px var(--ac-font-family);
+  --ac-type-small: 400 14px/22px var(--ac-font-family);
+  --ac-font-size-h1: 32px;
+  --ac-font-size-h2: 24px;
+  --ac-font-size-h3: 20px;
+  --ac-font-size-h4: 18px;
+  --ac-font-size-body: 16px;
+  --ac-font-size-small: 14px;
+  --ac-reading-width: 640px;
+
+  /* Spacing: the parliament scale */
+  --ac-space-0: 0;
+  --ac-space-1: 2px;
+  --ac-space-2: 5px;
+  --ac-space-3: 10px;
+  --ac-space-4: 15px;
+  --ac-space-5: 20px;
+  --ac-space-6: 25px;
+  --ac-space-7: 30px;
+  --ac-space-8: 50px;
+  --ac-space-9: 65px;
+  --ac-space-10: 90px;
+  --ac-space-11: 120px;
+
+  /* Layout */
+  --ac-container: 1100px;
+  --ac-gutter: 30px;
+  --ac-page-inset: 15px;
+  --ac-rule-heavy: 4px;
+}
+
+@media (max-width: 575px) {
+  :root {
+    --ac-type-h1: 700 28px/36px var(--ac-font-family);
+    --ac-font-size-h1: 28px;
+  }
+}
+
+/* Focus: a black inner ring and a mint outer ring, never the browser default. */
+.ac-focus:focus-visible,
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ac-color-focus-inner);
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px var(--ac-color-focus-outer);
+}
+:where(a):focus-visible,
+.ac-focus--link:focus-visible {
+  background-color: var(--ac-color-surface);
+  color: var(--ac-color-focus-inner) !important;
+  text-decoration: none !important;
+}
+.ac-focus--inset:focus-visible {
+  outline: 2px solid var(--ac-color-focus-inner);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px var(--ac-color-focus-outer);
+}
+.ac-focus--border:focus-visible,
+:where(input, select, textarea):focus-visible {
+  outline: 0;
+  border-color: var(--ac-color-focus-inner) !important;
+  box-shadow:
+    inset 0 0 0 1px var(--ac-color-focus-inner),
+    0 0 0 4px var(--ac-color-focus-outer);
+}
+:where(main[tabindex="-1"]):focus,
+:where(main[tabindex="-1"]):focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
+/* Skip link: the first focusable element on every page. */
+.ac-skip-link {
+  position: absolute;
+  top: 0;
+  left: var(--ac-space-4);
+  z-index: 1100;
+  padding: var(--ac-space-3) var(--ac-space-4);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-focus-inner);
+  font: var(--ac-type-body);
+  text-decoration: underline;
+  transform: translateY(-120%);
+}
+.ac-skip-link:focus,
+.ac-skip-link:focus-visible {
+  transform: none;
+}
+
+/* JavaScript-off banner, shown inside <noscript>. */
+.ac-noscript-banner {
+  margin: 0;
+  padding: var(--ac-space-4);
+  background: var(--ac-color-warning-bg);
+  border-bottom: var(--ac-rule-heavy) solid var(--ac-color-warning);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-body);
+  text-align: center;
+}
+
+.ac-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

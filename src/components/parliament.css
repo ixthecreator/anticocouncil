@@ -1,29 +1,9 @@
 /* Parliament-inspired working surfaces. All rules are scoped away from public pages. */
-.parliament-app.theme-parliament {
-  --theme-bg: #fff;
-  --theme-panel-bg: #fff;
-  --theme-card-bg: #fff;
-  --theme-border: #cdd0d4;
-  --theme-text-primary: #17181c;
-  --theme-text-secondary: #5b616c;
-  --theme-accent: #4d2768;
-  --theme-accent-light: #f5f3f7;
-  --theme-accent-text: #fff;
-  --theme-sidebar: #2b173d;
-  --theme-font:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Microsoft YaHei", sans-serif;
-}
 .parliament-app {
-  --council-link: #1459a1;
+  --council-link: var(--ac-color-link);
 }
 .parliament-shell {
-  font-family: var(--theme-font, var(--font-sans));
-  font-size: 16px;
-  line-height: 1.65;
-}
-.parliament-app.theme-latenight {
-  --council-link: #99c7f6;
+  font: var(--ac-type-body);
 }
 .parliament-app .parliament-shell {
   display: block;
