@@ -8,7 +8,7 @@
 
 .council-app {
   min-height: 100vh;
-  background: var(--ac-color-page);
+  background: var(--ac-color-surface);
   color: var(--ac-color-text);
   font: var(--ac-type-body);
 }
@@ -178,6 +178,7 @@
 /* Service strip: mode tag, one sentence and the save status, on white. */
 .workspace-service-strip {
   background: var(--ac-color-surface);
+  border-bottom: 1px solid var(--ac-color-border);
 }
 .workspace-service-inner {
   display: flex;
@@ -216,10 +217,31 @@
   color: var(--ac-color-error-text);
 }
 
-/* Main: a grey gap, then the white container. */
+/*
+ * The workspace is a working tool with tables and boards, so it fills the
+ * window instead of the public site's fixed 1100px container: every frame
+ * row (header, navigation, service strip, content, footer) spans the full
+ * width with the gutter on each side. Running text still keeps to
+ * --ac-reading-width where pages set it.
+ */
+.workspace-shell .ac-container {
+  width: auto;
+  max-width: none;
+  margin-inline: var(--ac-gutter);
+}
+@media (max-width: 767px) {
+  .workspace-shell .ac-container {
+    margin-inline: var(--ac-page-inset);
+  }
+}
+
+/* Main: the content sits directly on the white page. */
 .workspace-content {
   flex: 1;
-  padding-block: var(--ac-space-7) var(--ac-space-8);
+  padding-block: 0 var(--ac-space-8);
+}
+.workspace-shell .ac-surface {
+  padding: var(--ac-space-7) 0 0;
 }
 
 /*
@@ -585,7 +607,10 @@
     display: none;
   }
   .workspace-content {
-    padding-block: var(--ac-space-4) var(--ac-space-7);
+    padding-block: 0 var(--ac-space-7);
+  }
+  .workspace-shell .ac-surface {
+    padding-top: var(--ac-space-5);
   }
   .workspace-page-head {
     margin-bottom: var(--ac-space-6);
