@@ -1,0 +1,14 @@
+/*
+ * Workspace styles, loaded with the lazily loaded workspace chunk
+ * (imported by src/App.tsx). Global tokens, base layer and element defaults
+ * come from src/index.css. The order below is the cascade order: later files
+ * override earlier ones at equal specificity.
+ */
+@import "./legacy-utilities.css";
+@import "./components.css";
+@import "./shell.css";
+@import "./pages/overview.css";
+@import "./pages/proposals.css";
+@import "./pages/session.css";
+@import "./pages/execution.css";
+@import "./pages/daily.css";

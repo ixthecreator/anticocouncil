@@ -1,0 +1,694 @@
+/*
+ * The workspace frame (WorkspaceShell.tsx): masthead, primary navigation,
+ * service strip, top bar with breadcrumb, search and settings, the main
+ * content area and its page heading.
+ */
+
+.council-app {
+  min-height: 100vh;
+  background: var(--theme-bg);
+  color: var(--theme-text-primary);
+  font-family: var(--font-sans);
+}
+.council-shell {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 260px;
+  z-index: 100;
+  padding: 12px 18px;
+  border-radius: 8px;
+  background: var(--theme-card-bg);
+  color: var(--theme-accent);
+  transform: translateY(-160%);
+  opacity: 0;
+  pointer-events: none;
+}
+.skip-link:focus {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+.save-status.connection-error,
+.save-status.connection-offline {
+  color: #b04c38;
+}
+.workspace-guide-link { display: block; margin-top: 16px; color: var(--theme-accent); font-size: 13px; text-decoration: underline; }
+.council-main {
+  min-width: 0;
+}
+.workspace-topbar {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 36px;
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-card-bg);
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+  white-space: nowrap;
+}
+.breadcrumb strong {
+  font-weight: 500;
+  color: var(--theme-text-primary);
+}
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.workspace-search {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 285px;
+}
+.workspace-search > svg {
+  position: absolute;
+  left: 12px;
+  color: var(--theme-text-secondary);
+  pointer-events: none;
+}
+.workspace-search input {
+  padding: 10px 34px 10px 38px;
+  width: 100%;
+  border: 1px solid transparent;
+  background: var(--theme-bg);
+  font-size: 12px;
+  height: 40px;
+}
+.workspace-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.workspace-search input::placeholder {
+  color: var(--theme-text-secondary);
+  opacity: 1;
+}
+.workspace-search button {
+  position: absolute;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+.shell-settings {
+  position: relative;
+}
+.shell-settings summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+  border-radius: 8px;
+  list-style: none;
+}
+.shell-settings summary::-webkit-details-marker {
+  display: none;
+}
+.shell-settings summary:hover,
+.shell-settings[open] summary {
+  background: var(--theme-accent-light);
+  color: var(--theme-accent);
+}
+.settings-popover {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 310px;
+  max-width: calc(100vw - 32px);
+  padding: 22px;
+  border: 1px solid var(--theme-border);
+  border-radius: 14px;
+  background: var(--theme-card-bg);
+  box-shadow: 0 16px 50px #132e4924;
+  z-index: 40;
+}
+.settings-popover h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.settings-popover .workspace-field {
+  margin-bottom: 15px;
+  font-size: 12px;
+}
+.settings-popover .workspace-field select {
+  font-size: 13px;
+}
+.settings-backup {
+  display: flex;
+  gap: 8px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--theme-border);
+}
+.settings-backup button {
+  flex: 1;
+  font-size: 12px;
+  padding: 8px;
+}
+.workspace-content {
+  max-width: 1600px;
+  margin: auto;
+  padding: 32px 36px 20px;
+  outline: none;
+}
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 29px;
+}
+.page-kicker {
+  font-size: 11px;
+  color: var(--theme-text-secondary);
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 8px;
+}
+.page-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 600 30px/1.5 var(--font-sans);
+  letter-spacing: 0.025em;
+}
+.page-heading p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 6px;
+  color: var(--theme-text-secondary);
+}
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.save-status {
+  color: #33785b;
+}
+.save-status.is-pending {
+  color: var(--theme-text-secondary);
+}
+@media (min-width: 1700px) {
+  .council-shell {
+    grid-template-columns: 258px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1200px) {
+  .council-shell {
+    grid-template-columns: 208px minmax(0, 1fr);
+  }
+  .workspace-topbar {
+    padding: 0 24px;
+  }
+  .workspace-content {
+    padding: 26px 24px 20px;
+  }
+}
+@media (max-width: 900px) {
+  .council-shell {
+    display: block;
+  }
+  .workspace-topbar {
+    height: 66px;
+  }
+  .workspace-content {
+    padding-top: 24px;
+  }
+  .workspace-search {
+    width: 270px;
+  }
+  .page-heading h1 {
+    font-size: 27px;
+  }
+  .skip-link {
+    left: 15px;
+  }
+}
+@media (max-width: 600px) {
+  .workspace-topbar {
+    padding: 0 16px;
+    height: 62px;
+  }
+  .breadcrumb {
+    display: none;
+  }
+  .topbar-tools {
+    width: 100%;
+    gap: 8px;
+  }
+  .workspace-search {
+    flex: 1;
+    width: auto;
+  }
+  .workspace-search input {
+    font-size: 12px;
+  }
+  .shell-settings summary {
+    padding: 0 7px;
+  }
+  .shell-settings summary span {
+    display: none;
+  }
+  .workspace-content {
+    padding: 23px 16px 18px;
+  }
+  .page-heading {
+    margin-bottom: 22px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .page-heading h1 {
+    font-size: 25px;
+  }
+  .page-heading p {
+    max-width: 245px;
+    font-size: 11px;
+  }
+  .page-kicker {
+    font-size: 10px;
+  }
+}
+.parliament-app {
+  --council-link: var(--ac-color-link);
+}
+.parliament-shell {
+  font: var(--ac-type-body);
+}
+.parliament-app .parliament-shell {
+  display: block;
+}
+.parliament-app .parliament-container,
+.parliament-app .workspace-content {
+  width: min(1200px, calc(100% - 64px));
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.parliament-masthead {
+  background: var(--theme-sidebar);
+  color: #fff;
+  border-bottom: 5px solid #83529f;
+}
+.parliament-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 104px;
+}
+.parliament-brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #fff;
+  text-decoration: none;
+}
+.parliament-brand:hover {
+  color: #fff;
+}
+.parliament-monogram {
+  border: 1px solid #a995b7;
+  padding: 3px 9px;
+  font:
+    700 34px/1.4 Georgia,
+    serif;
+  letter-spacing: -3px;
+}
+.parliament-monogram > span {
+  color: #d4bbdf;
+  margin-inline: 3px;
+}
+.parliament-brand strong {
+  display: block;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: 3px;
+  line-height: 1.4;
+}
+.parliament-brand small {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #ded4e7;
+  margin-top: 3px;
+}
+.parliament-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.parliament-header-label {
+  font-size: 14px;
+  padding-right: 28px;
+  border-right: 1px solid #8c759e;
+  color: #e0d7e6;
+}
+.parliament-local-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.parliament-masthead .cloud-account > details > summary {
+  color: #fff;
+  font-size: 15px;
+}
+.parliament-masthead .cloud-account > details > summary small {
+  color: #ded4e7;
+  font-size: 12px;
+}
+.parliament-masthead .cloud-avatar {
+  background: #685177;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+}
+.parliament-app .cloud-account-menu {
+  border-radius: 0;
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-navigation-bar {
+  border-bottom: 1px solid var(--theme-border);
+}
+.parliament-navigation {
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  min-height: 65px;
+}
+.parliament-navigation > button,
+.parliament-more > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 17px 0;
+  font: 600 16px/1.65 var(--theme-font, var(--font-sans));
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  white-space: nowrap;
+}
+.parliament-navigation > button[aria-current="page"],
+.parliament-more > summary.has-active-page {
+  color: var(--theme-accent);
+}
+.parliament-navigation > button[aria-current="page"]::after,
+.parliament-more > summary.has-active-page::after {
+  content: "";
+  position: absolute;
+  height: 4px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  background: var(--theme-accent);
+}
+.parliament-more {
+  position: relative;
+  margin-left: auto;
+}
+.parliament-more summary {
+  list-style: none;
+}
+.parliament-more summary::-webkit-details-marker {
+  display: none;
+}
+.parliament-more-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 230px;
+  background: var(--theme-card-bg);
+  border: 1px solid var(--theme-border);
+  border-top: 4px solid var(--theme-accent);
+  padding: 8px 0;
+  box-shadow: 0 8px 18px #17181c20;
+  z-index: 50;
+}
+.parliament-more-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 12px 18px;
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  font-size: 15px;
+}
+.parliament-more-menu button:hover,
+.parliament-more-menu button[aria-current="page"] {
+  background: var(--theme-accent-light);
+  color: var(--theme-accent);
+}
+.parliament-service-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 13px;
+  border-bottom: 1px solid var(--theme-border);
+  font-size: 13px;
+}
+.parliament-service-strip p {
+  margin: 0;
+  color: var(--theme-text-secondary);
+}
+.parliament-service-strip .save-status {
+  margin-left: auto;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.parliament-app .workspace-topbar {
+  height: auto;
+  min-height: 76px;
+  padding: 16px 0;
+  border: 0;
+  background: transparent;
+}
+.parliament-app .breadcrumb {
+  font-size: 14px;
+  white-space: normal;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.parliament-app .topbar-tools {
+  gap: 18px;
+}
+.parliament-app .workspace-search {
+  width: 280px;
+}
+.parliament-app .workspace-search input {
+  height: 40px;
+  min-height: 40px;
+  font-size: 14px;
+  padding: 8px 36px;
+  background: var(--theme-accent-light);
+  border: 1px solid var(--theme-border);
+}
+.parliament-app .shell-settings summary {
+  font-size: 14px;
+  border-radius: 0;
+}
+.parliament-app .settings-popover {
+  border-radius: 0;
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-app .settings-popover .workspace-field,
+.parliament-app .settings-popover .workspace-field select,
+.parliament-app .settings-popover .workspace-help,
+.parliament-app .settings-backup button {
+  font-size: 14px;
+}
+.parliament-app .workspace-content {
+  padding: 14px 0 28px;
+}
+.parliament-app .page-heading {
+  margin-bottom: 36px;
+}
+.parliament-app .page-kicker {
+  color: var(--theme-accent);
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.parliament-app .page-heading h1 {
+  font: 700 38px/1.35 var(--theme-font, var(--font-sans));
+  letter-spacing: 1px;
+}
+.parliament-app .page-heading p {
+  font-size: 16px;
+  margin-top: 12px;
+}
+.parliament-date {
+  font-size: 15px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.parliament-date small {
+  display: block;
+  color: var(--theme-text-secondary);
+  margin-top: 5px;
+  font-size: 13px;
+}
+.parliament-footer {
+  background: var(--theme-accent-light);
+  border-top: 1px solid var(--theme-border);
+  margin-top: 36px;
+  padding: 30px 0;
+  font-size: 13px;
+  color: var(--theme-text-secondary);
+}
+.parliament-footer > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.parliament-footer strong {
+  display: block;
+  font-size: 16px;
+  color: var(--theme-text-primary);
+  margin-bottom: 4px;
+}
+.parliament-footer a {
+  color: var(--council-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.parliament-app .skip-link {
+  left: 20px;
+  border-radius: 0;
+  background: #ffdd00;
+  color: #17181c;
+  z-index: 1100;
+}
+@media (max-width: 1000px) {
+  .parliament-navigation {
+    gap: 22px;
+  }
+  .parliament-date,
+  .parliament-header-label {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .parliament-app .parliament-container,
+  .parliament-app .workspace-content {
+    width: calc(100% - 36px);
+  }
+  .parliament-header-inner {
+    min-height: 88px;
+    gap: 12px;
+  }
+  .parliament-brand {
+    gap: 12px;
+  }
+  .parliament-brand strong {
+    font-size: 21px;
+    letter-spacing: 1px;
+  }
+  .parliament-brand small {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+  }
+  .parliament-monogram {
+    font-size: 26px;
+    padding: 2px 7px;
+  }
+  .parliament-local-account {
+    font-size: 13px;
+  }
+  .parliament-masthead .cloud-account > details > summary > span:last-child {
+    display: none;
+  }
+  .parliament-navigation {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 16px;
+  }
+  .parliament-navigation > button,
+  .parliament-more > summary {
+    font-size: 14px;
+    padding: 12px 0;
+    justify-content: center;
+  }
+  .parliament-more {
+    margin: 0;
+  }
+  .parliament-more-menu {
+    width: 225px;
+  }
+  .parliament-service-strip {
+    flex-wrap: wrap;
+    gap: 7px 10px;
+    font-size: 12px;
+  }
+  .parliament-service-strip > p {
+    flex: 1;
+  }
+  .parliament-service-strip .save-status {
+    font-size: 12px;
+    width: 100%;
+    margin-left: 0;
+  }
+  .parliament-app .workspace-topbar {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+    padding-block: 19px;
+  }
+  .parliament-app .topbar-tools {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .parliament-app .workspace-search {
+    flex: 1;
+    width: auto;
+  }
+  .parliament-app .workspace-content {
+    padding-top: 4px;
+  }
+  .parliament-app .page-heading {
+    margin-bottom: 26px;
+  }
+  .parliament-app .page-heading h1 {
+    font-size: 31px;
+  }
+  .parliament-app .page-heading p {
+    font-size: 15px;
+  }
+  .parliament-app .page-kicker {
+    font-size: 11px;
+  }
+  .parliament-footer {
+    margin-top: 24px;
+  }
+  .parliament-footer > div {
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,102 @@
+/* Proposal index (ProposalIndex.tsx) and the proposal detail dialog (IssueDetailModal.tsx). */
+
+#issue-detail-panel {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 100px #0e263640;
+}
+#issue-detail-panel > div:first-child {
+  padding: 18px 24px;
+}
+#issue-detail-panel button {
+  min-height: 40px;
+  border-radius: 8px;
+}
+#issue-detail-panel input,
+#issue-detail-panel select {
+  min-height: 44px;
+  font-size: 14px;
+}
+#issue-detail-panel textarea {
+  font-size: 14px;
+}
+#issue-detail-panel label {
+  font-size: 12px;
+}
+#issue-detail-panel .text-xs {
+  line-height: 1.7;
+}
+@media (max-width: 600px) {
+  #issue-detail-panel input,
+  #issue-detail-panel select,
+  #issue-detail-panel textarea {
+    font-size: 16px;
+  }
+  #issue-detail-panel > div:first-child {
+    padding: 14px 18px;
+  }
+  #issue-detail-panel .p-6 {
+    padding: 18px;
+  }
+}
+.council-proposal-item {
+  padding: 26px 0;
+  border-bottom: 1px solid var(--theme-border);
+}
+.council-proposal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.council-tag-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.council-proposal-item h2 {
+  font-size: 24px;
+  font-weight: 650;
+  margin: 13px 0;
+  overflow-wrap: anywhere;
+}
+.council-proposal-description {
+  color: var(--theme-text-secondary);
+  font-size: 16px;
+  max-width: 850px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.council-proposal-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 18px 0;
+  font-size: 14px;
+}
+.council-proposal-facts > div {
+  display: flex;
+  gap: 10px;
+}
+.council-proposal-facts dt {
+  color: var(--theme-text-secondary);
+  flex-shrink: 0;
+}
+.council-proposal-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .council-proposal-item h2 {
+    font-size: 21px;
+  }
+  .council-proposal-meta {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .council-proposal-facts {
+    display: grid;
+    gap: 10px;
+  }
+}

@@ -34,6 +34,10 @@
   --ac-color-info-text: #214282;
   --ac-color-focus-inner: #212121;
   --ac-color-focus-outer: #96dcbe;
+  /* Overlays: the dimmed page behind a dialog, and the single subtle shadow
+     allowed on floating menus, popovers and dialogs. */
+  --ac-color-backdrop: rgba(33, 33, 33, 0.6);
+  --ac-shadow-overlay: 0 5px 15px rgba(33, 33, 33, 0.2);
 
   /* Typography */
   --ac-font-family:

@@ -10,7 +10,6 @@ export function AuthPageFrame({ children, aside }: { children: ReactNode; aside?
         <a className="auth-back-link" href="/"><ArrowLeft size={16} aria-hidden="true" />返回首页</a>
         <div className="auth-layout">
           <section className="auth-content">
-            <p className="public-eyebrow" lang="en">MEMBER ACCESS</p>
             {children}
           </section>
           <aside className="auth-aside" aria-label="访问说明">

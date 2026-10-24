@@ -1,0 +1,274 @@
+/* Overview page: CouncilOverview.tsx. */
+
+.council-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 326px;
+  gap: 48px;
+}
+.council-meeting-feature {
+  background: var(--theme-accent-light);
+  border-top: 5px solid var(--theme-accent);
+  padding: 23px 28px 25px;
+}
+.council-section-kicker {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--theme-accent);
+  font-size: 14px;
+  font-weight: 650;
+  margin-bottom: 22px;
+}
+.council-meeting-title-row {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+}
+.council-meeting-title-row > div:last-child {
+  min-width: 0;
+}
+.council-date-block {
+  background: var(--theme-card-bg);
+  border: 1px solid var(--theme-border);
+  border-top: 3px solid var(--theme-accent);
+  width: 78px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1.4;
+  padding: 7px 0;
+}
+.council-date-block > span {
+  display: block;
+  font-size: 12px;
+  color: var(--theme-accent);
+}
+.council-date-block > strong {
+  display: block;
+  font:
+    600 36px/1.2 Georgia,
+    serif;
+  color: var(--theme-text-primary);
+}
+.council-date-block > small {
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+}
+.council-meeting-title-row h2 {
+  margin: 5px 0 8px;
+  font-size: 27px;
+  line-height: 1.4;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.council-title-link {
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.council-title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.council-feature-description {
+  margin: 22px 0;
+  font-size: 16px;
+  color: var(--theme-text-secondary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.council-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.council-feature-bottom .workspace-button {
+  gap: 20px;
+}
+.council-section {
+  margin-top: 34px;
+}
+.council-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.council-section-title h2,
+.council-side-section h2 {
+  font-size: 23px;
+  line-height: 1.4;
+  font-weight: 700;
+  margin: 0;
+}
+.council-section-title > .council-link {
+  font-size: 14px;
+}
+.council-issue-row {
+  display: flex;
+  gap: 20px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--theme-border);
+}
+.council-issue-row > div {
+  min-width: 0;
+}
+.council-issue-row h3 {
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.council-row-number {
+  font:
+    400 22px/1.3 Georgia,
+    serif;
+  color: var(--theme-text-secondary);
+  margin-top: 3px;
+  min-width: 28px;
+}
+.council-row-arrow {
+  margin-left: auto;
+  align-self: center;
+  color: var(--theme-accent);
+  flex-shrink: 0;
+}
+.council-action-panel {
+  border-top: 5px solid var(--theme-accent);
+  padding-top: 19px;
+}
+.council-number-label {
+  font:
+    400 24px/1.3 Georgia,
+    serif;
+  color: var(--theme-accent);
+}
+.council-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--theme-border);
+  cursor: pointer;
+}
+.council-action-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+}
+.council-action-heading strong {
+  min-width: 0;
+  color: var(--council-link);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+}
+.council-action-heading > .council-tag {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.council-action-item:hover strong {
+  text-decoration-thickness: 2px;
+}
+.council-action-item > .council-meta {
+  overflow-wrap: anywhere;
+}
+.council-side-section h2 {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+.council-side-section > .council-link {
+  font-size: 14px;
+}
+.council-progress-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--theme-text-secondary);
+  gap: 12px;
+}
+.council-progress-line strong {
+  font-weight: 500;
+}
+.council-progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 7px;
+  border: 0;
+  background: var(--theme-border);
+  margin: 12px 0 16px;
+}
+.council-progress::-webkit-progress-bar {
+  background: var(--theme-border);
+}
+.council-progress::-webkit-progress-value {
+  background: var(--theme-accent);
+}
+.council-progress::-moz-progress-bar {
+  background: var(--theme-accent);
+}
+.council-recent-record {
+  margin-bottom: 16px;
+}
+.council-recent-record h3 {
+  margin-top: 7px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.council-empty-note {
+  color: var(--theme-text-secondary);
+  font-size: 15px;
+  padding-top: 20px;
+}
+@media (max-width: 1000px) {
+  .council-overview-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 28px;
+  }
+  .council-meeting-feature {
+    padding: 20px;
+  }
+  .council-meeting-title-row {
+    gap: 15px;
+  }
+  .council-meeting-title-row h2 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 760px) {
+  .council-overview-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .council-meeting-title-row h2 {
+    font-size: 23px;
+  }
+  .council-date-block {
+    width: 66px;
+  }
+  .council-section-title h2 {
+    font-size: 21px;
+  }
+  .council-issue-row {
+    gap: 13px;
+  }
+  .council-issue-row h3 {
+    font-size: 17px;
+  }
+  .council-row-number {
+    min-width: 22px;
+    font-size: 20px;
+  }
+}

@@ -78,7 +78,7 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
     return () => document.removeEventListener("keydown", handleKey);
   }, [busy, onClose]);
   return <div className="cloud-modal-backdrop"><div ref={panel} tabIndex={-1} className="cloud-members cloud-password-dialog" role="dialog" aria-modal="true" aria-labelledby="cloud-password-title" aria-busy={busy}>
-    <header><div><span className="cloud-eyebrow">ACCOUNT SECURITY</span><h2 id="cloud-password-title">设置本站密码</h2></div><button type="button" className="cloud-button" disabled={busy} onClick={onClose}>关闭</button></header>
+    <header><div><h2 id="cloud-password-title">设置本站密码</h2></div><button type="button" className="cloud-button" disabled={busy} onClick={onClose}>关闭</button></header>
     <p className="cloud-password-email">{identity.email}</p>
     <p>使用 Google 登录的账号可添加独立密码，并继续保留 Google 登录；已有本站密码的账号可在此修改密码。成员身份和权限保持原样。</p>
     {!saved && <form className="cloud-auth-form" onSubmit={async event => {

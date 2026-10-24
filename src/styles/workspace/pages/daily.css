@@ -1,0 +1,108 @@
+/*
+ * Daily work pages: ActivityView.tsx and OperationsView.tsx (editorial,
+ * assets, inventory). The member card studio keeps its own member-card.css.
+ */
+
+.record-card p {
+  font-size: 1rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.record-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.record-card {
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 35%, transparent);
+  background: var(--theme-card-bg);
+  min-width: 0;
+}
+.record-card h3 {
+  font: 600 1.125rem/1.5 var(--font-sans);
+  margin: 0.5rem 0;
+}
+.resource-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.75rem 0 1rem;
+}
+.resource-links a,
+.resource-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: underline;
+  font: 500 0.875rem/1.5 var(--font-sans);
+  color: var(--theme-accent);
+}
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+.asset-preview {
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--theme-accent-light);
+  margin-bottom: 1rem;
+}
+.asset-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.inventory-count {
+  font: 600 2rem var(--font-sans);
+}
+@media (max-width: 900px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .asset-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.record-card p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.record-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 11px;
+  padding: 20px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.record-card:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--theme-accent) 35%,
+    var(--theme-border)
+  );
+  box-shadow: 0 5px 18px #17334a07;
+}
+.record-card h3 {
+  font-size: 16px;
+}
+.asset-preview {
+  border-radius: 8px;
+}
+@media (max-width: 900px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .asset-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -58,7 +58,7 @@ function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => v
     try { await action(); } catch (err) { setError(cloudBackend.accessErrorMessage(err)); } finally { setPending(""); }
   };
   return <div className="cloud-modal-backdrop"><div className="cloud-members" ref={panel} role="dialog" aria-modal="true" aria-labelledby="cloud-members-title">
-    <header><div><span className="cloud-eyebrow">COUNCIL MEMBERS</span><h2 id="cloud-members-title">成员与访问管理</h2></div><button type="button" className="cloud-button" disabled={!!pending} onClick={onClose}>关闭</button></header>
+    <header><div><h2 id="cloud-members-title">成员与访问管理</h2></div><button type="button" className="cloud-button" disabled={!!pending} onClick={onClose}>关闭</button></header>
     <p className="cloud-help">获批成员可以共同维护会议及日常工作记录。停用后不删除历史记录。管理员角色由所有者调整。</p>
     {error && <p className="cloud-error" role="alert">{error}</p>}
     {!loaded ? <p role="status">正在连接成员服务…</p> : <>

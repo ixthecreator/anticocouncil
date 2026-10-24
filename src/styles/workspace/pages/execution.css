@@ -1,0 +1,81 @@
+/* Execution pages: PostMeetingView.tsx, SupervisionView.tsx and ArchiveView.tsx. */
+
+.execution-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+.execution-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-card-bg);
+}
+.execution-column > div:first-child {
+  padding: 17px;
+  border-bottom: 0;
+}
+.execution-column > div:first-child h3 {
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.execution-column > div:first-child > span {
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff90;
+  min-width: 24px;
+  text-align: center;
+}
+.execution-column .cursor-pointer {
+  border-radius: 9px;
+}
+.execution-column .full-width {
+  margin: 0;
+}
+.page-archive .page-body .border-2,
+.page-supervision .page-body .border-2 {
+  border-radius: 11px;
+}
+.page-archive .page-body button,
+.page-supervision .page-body button {
+  min-height: 40px;
+}
+.page-archive h2,
+.page-supervision h2 {
+  font-size: 19px;
+}
+.page-archive .page-body .flex.justify-between {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.page-archive h3,
+.page-archive h4,
+.page-supervision h4 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1200px) {
+  .execution-board {
+    grid-template-columns: 1fr;
+  }
+  .execution-column {
+    min-height: 0;
+  }
+}
+.council-recent-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.council-recent-count input {
+  width: 64px;
+}
+.council-due-date {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 7px;
+}

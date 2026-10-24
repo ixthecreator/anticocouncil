@@ -1,0 +1,428 @@
+/*
+ * Meeting session pages: MeetingManager.tsx, SessionView.tsx,
+ * AttendanceView.tsx, ParliamentChart.tsx and the session statistics row in
+ * App.tsx. .agenda-title is also used by PostMeetingView.tsx.
+ */
+
+.session-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.session-workspace p {
+  font-size: 1rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.checkin-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.checkin-form .workspace-field {
+  flex: 1;
+}
+.attendance-list {
+  margin-top: 1rem;
+}
+.attendance-list li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--theme-border) 25%, transparent);
+}
+.attendance-list li.next-speaker {
+  background: var(--theme-accent-light);
+  border-left: 3px solid var(--theme-accent);
+}
+.queue-number {
+  font: 500 1.25rem var(--font-mono);
+  color: var(--theme-text-secondary);
+}
+.attendance-person {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.attendance-person strong {
+  font: 600 1rem var(--font-sans);
+}
+.agenda-list article {
+  border-top: 1px solid color-mix(in srgb, var(--theme-border) 25%, transparent);
+  padding: 1rem 0;
+}
+.agenda-title {
+  font: 600 1.125rem/1.5 var(--font-sans);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.agenda-title:hover {
+  text-decoration: underline;
+}
+.voting-title {
+  font: 700 1.5rem/1.6 var(--font-serif);
+  text-align: center;
+  margin: 1.5rem 0 0.5rem;
+}
+.voting-panel > p {
+  margin-bottom: 1rem;
+}
+.voting-panel > .workspace-fields {
+  margin: 1rem 0;
+}
+.vote-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+  margin: 1.25rem 0;
+  font: 500 0.875rem var(--font-sans);
+}
+.vote-totals strong {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.4rem;
+}
+.vote-totals > div:first-child {
+  color: #168047;
+}
+.vote-totals > div:nth-child(2) {
+  color: #bf3c37;
+}
+.vote-buttons > button {
+  flex: 1;
+}
+.manual-votes {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.manual-votes > div {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+@media (max-width: 900px) {
+  .session-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .attendance-list li {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .attendance-person {
+    min-width: 55%;
+  }
+}
+.meeting-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-card-bg);
+  margin-bottom: 22px;
+}
+.meeting-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.meeting-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 10px;
+  color: var(--theme-accent);
+  background: var(--theme-accent-light);
+}
+.meeting-toolbar-title strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.meeting-toolbar-title div > span {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--theme-text-secondary);
+}
+.meeting-select {
+  flex: 1;
+  min-width: 180px;
+  margin-left: auto;
+}
+.meeting-select select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--theme-border);
+  font-size: 13px;
+  min-height: 43px;
+}
+/* The workspace form-control border colour in components.css used to load after this rule. */
+.parliament-app .meeting-select select {
+  border-color: var(--theme-text-secondary);
+}
+.meeting-create-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  flex-basis: 100%;
+  padding-top: 20px;
+  border-top: 1px solid var(--theme-border);
+}
+.meeting-create-form .workspace-field {
+  font-size: 12px;
+}
+.meeting-create-form .workspace-field small {
+  color: var(--theme-text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 5px;
+}
+.meeting-create-form .workspace-error {
+  grid-column: 1/-1;
+}
+.meeting-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-card-bg);
+}
+.stat-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 12px;
+  background: var(--theme-accent-light);
+  color: var(--theme-accent);
+  flex-shrink: 0;
+}
+.stat-icon.amber {
+  background: #f9f1e6;
+  color: #a37436;
+}
+.stat-icon.green {
+  background: #eaf5ef;
+  color: #42866a;
+}
+.stat-card div > span {
+  font-size: 11px;
+  color: var(--theme-text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+.stat-card strong {
+  display: block;
+  font: 600 27px/1.2 var(--font-sans);
+}
+.stat-card strong small {
+  color: var(--theme-text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+}
+.session-columns {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+.session-workspace p {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.checkin-form {
+  flex-wrap: wrap;
+}
+.attendance-list li {
+  padding: 15px 12px;
+  border-top-color: var(--theme-border);
+}
+.attendance-list li.next-speaker {
+  border-radius: 8px;
+  border-top-color: transparent;
+}
+.queue-number {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--theme-bg);
+  font-size: 13px;
+}
+.attendance-person strong {
+  font-size: 14px;
+}
+.agenda-list article {
+  border-top-color: var(--theme-border);
+  padding: 19px 0;
+}
+.agenda-list .workspace-heading {
+  margin-bottom: 10px;
+}
+.agenda-title {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.voting-title {
+  font-family: var(--font-sans);
+  font-size: 20px;
+}
+.vote-totals {
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-bg);
+  padding: 18px 0;
+  font-size: 12px;
+}
+.vote-totals > div + div {
+  border-left: 1px solid var(--theme-border);
+}
+.vote-totals strong {
+  font-size: 28px;
+}
+@media (max-width: 1200px) {
+  .session-columns {
+    grid-template-columns: 1fr;
+  }
+  .stat-card {
+    padding: 16px 12px;
+    gap: 10px;
+  }
+  .stat-card strong small {
+    display: block;
+    margin-top: 5px;
+  }
+  .meeting-toolbar {
+    gap: 15px;
+  }
+  .meeting-toolbar-title div > span {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .meeting-create-form {
+    grid-template-columns: 1fr 1fr;
+  }
+  .meeting-create-form > button {
+    grid-column: 1/-1;
+    justify-self: end;
+  }
+}
+@media (max-width: 600px) {
+  .meeting-toolbar {
+    padding: 17px;
+    gap: 13px;
+  }
+  .meeting-toolbar-title {
+    flex: 1;
+  }
+  .meeting-select {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .meeting-create-form {
+    order: 4;
+    grid-template-columns: 1fr;
+  }
+  .meeting-create-form .workspace-field small {
+    display: block;
+    margin: 4px 0 0;
+  }
+  .meeting-stats {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .stat-card {
+    display: block;
+    padding: 13px 9px;
+  }
+  .stat-icon {
+    display: none;
+  }
+  .stat-card strong {
+    font-size: 24px;
+  }
+  .stat-card strong small {
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .stat-card div > span {
+    font-size: 10px;
+  }
+  .checkin-form .workspace-field {
+    min-width: 100%;
+  }
+  .checkin-form > button {
+    width: 100%;
+  }
+  .session-columns {
+    gap: 0;
+  }
+}
+.parliament-app .meeting-toolbar {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--theme-card-bg);
+}
+.parliament-app .meeting-toolbar {
+  border-top: 4px solid var(--theme-accent);
+}
+.parliament-app .meeting-toolbar .meeting-icon {
+  border-radius: 0;
+}
+.parliament-app .meeting-stats {
+  gap: 20px;
+}
+.parliament-app .stat-card {
+  border: 0;
+  border-left: 3px solid var(--theme-border);
+  border-radius: 0;
+  padding: 8px 18px;
+  background: transparent;
+  box-shadow: none;
+}
+.parliament-app .stat-icon {
+  display: none;
+}
+.parliament-app .stat-card strong {
+  font-size: 28px;
+}
+.parliament-app .stat-card span,
+.parliament-app .stat-card small {
+  font-size: 14px;
+}
+.parliament-app .agenda-list > article {
+  border: 0;
+  border-bottom: 1px solid var(--theme-border);
+  border-radius: 0;
+  padding: 20px 0;
+  background: transparent;
+}
+.parliament-app .agenda-title {
+  color: var(--council-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-size: 18px;
+}

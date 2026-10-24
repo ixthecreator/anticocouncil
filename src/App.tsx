@@ -17,7 +17,7 @@ import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell"
 import { workspacePageFromHash } from "./lib/workspaceNavigation";
 import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
-import "./components/parliament.css";
+import "./styles/workspace/index.css";
 import { Empty } from "./components/WorkspaceForms";
 import { AuthLoadingContent } from "./components/AuthPageFrame";
 import { Users, ListChecks, CircleCheck } from "lucide-react";

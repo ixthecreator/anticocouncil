@@ -1,0 +1,14 @@
+/*
+ * Workspace overrides of Tailwind utility classes that are still used inside
+ * the workspace TSX. Loaded only with the workspace chunk.
+ */
+
+.border-2 {
+  border-width: 1px !important;
+}
+.border-t-2 {
+  border-top-width: 1px !important;
+}
+.border-b-2 {
+  border-bottom-width: 1px !important;
+}
