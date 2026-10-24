@@ -58,7 +58,7 @@ function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => v
     try { await action(); } catch (err) { setError(cloudBackend.accessErrorMessage(err)); } finally { setPending(""); }
   };
   return <div className="cloud-modal-backdrop"><div className="cloud-members" ref={panel} role="dialog" aria-modal="true" aria-labelledby="cloud-members-title">
-    <header><div><span className="cloud-eyebrow">COUNCIL MEMBERS</span><h2 id="cloud-members-title">成员与访问管理</h2></div><button type="button" className="cloud-button" disabled={!!pending} onClick={onClose}>关闭</button></header>
+    <header><div><h2 id="cloud-members-title">成员与访问管理</h2></div><button type="button" className="cloud-button" disabled={!!pending} onClick={onClose}>关闭</button></header>
     <p className="cloud-help">获批成员可以共同维护会议及日常工作记录。停用后不删除历史记录。管理员角色由所有者调整。</p>
     {error && <p className="cloud-error" role="alert">{error}</p>}
     {!loaded ? <p role="status">正在连接成员服务…</p> : <>
@@ -197,18 +197,18 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, draftScope: `cloud:${identity.uid}`, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
 
   return <div className="cloud-gateway"><AuthPageFrame><section className="cloud-gate-card">
-    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
+    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p><button type="button" className="cloud-button primary" onClick={() => onModeChange("local")}>进入本地试用</button><p className="cloud-help">试用数据仅保存在当前浏览器，不会同步到云端。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
     : !identity ? <>
       <h1>{screen === "login" ? "成员登录" : "注册成员账号"}</h1><p>首次使用须验证邮箱并申请加入，经管理员批准后可进入工作台。</p>
       <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => selectEmailScreen("login")} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => selectEmailScreen("register")} disabled={busy}>注册账号</button></div>
       <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => screen === "login" ? cloudBackend.loginWithEmail(email, password) : cloudBackend.registerWithEmail(name, email, password), screen === "register" ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
         {screen === "register" && <label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label>}
         <label>邮箱地址<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy}/></label>
-        <label>密码<input required type="password" minLength={screen === "register" ? 8 : undefined} autoComplete={screen === "register" ? "new-password" : "current-password"} value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
-        {screen === "register" && <p className="cloud-help">至少 8 位。注册后会收到邮箱验证链接，完成验证及成员审批后即可进入。</p>}
+        <label>密码<input required type="password" minLength={screen === "register" ? 8 : undefined} autoComplete={screen === "register" ? "new-password" : "current-password"} aria-describedby={screen === "register" ? "cloud-register-password-hint" : undefined} value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
+        {screen === "register" && <p className="cloud-help" id="cloud-register-password-hint">至少 8 位。注册后会收到邮箱验证链接，完成验证及成员审批后即可进入。</p>}
         <button className="cloud-button primary" type="submit" disabled={busy}>{busy ? "正在处理…" : screen === "login" ? "登录" : "注册并发送验证邮件"}</button>
       </form>
-      <div className="cloud-password-links"><button type="button" disabled={busy} onClick={() => selectEmailScreen("reset")}>忘记密码？</button>{google && <button type="button" disabled={busy} onClick={() => selectEmailScreen("setup")}>给 Google 账号设置本站密码</button>}</div>
+      <div className="cloud-password-links"><button type="button" className="ac-focus--link" disabled={busy} onClick={() => selectEmailScreen("reset")}>忘记密码？</button>{google && <button type="button" className="ac-focus--link" disabled={busy} onClick={() => selectEmailScreen("setup")}>给 Google 账号设置本站密码</button>}</div>
       {google && <><div className="cloud-divider"><span>或者</span></div><button type="button" className="cloud-button google" disabled={busy || redirectPending} onClick={() => void startGoogleLogin()}>{googlePending ? "正在前往 Google…" : redirectPending ? "正在确认 Google 登录…" : "使用 Google 账号登录"}</button></>}
       {googlePending && <div className="cloud-login-wait">
         <p role="status">{googleDelayed ? "本页尚未跳转到 Google，登录服务可能仍在等待网络响应。" : "即将前往 Google 登录页面。选择账号并完成登录后，会自动回到本站确认成员资格。"}</p>
@@ -231,7 +231,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
       <h1>申请加入议会工作区</h1><p>邮箱已验证：<strong>{identity.email}</strong></p><p>填写成员姓名，让管理员确认你的申请。</p><form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => cloudBackend.requestAccess(name), "加入申请已提交。"); }}><label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label><button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在提交…" : "提交加入申请"}</button></form>
     </>}
     {redirectError && <p className="cloud-error" role="alert">{redirectError}</p>}{(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
-    <footer className="cloud-gate-footer">{identity && <><button type="button" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>
+    {configured && <footer className="cloud-gate-footer">{identity && <><button type="button" className="ac-focus--link" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" className="ac-focus--link" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" className="ac-focus--link" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>}
     {identity?.verified && passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </section></AuthPageFrame></div>;
 }

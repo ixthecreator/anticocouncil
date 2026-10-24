@@ -1,0 +1,632 @@
+/*
+ * The workspace frame (WorkspaceShell.tsx): brand header, primary
+ * navigation, service strip, the main white container with breadcrumbs,
+ * tools and page heading, and the footer. It matches the public site frame
+ * (src/components/landing.css). Values come from tokens.css only; widths come
+ * from .ac-container and .ac-surface in base.css.
+ */
+
+.council-app {
+  min-height: 100vh;
+  background: var(--ac-color-page);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.workspace-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.workspace-masthead svg,
+.topbar-tools svg,
+.workspace-footer svg {
+  flex-shrink: 0;
+}
+
+/* Header: brand band with the round logo, site name and product name. */
+.workspace-brand-band {
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.workspace-brand-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-3) var(--ac-space-4);
+  padding-block: var(--ac-space-4);
+}
+.workspace-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  color: var(--ac-color-on-brand);
+  text-decoration: none;
+}
+.workspace-brand:hover {
+  color: var(--ac-color-on-brand);
+}
+.workspace-brand:hover .workspace-brand-name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+.workspace-brand img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  padding: var(--ac-space-1);
+  object-fit: contain;
+  background: var(--ac-color-surface);
+  border-radius: 50%;
+}
+.workspace-brand-name {
+  font: var(--ac-type-h2);
+}
+.workspace-product-name {
+  padding-left: var(--ac-space-4);
+  border-left: 1px solid var(--ac-color-on-brand-muted);
+  color: var(--ac-color-on-brand);
+  font: var(--ac-type-h4);
+  font-weight: 400;
+}
+.workspace-account {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--ac-color-on-brand);
+}
+.workspace-local-account {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  font: var(--ac-type-h5);
+  font-weight: 600;
+}
+
+/* Primary navigation: a white bar, a 4px brand bar under the current item. */
+.workspace-navigation {
+  background: var(--ac-color-surface);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.workspace-menu-button {
+  display: none;
+}
+.workspace-navigation-list {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--ac-space-7);
+}
+.workspace-navigation-list > li > a,
+.workspace-navigation-daily summary,
+.workspace-menu-button {
+  align-items: center;
+  gap: var(--ac-space-2);
+  padding-block: var(--ac-space-3);
+  border: 0;
+  border-block: var(--ac-rule-heavy) solid transparent;
+  background: none;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+  font-weight: 600;
+  line-height: 28px;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.workspace-navigation-list > li > a,
+.workspace-navigation-daily summary {
+  display: inline-flex;
+}
+.workspace-navigation-list > li > a:hover,
+.workspace-navigation-daily summary:hover,
+.workspace-menu-button:hover {
+  color: var(--ac-color-heading);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+.workspace-navigation-list > li > a[aria-current="page"],
+.workspace-navigation-daily summary.has-active-page {
+  border-bottom-color: var(--ac-color-brand);
+}
+
+/* "日常工作": a disclosure whose list is a popover on wider screens. */
+.workspace-navigation-daily {
+  position: relative;
+  margin-left: auto;
+}
+.workspace-navigation-daily summary {
+  list-style: none;
+}
+.workspace-navigation-daily summary::-webkit-details-marker {
+  display: none;
+}
+.workspace-navigation-daily details[open] > summary svg {
+  transform: rotate(180deg);
+}
+.workspace-daily-menu {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: 0;
+  z-index: 100;
+  min-width: 240px;
+  padding-block: var(--ac-space-3);
+  background: var(--ac-color-surface);
+  border: 1px solid var(--ac-color-border);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  box-shadow: var(--ac-shadow-overlay);
+}
+.workspace-daily-menu a {
+  display: block;
+  padding: var(--ac-space-3) var(--ac-space-5) var(--ac-space-3) var(--ac-space-4);
+  border-left: var(--ac-rule-heavy) solid transparent;
+  color: var(--ac-color-heading);
+  text-decoration: none;
+}
+.workspace-daily-menu a:hover {
+  color: var(--ac-color-heading);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+.workspace-daily-menu a[aria-current="page"] {
+  border-left-color: var(--ac-color-brand);
+  font-weight: 600;
+}
+
+/* Service strip: mode tag, one sentence and the save status, on white. */
+.workspace-service-strip {
+  background: var(--ac-color-surface);
+}
+.workspace-service-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  padding-block: var(--ac-space-3);
+  color: var(--ac-color-text);
+  font: var(--ac-type-small);
+}
+.workspace-service-inner .council-tag {
+  flex-shrink: 0;
+}
+/* The sentence grows to fill its line, which keeps the save status at the
+   right end; when the status does not fit, it wraps to the start of the
+   next line. */
+.workspace-service-inner p {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  color: var(--ac-color-success-text);
+  font: var(--ac-type-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.save-status.is-pending {
+  color: var(--ac-color-text-secondary);
+}
+.save-status.connection-error,
+.save-status.connection-offline {
+  color: var(--ac-color-error-text);
+}
+
+/* Main: a grey gap, then the white container. */
+.workspace-content {
+  flex: 1;
+  padding-block: var(--ac-space-7) var(--ac-space-8);
+}
+
+/*
+ * Page head: breadcrumbs, the page heading, then the page tools (search and
+ * settings). Phones keep this order, so the h1 comes before the tools; from
+ * 768px the tools sit on the breadcrumb row, to the right.
+ */
+.workspace-page-head {
+  margin-bottom: var(--ac-space-7);
+}
+.workspace-breadcrumbs {
+  color: var(--ac-color-text);
+  font: var(--ac-type-small);
+}
+.workspace-breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: var(--ac-space-2);
+}
+.workspace-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+}
+.workspace-breadcrumbs li + li::before {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-inline: var(--ac-space-3) var(--ac-space-4);
+  border-top: 1px solid var(--ac-color-text-secondary);
+  border-right: 1px solid var(--ac-color-text-secondary);
+  transform: rotate(45deg);
+}
+.workspace-breadcrumbs a {
+  color: var(--ac-color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.workspace-breadcrumbs a:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-5);
+}
+
+/* Search: a visible "搜索" label, the field, and a clear button. */
+.workspace-search {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--ac-space-3);
+  min-width: 0;
+}
+.workspace-search-label {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+  white-space: nowrap;
+}
+.workspace-search-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.workspace-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  appearance: none;
+}
+/* Room for the clear button once there is text to clear. */
+.workspace-search-field:has(.workspace-search-clear) input {
+  padding-right: var(--ac-space-8);
+}
+.workspace-search input::-webkit-search-cancel-button {
+  display: none;
+}
+.workspace-search input::placeholder {
+  color: var(--ac-color-text-secondary);
+  opacity: 1;
+}
+/* A 44px target over the field's right end; the hover fill stays inside
+   the field's 2px border. */
+.workspace-search-clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: var(--ac-space-1);
+  border: 0;
+  background: none;
+  background-clip: content-box;
+  color: var(--ac-color-heading);
+  cursor: pointer;
+}
+.workspace-search-clear:hover {
+  background-color: var(--ac-color-surface-alt);
+}
+
+/* Settings: a secondary button that opens a popover. */
+.shell-settings {
+  position: relative;
+}
+/* Same size and padding as .workspace-button. */
+.shell-settings > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 2px solid var(--ac-color-brand);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  white-space: nowrap;
+  list-style: none;
+  cursor: pointer;
+}
+.shell-settings > summary::-webkit-details-marker {
+  display: none;
+}
+.shell-settings > summary:hover,
+.shell-settings[open] > summary {
+  background: var(--ac-color-surface-alt);
+}
+.settings-popover {
+  position: absolute;
+  top: calc(100% + var(--ac-space-3));
+  right: 0;
+  z-index: 100;
+  width: 340px;
+  max-width: calc(100vw - 2 * var(--ac-page-inset));
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface);
+  border: 1px solid var(--ac-color-border);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  box-shadow: var(--ac-shadow-overlay);
+  color: var(--ac-color-text);
+}
+.settings-popover-title {
+  margin-bottom: var(--ac-space-4);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+}
+.settings-popover .workspace-help {
+  margin-top: var(--ac-space-3);
+}
+.settings-backup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-5);
+  padding-top: var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border);
+}
+.settings-backup .workspace-button {
+  flex: 1 1 auto;
+}
+.workspace-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  margin-top: var(--ac-space-5);
+  color: var(--ac-color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.workspace-guide-link:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+/* Page heading: h1, one-line lead, and today's date on the right. */
+.page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ac-space-3) var(--ac-space-7);
+  margin-top: var(--ac-space-4);
+}
+.page-heading-text {
+  flex: 1 1 var(--ac-reading-width);
+  min-width: 0;
+}
+.page-heading h1 {
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h1);
+  overflow-wrap: anywhere;
+}
+.page-lead {
+  max-width: var(--ac-reading-width);
+  margin-top: var(--ac-space-3);
+  color: var(--ac-color-text);
+  font-size: var(--ac-font-size-h4);
+  line-height: 1.75;
+}
+.workspace-date {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Footer: white with a heavy brand rule. */
+.workspace-footer {
+  background: var(--ac-color-surface);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+}
+.workspace-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-5) var(--ac-space-8);
+  padding-block: var(--ac-space-7);
+}
+.workspace-footer-name {
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+}
+.workspace-footer-identity p + p {
+  margin-top: var(--ac-space-1);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.workspace-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3) var(--ac-space-6);
+}
+.workspace-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-2);
+  color: var(--ac-color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.workspace-footer-links a:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+@media (min-width: 768px) {
+  .workspace-page-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "crumbs tools"
+      "heading heading";
+    align-items: center;
+    column-gap: var(--ac-space-5);
+  }
+  .workspace-breadcrumbs {
+    grid-area: crumbs;
+  }
+  .topbar-tools {
+    grid-area: tools;
+    justify-content: flex-end;
+    margin-top: 0;
+  }
+  .workspace-search-field {
+    flex: none;
+    width: 280px;
+  }
+  .page-heading {
+    grid-area: heading;
+    margin-top: var(--ac-space-6);
+  }
+}
+@media (min-width: 992px) {
+  .workspace-search-field {
+    width: 320px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .workspace-navigation-list {
+    column-gap: var(--ac-space-5);
+  }
+}
+
+/* Phones: the navigation collapses behind a "菜单" button. */
+@media (max-width: 767px) {
+  .workspace-menu-button {
+    display: inline-flex;
+    min-height: 44px;
+  }
+  .workspace-navigation-list {
+    display: none;
+  }
+  .workspace-navigation-list.is-open {
+    display: block;
+    padding-bottom: var(--ac-space-3);
+    border-top: 1px solid var(--ac-color-border);
+  }
+  .workspace-navigation-list > li > a,
+  .workspace-navigation-daily summary {
+    display: flex;
+    width: 100%;
+    padding: var(--ac-space-3) 0 var(--ac-space-3) var(--ac-space-4);
+    border-block: 0;
+    border-left: var(--ac-rule-heavy) solid transparent;
+  }
+  .workspace-navigation-list > li > a[aria-current="page"],
+  .workspace-navigation-daily summary.has-active-page {
+    border-left-color: var(--ac-color-brand);
+  }
+  .workspace-navigation-daily {
+    margin-left: 0;
+  }
+  .workspace-daily-menu {
+    position: static;
+    min-width: 0;
+    padding: 0 0 0 var(--ac-space-5);
+    border: 0;
+    box-shadow: none;
+  }
+  .workspace-daily-menu a {
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 575px) {
+  .workspace-brand img {
+    width: 44px;
+    height: 44px;
+  }
+  .workspace-brand-name {
+    font: var(--ac-type-h3);
+  }
+  .workspace-product-name {
+    font: var(--ac-type-body);
+  }
+  /* Keep the account name for screen readers; show only the avatar. */
+  .workspace-account .cloud-account summary > span:last-of-type {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* The service strip keeps to one line: the tag, the first clause and
+     the save status. */
+  .workspace-service-more {
+    display: none;
+  }
+  .workspace-content {
+    padding-block: var(--ac-space-4) var(--ac-space-7);
+  }
+  .workspace-page-head {
+    margin-bottom: var(--ac-space-6);
+  }
+}
+
+/* The narrowest phones: a little less padding on 设置 keeps the search
+   hint readable. */
+@media (max-width: 359px) {
+  .shell-settings > summary {
+    padding-inline: var(--ac-space-4);
+  }
+}
+
+@media print {
+  .council-app {
+    background: none;
+  }
+  .workspace-navigation,
+  .workspace-service-strip,
+  .workspace-account,
+  .topbar-tools,
+  .workspace-breadcrumbs,
+  .workspace-footer {
+    display: none;
+  }
+  .workspace-brand-band {
+    background: none;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .workspace-brand,
+  .workspace-product-name {
+    color: var(--ac-color-heading);
+  }
+  .workspace-content {
+    padding: 0;
+  }
+  .workspace-shell .ac-container {
+    width: 100%;
+  }
+  .workspace-shell .ac-surface {
+    padding: 0;
+  }
+}

@@ -15,16 +15,14 @@ import {
 } from "./types";
 import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
 import {
+  workspaceNavigation,
   workspacePageFromHash,
-  workspaceTheme,
-  type WorkspaceTheme,
 } from "./lib/workspaceNavigation";
 import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
-import "./components/parliament.css";
+import "./styles/workspace/index.css";
 import { Empty } from "./components/WorkspaceForms";
 import { AuthLoadingContent } from "./components/AuthPageFrame";
-import { Users, ListChecks, CircleCheck } from "lucide-react";
 import { MeetingManager } from "./components/MeetingManager";
 import { IssueDetailModal } from "./components/IssueDetailModal";
 import { SessionView } from "./components/SessionView";
@@ -138,6 +136,21 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     window.addEventListener("hashchange", navigate);
     return () => window.removeEventListener("hashchange", navigate);
   }, []);
+  // Every workspace page has its own document title. After an in-app page
+  // change (navigation links, links in the page, back and forward) focus
+  // moves to the start of the new page, so the next Tab reaches its
+  // breadcrumbs and heading first. The first page keeps the browser's focus.
+  const shownPage = useRef(activeTab);
+  useEffect(() => {
+    const pageTitle = workspaceNavigation.find(
+      (item) => item.id === activeTab,
+    )?.title;
+    if (pageTitle)
+      document.title = `${pageTitle} · ${storageMode === "local" ? "本地试用" : "协作工作台"} · 安提柯议会`;
+    if (shownPage.current === activeTab) return;
+    shownPage.current = activeTab;
+    document.getElementById("workspace-main")?.focus({ preventScroll: true });
+  }, [activeTab, storageMode]);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [listSortKey, setListSortKey] = useState<
     "priority" | "category" | "status"
@@ -147,15 +160,6 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     useState<string>("all");
   const [selectedPriorityFilter, setSelectedPriorityFilter] =
     useState<string>("all");
-
-  // Theme State
-  const [theme, setTheme] = useState<WorkspaceTheme>(() => {
-    try {
-      return workspaceTheme(localStorage.getItem("app_theme"));
-    } catch {
-      return "parliament";
-    }
-  });
 
   // Modal State
   const [activeIssueForDetail, setActiveIssueForDetail] =
@@ -435,19 +439,10 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
   const currentReports = selectedMeeting ? weeklyReports(data, selectedMeeting.date) : [];
 
   return (
-    <div className={`council-app parliament-app theme-${theme}`}>
+    <div className="council-app parliament-app theme-parliament">
       <WorkspaceShell
         page={activeTab}
         onNavigate={navigateTo}
-        theme={theme}
-        onThemeChange={(next) => {
-          setTheme(next);
-          try {
-            localStorage.setItem("app_theme", next);
-          } catch {
-            // Keep the selected theme for this session.
-          }
-        }}
         mode={storageMode}
         onModeChange={setStorageMode}
         pending={pending}
@@ -526,48 +521,43 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
           />
         )}
         {activeTab === "session" && selectedMeeting && ready && (
-          <div className="meeting-stats" aria-label="本次会议概览">
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Users size={21} />
-              </span>
+          <section className="meeting-stats" aria-label="本次会议概览">
+            {/* The shared stat strip (as on 执行督办), kept as a list of
+                label and value pairs. */}
+            <dl className="council-stat-strip">
               <div>
-                <span>本周安排汇报</span>
-                <strong>
-                  {currentReports.length}
-                  <small> 位成员</small>
-                </strong>
+                <dt>
+                  <span>本周安排汇报的成员</span>
+                </dt>
+                <dd>
+                  <strong>{currentReports.length}</strong>
+                </dd>
               </div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon amber">
-                <ListChecks size={21} />
-              </span>
               <div>
-                <span>本次议题</span>
-                <strong>
-                  {currentIssues.length}
-                  <small> 项议题</small>
-                </strong>
+                <dt>
+                  <span>本次例会议题</span>
+                </dt>
+                <dd>
+                  <strong>{currentIssues.length}</strong>
+                </dd>
               </div>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon green">
-                <CircleCheck size={21} />
-              </span>
               <div>
-                <span>汇报进度</span>
-                <strong>
-                  {
-                    currentReports.filter(
-                      (row) => row.reportStatus !== "pending",
-                    ).length
-                  }
-                  <small> / {currentReports.length} 人已汇报或免汇报</small>
-                </strong>
+                <dt>
+                  <span>已汇报或免汇报</span>
+                </dt>
+                <dd>
+                  <strong>
+                    {
+                      currentReports.filter(
+                        (row) => row.reportStatus !== "pending",
+                      ).length
+                    }{" "}
+                    / {currentReports.length}
+                  </strong>
+                </dd>
               </div>
-            </div>
-          </div>
+            </dl>
+          </section>
         )}
         {activeTab === "cards" && <React.Suspense fallback={<p role="status">正在打开名片制作…</p>}>
           <MemberCardStudio key={props.draftScope} draftScope={props.draftScope} libraryReady={ready}

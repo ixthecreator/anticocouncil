@@ -1,0 +1,365 @@
+/*
+ * Daily work pages: ActivityView.tsx (月度沙龙) and OperationsView.tsx
+ * (编辑部, 资料库, 文创库存). Page-specific layout only: buttons, fields,
+ * tags, tables, empty states and the filter toolbar are the shared
+ * primitives in ../components.css. The member card studio keeps its own
+ * src/components/member-card.css. Values come from tokens.css only.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Shared by the daily pages                                           */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The page opens like the proposal and supervision pages: no section band
+ * under the h1. First the page's main action (one primary button) with a
+ * related external document on the right, then the add or edit form when it
+ * is open, then the filter toolbar with the live result count.
+ */
+.daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+}
+.daily-related {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+/* The form follows the button that opened it. */
+.daily-form > .workspace-form {
+  margin-top: 0;
+}
+/* Phones: the confirm step takes a full line and its buttons share it. */
+@media (max-width: 575px) {
+  .workspace-actions > .daily-confirm {
+    flex: 1 1 100%;
+  }
+  .daily-confirm > .workspace-button {
+    flex: 1 1 auto;
+  }
+}
+/* Pages without filters show the result count on its own line. */
+.daily-count {
+  margin: 0 0 var(--ac-space-3);
+  padding-top: var(--ac-space-4);
+  border-top: 1px solid var(--ac-color-border);
+}
+/*
+ * Focus moves by script to the form heading when a form opens, and to the
+ * result count after a delete removes the focused row. They are not
+ * controls, so (like main[tabindex="-1"] in base.css) they show no ring.
+ */
+.daily-view [tabindex="-1"]:is(:focus, :focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+/* A heading at the top of an add or edit form. */
+.daily-form-title {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+
+/* Label and value pairs in a wrapping line, e.g. "举办者：外联部". */
+.daily-meta,
+.daily-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--ac-space-6);
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.daily-meta > div,
+.daily-roles > div {
+  display: flex;
+  min-width: 0;
+}
+.daily-meta dt,
+.daily-roles dt {
+  flex: none;
+  color: var(--ac-color-text-secondary);
+}
+.daily-meta dt::after,
+.daily-roles dt::after {
+  content: "：";
+}
+.daily-meta dd,
+.daily-roles dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Notes typed by members keep their line breaks. */
+.daily-notes {
+  max-width: var(--ac-reading-width);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ */
+/* 月度沙龙: events grouped by month, date on the left                  */
+/* ------------------------------------------------------------------ */
+
+.activity-month + .activity-month {
+  margin-top: var(--ac-space-7);
+}
+.activity-month > h2 {
+  margin: 0;
+  padding-bottom: var(--ac-space-3);
+  border-bottom: 2px solid var(--ac-color-heading);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+.activity-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-2);
+  padding: var(--ac-space-5) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.activity-when {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+  font-variant-numeric: tabular-nums;
+}
+.activity-when time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--ac-space-3);
+}
+.activity-body {
+  min-width: 0;
+}
+.activity-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-4);
+  margin-bottom: var(--ac-space-3);
+}
+.activity-title h3 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+  overflow-wrap: anywhere;
+}
+.activity-body .daily-notes {
+  margin: var(--ac-space-3) 0 0;
+}
+@media (min-width: 768px) {
+  .activity-row {
+    grid-template-columns: 170px minmax(0, 1fr);
+    column-gap: var(--ac-space-7);
+  }
+  .activity-when time {
+    flex-direction: column;
+  }
+  .activity-when time > span + span {
+    color: var(--ac-color-text);
+    font-weight: 400;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 编辑部 and 文创库存: tables                                         */
+/* ------------------------------------------------------------------ */
+
+.daily-table tbody th {
+  width: auto;
+}
+.daily-table tbody th .daily-notes {
+  font-weight: 400;
+}
+.daily-table .council-tag {
+  vertical-align: baseline;
+}
+/* 分工: one line per role; a card link follows the author's name. */
+.daily-roles {
+  flex-direction: column;
+}
+.daily-roles dd {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--ac-space-3);
+}
+/*
+ * The actions column takes only the room its buttons need. Rows are
+ * top-aligned, so the buttons move up by the difference between their
+ * height and a line of text: their labels sit on the first line of the
+ * other cells, and the row grows no taller for them.
+ */
+.daily-table .daily-table-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+.daily-table-actions > .workspace-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  margin-block: calc(-1 * var(--ac-space-3));
+}
+/* While 删除 asks for confirmation, 确认删除 and 取消 take a line of their
+   own under the edit button, so the column keeps its width. */
+.daily-table-actions > .workspace-actions:has(> .daily-confirm) {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.daily-confirm {
+  flex-wrap: nowrap;
+}
+@media (min-width: 992px) {
+  .editorial-table tbody th {
+    width: 25%;
+  }
+}
+/* 992-1219px: the editorial table is at its narrowest, so its row buttons
+   stack and leave the names in 分工 room for one line. */
+@media (min-width: 992px) and (max-width: 1219px) {
+  .editorial-table .daily-table-actions > .workspace-actions,
+  .editorial-table .daily-confirm {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+@media (min-width: 1220px) {
+  .editorial-table tbody th {
+    width: 30%;
+  }
+}
+
+/*
+ * Stacked rows: components.css stacks every .council-table below 768px, and
+ * the editorial table (council-table--stack-md) up to 991px. In a stacked
+ * row the roles and the buttons each take a full line.
+ */
+@media (max-width: 991px) {
+  .editorial-table td:has(> .daily-roles),
+  .editorial-table .daily-table-actions {
+    flex: 1 1 100%;
+    width: auto;
+    white-space: normal;
+  }
+  .editorial-table .daily-table-actions > .workspace-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    margin-block: 0;
+  }
+}
+/* ... and the inventory table below 768px. */
+@media (max-width: 767px) {
+  .inventory-table .daily-table-actions {
+    flex: 1 1 100%;
+    width: auto;
+    white-space: normal;
+  }
+  .inventory-table .daily-table-actions > .workspace-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    margin-block: 0;
+  }
+}
+
+/* Quantity: a tabular number with its unit in body text. */
+.inventory-count {
+  color: var(--ac-color-heading);
+  white-space: nowrap;
+}
+.inventory-count strong {
+  font: 700 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* 资料库: a grid of cards, 3 / 2 / 1 columns                          */
+/* ------------------------------------------------------------------ */
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-7);
+  margin: var(--ac-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 576px) {
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 992px) {
+  .asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.asset-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-bottom: var(--ac-space-5);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.asset-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+}
+.asset-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.asset-preview svg {
+  width: 50px;
+  height: 50px;
+}
+.asset-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ac-space-3);
+  min-width: 0;
+  padding-top: var(--ac-space-4);
+}
+.asset-body h2 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+  overflow-wrap: anywhere;
+}
+.asset-body .daily-notes {
+  margin: 0;
+}
+.asset-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--ac-space-5);
+}
+.asset-footer .council-link svg {
+  margin: 0 var(--ac-space-2) 0 0;
+}
+.asset-body > .workspace-actions {
+  margin-top: auto;
+  padding-top: var(--ac-space-3);
+}

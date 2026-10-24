@@ -1,0 +1,455 @@
+/*
+ * Meeting pages: the meeting toolbar (MeetingManager.tsx, shown on the
+ * session and post-meeting pages), the meeting figures row (App.tsx), the
+ * session view with agenda, minutes and the division (SessionView.tsx) and
+ * the weekly report table (AttendanceView.tsx). .agenda-title is also used
+ * by PostMeetingView.tsx. Values come from src/design-system/tokens.css.
+ * Shared primitives (buttons, form groups, tags, tables, stat numbers,
+ * empty states) are styled in components.css; this file only lays them out.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Meeting toolbar: choose, rename or create a meeting                 */
+/* ------------------------------------------------------------------ */
+
+.meeting-toolbar {
+  margin: 0 0 var(--ac-space-7);
+  padding: 0 0 var(--ac-space-6);
+  border-bottom: 1px solid var(--ac-color-border);
+  background: var(--ac-color-surface);
+}
+.meeting-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ac-space-4) var(--ac-space-5);
+}
+.meeting-select {
+  flex: 1 1 320px;
+  max-width: var(--ac-reading-width);
+}
+.meeting-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+}
+/* Below 992px the select takes the full row so the meeting name is not cut
+   off under the chevron; the two buttons go on the line below. */
+@media (max-width: 991px) {
+  .meeting-select {
+    flex-basis: 100%;
+  }
+  .meeting-toolbar-actions {
+    flex-basis: 100%;
+  }
+}
+
+/* The rename and create forms open under the row. */
+.meeting-form {
+  margin: var(--ac-space-6) 0 0;
+}
+.meeting-form-heading {
+  margin: 0 0 var(--ac-space-5);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+.meeting-form > .workspace-field {
+  max-width: var(--ac-reading-width);
+}
+.meeting-form > .workspace-error {
+  margin: 0 0 var(--ac-space-6);
+}
+
+/* ------------------------------------------------------------------ */
+/* Meeting figures: the shared stat strip (components.css)            */
+/* ------------------------------------------------------------------ */
+
+/* The figures are a <dl class="council-stat-strip">: the strip's own
+   strong/span styles sit inside dt and dd. A dt has to come first in the
+   source, so each pair is reversed to show the number above its label. */
+.meeting-stats {
+  margin: 0 0 var(--ac-space-8);
+}
+.meeting-stats .council-stat-strip {
+  margin: 0;
+}
+.meeting-stats .council-stat-strip > div {
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+.meeting-stats dd {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Session layout: agenda and minutes beside the division              */
+/* ------------------------------------------------------------------ */
+
+.session-workspace p {
+  overflow-wrap: anywhere;
+}
+.session-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--ac-space-8) var(--ac-space-7);
+  align-items: start;
+}
+.session-main {
+  min-width: 0;
+}
+@media (max-width: 991px) {
+  .session-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A small heading inside a section, e.g. "会议摘要". */
+.session-subheading {
+  margin: var(--ac-space-6) 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h4);
+}
+.workspace-fields > .session-subheading {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Agenda: one row per issue, the title is the link                   */
+/* ------------------------------------------------------------------ */
+
+.agenda-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agenda-item {
+  padding: var(--ac-space-5) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.agenda-item:first-child {
+  padding-top: 0;
+}
+.agenda-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ac-space-3) var(--ac-space-4);
+}
+.agenda-item-head h3 {
+  min-width: 0;
+  margin: 0;
+  font: var(--ac-type-h4);
+}
+.agenda-item-head .council-tag {
+  flex: none;
+  margin-top: var(--ac-space-1);
+}
+.agenda-item > .council-meta {
+  margin-top: var(--ac-space-2);
+}
+.agenda-discussion {
+  margin: var(--ac-space-3) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+
+/* A title that opens the issue: a link-styled button. */
+.agenda-title {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ac-color-link);
+  font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  text-align: left;
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.agenda-title:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Division: three result figures, one result sentence, no chart      */
+/* ------------------------------------------------------------------ */
+
+.voting-switch {
+  margin: 0 0 var(--ac-space-6);
+}
+.voting-title {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+  overflow-wrap: anywhere;
+}
+.voting-description {
+  margin: var(--ac-space-3) 0 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.voting-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ac-space-6) var(--ac-space-7);
+  margin: var(--ac-space-6) 0 0;
+}
+
+.division-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--ac-space-7) 0 0;
+}
+/* Colour on the top rule supports the label; it never stands alone. */
+.division-figure {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: var(--ac-space-3) var(--ac-space-4) 0;
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-text-secondary);
+}
+.division-figure + .division-figure {
+  border-left: 1px solid var(--ac-color-border);
+}
+.division-figure:first-child {
+  padding-left: 0;
+}
+.division-figure.is-approve {
+  border-top-color: var(--ac-color-success);
+}
+.division-figure.is-reject {
+  border-top-color: var(--ac-color-error);
+}
+.division-figure dt {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.division-figure dd {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-display) / 56px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+
+.division-result {
+  margin: var(--ac-space-5) 0 0;
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-body);
+}
+.division-result .council-tag {
+  margin-right: var(--ac-space-2);
+}
+
+/* Member voting: choose a member, then one of three buttons. */
+.voting-ballot {
+  margin: var(--ac-space-6) 0 0;
+}
+.vote-buttons > .workspace-button {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vote-buttons > .workspace-button.is-chosen {
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.vote-buttons > .workspace-button.is-chosen:hover {
+  border-color: var(--ac-color-brand-dark);
+  background: var(--ac-color-brand-dark);
+}
+.voting-ballot > .council-meta,
+.voting-ballot > .workspace-help {
+  margin: var(--ac-space-3) 0 0;
+}
+
+/* Manual tally: one labelled row per option with − / + steps. */
+.manual-votes {
+  min-width: 0;
+  margin: var(--ac-space-6) 0 0;
+  padding: 0;
+  border: 0;
+}
+.manual-votes legend {
+  margin: 0 0 var(--ac-space-3);
+  padding: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+}
+.manual-vote {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  padding: var(--ac-space-3) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.manual-vote:first-of-type {
+  border-top: 1px solid var(--ac-color-border);
+}
+.manual-vote-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.manual-vote-count {
+  min-width: var(--ac-space-8);
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-h3) / 28px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.workspace-button.manual-vote-step {
+  width: 44px;
+  padding-inline: 0;
+}
+
+.voting-finish {
+  margin-top: var(--ac-space-6);
+}
+.voting-finish + .workspace-help {
+  margin: var(--ac-space-3) 0 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Weekly reports: arrange a speaker, then the queue as a table        */
+/* ------------------------------------------------------------------ */
+
+.checkin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ac-space-4) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-7);
+}
+.checkin-form > .workspace-field {
+  flex: 1 1 280px;
+  max-width: var(--ac-reading-width);
+}
+.checkin-form > .workspace-button {
+  flex: none;
+}
+
+.attendance-summary {
+  margin: 0 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+
+/* Room for the next speaker's 4px rule in front of every first cell. */
+.attendance-table tr > :first-child {
+  padding-left: var(--ac-space-4);
+}
+.attendance-table .attendance-queue {
+  width: var(--ac-space-9);
+  color: var(--ac-color-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.attendance-table tbody th {
+  width: auto;
+}
+/* Status and action columns shrink to their content. */
+.attendance-table .attendance-status,
+.attendance-table .attendance-action {
+  width: 1%;
+  white-space: nowrap;
+}
+.attendance-table tbody tr.is-next {
+  background: var(--ac-color-surface-alt);
+}
+/* The next speaker: a heavy brand rule down the left edge of the row. */
+.attendance-table tbody tr > :first-child {
+  position: relative;
+}
+.attendance-table tbody tr.is-next > :first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--ac-rule-heavy);
+  background: var(--ac-color-brand);
+}
+.attendance-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font-weight: 600;
+}
+.attendance-note {
+  display: block;
+  margin-top: var(--ac-space-2);
+  color: var(--ac-color-text);
+  font-weight: 400;
+}
+.attendance-table .attendance-action {
+  text-align: right;
+}
+
+@media (max-width: 767px) {
+  .attendance-table tbody tr {
+    position: relative;
+    padding-left: var(--ac-space-4);
+  }
+  .attendance-table tbody tr > :first-child {
+    position: static;
+    padding-left: 0;
+  }
+  .attendance-table tbody tr.is-next > :first-child::before {
+    content: none;
+  }
+  .attendance-table tbody tr.is-next::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--ac-rule-heavy);
+    background: var(--ac-color-brand);
+  }
+  /* Number and name share the first line; status and action wrap below,
+     the status lined up under the name: the 30px number column plus the
+     row's 20px column gap put the name 50px in. */
+  .attendance-table tbody .attendance-queue {
+    flex: none;
+    align-self: flex-start;
+    width: var(--ac-space-7);
+  }
+  .attendance-table tbody th {
+    flex: 1 1 calc(100% - var(--ac-space-8));
+    min-width: 0;
+  }
+  .attendance-table tbody td.attendance-status {
+    width: auto;
+    margin-left: var(--ac-space-8);
+  }
+  .attendance-table tbody td.attendance-action {
+    width: auto;
+    margin-left: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phones                                                              */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 575px) {
+  .meeting-toolbar-actions > .workspace-button {
+    flex: 1 1 0;
+  }
+  .checkin-form > .workspace-button {
+    flex: 1 1 100%;
+  }
+  .division-figure {
+    padding-inline: var(--ac-space-3);
+  }
+}

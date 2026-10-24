@@ -7,7 +7,7 @@ import {
   overviewData,
   responsibleName,
 } from "./councilOverview";
-import { workspacePageFromHash, workspaceTheme } from "./workspaceNavigation";
+import { workspacePageFromHash } from "./workspaceNavigation";
 
 const meeting = (id: string, date: string): Meeting => ({
   id,
@@ -189,14 +189,4 @@ test("navigation preserves all legacy deep links and saved themes", () => {
     expect(workspacePageFromHash(`#${page}`)).toBe(page);
   expect(workspacePageFromHash("")).toBe("overview");
   expect(workspacePageFromHash("#unknown")).toBe("overview");
-  for (const theme of [
-    "parliament",
-    "classic",
-    "prussian",
-    "burgundy",
-    "latenight",
-  ] as const)
-    expect(workspaceTheme(theme)).toBe(theme);
-  expect(workspaceTheme(null)).toBe("parliament");
-  expect(workspaceTheme("unknown")).toBe("parliament");
 });

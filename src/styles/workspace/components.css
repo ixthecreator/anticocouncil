@@ -1,0 +1,736 @@
+/*
+ * Workspace primitives shared by every page: sections and headings, buttons
+ * and link buttons, form groups, alerts, empty states, tags, tables, stat
+ * numbers, filter toolbars and the loading row. Values come from
+ * src/design-system/tokens.css only. Focus rings are the global ones in
+ * src/design-system/base.css: nothing here sets outline or box-shadow on a
+ * focusable element, so the ring always shows.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Sections and headings                                               */
+/* ------------------------------------------------------------------ */
+
+/* A section of the page: a heavy brand rule above, no box around it. */
+.workspace-panel {
+  margin: 0 0 var(--ac-space-8);
+  padding: var(--ac-space-5) 0 0;
+  border: 0;
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text);
+}
+.workspace-panel:last-child {
+  margin-bottom: 0;
+}
+
+.workspace-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ac-space-4) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+}
+.workspace-heading > :first-child {
+  min-width: 0;
+}
+.workspace-heading h2 {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
+  overflow-wrap: anywhere;
+}
+/* A count after a heading, e.g. "议程与执行 3". */
+.workspace-heading h2 small {
+  margin-left: var(--ac-space-3);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
+
+/* Secondary (default): white, brand text, 2px brand border. */
+.workspace-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.workspace-button:hover {
+  background: var(--ac-color-surface-alt);
+}
+.workspace-button svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* Primary: one per group. */
+.workspace-button.primary {
+  border-color: var(--ac-color-brand);
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.workspace-button.primary:hover {
+  border-color: var(--ac-color-brand-dark);
+  background: var(--ac-color-brand-dark);
+}
+
+/* Destructive: the secondary style in error colours. */
+.workspace-button.danger {
+  border-color: var(--ac-color-error-text);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-error-text);
+}
+.workspace-button.danger:hover {
+  background: var(--ac-color-surface-alt);
+}
+
+/* Low-emphasis action: looks like a link, keeps the 44px target. */
+.workspace-button.subtle {
+  padding-inline: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ac-color-link);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.workspace-button.subtle:hover {
+  background: transparent;
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+
+/* A button that reads as a link, e.g. a title that opens a record. */
+.council-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--ac-color-link);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.council-link:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+.council-link svg {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: var(--ac-space-2);
+  vertical-align: -0.15em;
+}
+
+/*
+ * A record title: the one link of a list row or card, i.e. a council-link
+ * that is the content of a heading or of a table row header. Semibold link
+ * colour, no underline at rest, a 2px underline on hover (as the public
+ * record lists). The heading sets the size.
+ */
+:is(h2, h3, h4) > .council-link,
+.council-table tbody th > .council-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+:is(h2, h3, h4) > .council-link:hover,
+.council-table tbody th > .council-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* Link-styled buttons take the link focus look of base.css: white
+   background, black text, no underline, inside the double ring. */
+.council-link:focus-visible,
+.workspace-button.subtle:focus-visible {
+  background-color: var(--ac-color-surface);
+  color: var(--ac-color-focus-inner) !important;
+  text-decoration: none !important;
+}
+
+/* Disabled: a muted token style, never faded text. */
+.workspace-button:disabled,
+.workspace-button.primary:disabled,
+.workspace-button.danger:disabled {
+  border-color: var(--ac-color-border);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  text-decoration: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.workspace-button.subtle:disabled,
+.council-link:disabled {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ac-color-text-secondary);
+  text-decoration: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+/* A row of buttons. */
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+  margin-top: var(--ac-space-4);
+}
+.workspace-actions .workspace-actions {
+  margin-top: 0;
+}
+/* Phones: buttons in a row grow to fill it, so a row of buttons never
+   ends at a ragged edge; a lone button spans the full width. */
+@media (max-width: 575px) {
+  .workspace-actions > .workspace-button:not(.subtle) {
+    flex: 1 1 auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Forms                                                               */
+/* ------------------------------------------------------------------ */
+
+/* A form block on a secondary background: one column, groups 25px apart. */
+.workspace-form {
+  margin: var(--ac-space-5) 0;
+  padding: var(--ac-space-5);
+  border: 0;
+  background: var(--ac-color-surface-alt);
+}
+.workspace-form .workspace-actions {
+  justify-content: flex-start;
+  margin-top: var(--ac-space-6);
+}
+.workspace-form > .workspace-error {
+  margin: var(--ac-space-6) 0 0;
+}
+
+.workspace-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-6);
+}
+.workspace-fields > .workspace-button {
+  justify-self: start;
+}
+
+/* A form group: label, optional hint and error, then the control. */
+.workspace-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.workspace-field > span:first-child,
+.workspace-label {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.workspace-field .workspace-help {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+.workspace-field
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+}
+.workspace-field textarea {
+  line-height: 28px;
+  resize: vertical;
+}
+.workspace-field :is(input, select, textarea):disabled {
+  border-color: var(--ac-color-border);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  cursor: not-allowed;
+}
+.workspace-field :is(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--ac-color-error);
+}
+.workspace-field :is(input, textarea)::placeholder {
+  color: var(--ac-color-text-secondary);
+  opacity: 1;
+}
+
+/* File upload: the chooser button looks like a secondary button. */
+.workspace-field input[type="file"] {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.workspace-field input[type="file"]::file-selector-button {
+  min-height: 44px;
+  margin: 0 var(--ac-space-3) 0 0;
+  padding: var(--ac-space-3) var(--ac-space-5);
+  border: 2px solid var(--ac-color-brand);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-brand);
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  cursor: pointer;
+}
+.workspace-field input[type="file"]::file-selector-button:hover {
+  background: var(--ac-color-surface-alt);
+}
+
+/* A group with an error: heavy error rule on the left, bold message. */
+.workspace-field--error {
+  padding-left: var(--ac-space-4);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-error);
+}
+.workspace-field-error {
+  margin: 0;
+  color: var(--ac-color-error-text);
+  font: 700 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+
+/* A fieldset that disables the whole page while data loads. */
+.workspace-editable {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Text helpers                                                        */
+/* ------------------------------------------------------------------ */
+
+.workspace-help {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.council-meta {
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+.council-nowrap {
+  white-space: nowrap;
+}
+.notes-text {
+  margin: var(--ac-space-3) 0;
+  white-space: pre-wrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty states, alerts and loading                                    */
+/* ------------------------------------------------------------------ */
+
+.workspace-empty {
+  margin: var(--ac-space-5) 0;
+  padding: var(--ac-space-5);
+  border: 0;
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-body);
+  text-align: left;
+}
+.workspace-empty > :first-child {
+  margin-top: 0;
+}
+.workspace-empty > :last-child {
+  margin-bottom: 0;
+}
+
+/* Error alert: heavy error rule on the left, bold error-coloured message. */
+.workspace-error,
+.workspace-connection-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 0;
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-error);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-error-text);
+  font: 700 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.workspace-error > :not(button):first-child,
+.workspace-connection-error > :not(button):first-child {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+/* A plain message with a close button stays on one row. */
+.workspace-error:has(> button:not(.workspace-button)) {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+/* A plain close button such as "×" inside an alert. */
+.workspace-error > button:not(.workspace-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  margin: calc(-1 * var(--ac-space-3)) calc(-1 * var(--ac-space-3)) calc(-1 * var(--ac-space-3)) auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ac-color-error-text);
+  font: 400 var(--ac-font-size-h3) / 1 var(--ac-font-family);
+  cursor: pointer;
+}
+.workspace-error > button:not(.workspace-button):hover {
+  background: var(--ac-color-error-bg);
+}
+
+/* Success notice: success colours with an icon and text. */
+.workspace-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) var(--ac-space-5);
+  border: 0;
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-success);
+  background: var(--ac-color-success-bg);
+  color: var(--ac-color-success-text);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.workspace-notice svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* The loading row; AuthLoadingContent draws its own progress bar. */
+.workspace-loading {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--ac-color-text);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tags: a text label, colour only as support                          */
+/* ------------------------------------------------------------------ */
+
+.council-tag {
+  display: inline-block;
+  padding: var(--ac-space-1) var(--ac-space-3);
+  border: 0;
+  border-radius: 0;
+  background: var(--ac-color-page);
+  color: var(--ac-color-heading);
+  font: 700 var(--ac-font-size-small) / 22px var(--ac-font-family);
+  white-space: nowrap;
+}
+.council-tag.purple {
+  background: var(--ac-color-brand-tint);
+  color: var(--ac-color-brand);
+}
+.council-tag.blue {
+  background: var(--ac-color-info-bg);
+  color: var(--ac-color-info-text);
+}
+.council-tag.green {
+  background: var(--ac-color-success-bg);
+  color: var(--ac-color-success-text);
+}
+.council-tag.amber {
+  background: var(--ac-color-warning-bg);
+  color: var(--ac-color-warning-text);
+}
+.council-tag.red {
+  background: var(--ac-color-error-bg);
+  color: var(--ac-color-error-text);
+}
+.council-tag.grey {
+  background: var(--ac-color-page);
+  color: var(--ac-color-heading);
+}
+
+/* ------------------------------------------------------------------ */
+/* Stat numbers                                                        */
+/* ------------------------------------------------------------------ */
+
+.council-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-5) var(--ac-space-8);
+  margin: 0 0 var(--ac-space-7);
+}
+.council-stat-strip > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-2);
+  min-width: 0;
+}
+.council-stat-strip strong {
+  color: var(--ac-color-brand);
+  font: 700 var(--ac-font-size-h1) / 40px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+.council-stat-strip span {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* ------------------------------------------------------------------ */
+/* Filter toolbar                                                      */
+/* ------------------------------------------------------------------ */
+
+.council-filter-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3) var(--ac-space-4);
+  margin: 0 0 var(--ac-space-5);
+  padding: var(--ac-space-4) 0;
+  border-block: 1px solid var(--ac-color-border);
+  background: var(--ac-color-surface);
+}
+.council-filter-toolbar label {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.council-filter-toolbar :is(select, input) {
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: var(--ac-space-3);
+  border: 2px solid var(--ac-color-input-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-heading);
+  font: 400 var(--ac-font-size-body) / 20px var(--ac-font-family);
+}
+/* The result count sits at the end of the row. */
+.council-filter-toolbar > .council-meta,
+.council-filter-toolbar > span:last-child {
+  margin-left: auto;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tables                                                              */
+/* ------------------------------------------------------------------ */
+
+/*
+ * position: relative keeps visually hidden captions inside the scroll box.
+ * The 5px inline padding (pulled back with a negative margin) gives the 4px
+ * focus ring of a control at either edge room inside the scroll box, which
+ * would otherwise clip it.
+ */
+.council-table-wrap {
+  position: relative;
+  margin-inline: calc(-1 * var(--ac-space-2));
+  padding-inline: var(--ac-space-2);
+  overflow-x: auto;
+}
+.council-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+.council-table caption {
+  text-align: left;
+}
+.council-table thead th {
+  padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-4) 0;
+  border-bottom: 2px solid var(--ac-color-heading);
+  color: var(--ac-color-heading);
+  font-weight: 700;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.council-table td,
+.council-table tbody th {
+  padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-4) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+  vertical-align: top;
+}
+.council-table tbody th {
+  width: 44%;
+  color: var(--ac-color-heading);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.council-table tbody th .council-meta {
+  display: block;
+  margin-top: var(--ac-space-2);
+}
+.council-table :is(th, td):last-child {
+  padding-right: 0;
+}
+.council-table :is(th, td).is-numeric {
+  text-align: right;
+}
+
+@media (max-width: 767px) {
+  .council-stat-strip {
+    gap: var(--ac-space-4) var(--ac-space-7);
+  }
+  .council-filter-toolbar > .council-meta,
+  .council-filter-toolbar > span:last-child {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+/*
+ * Stacked rows. Below 768px every .council-table shows each row as a block:
+ * the row header first, then one line per labelled cell, the label in
+ * secondary text beside the value (the same summary-list look as the fact
+ * lists on the proposal and execution cards). Cells without a label, such
+ * as actions, share the last line. Column headers stay in the markup for
+ * assistive technology, so the generated label is visual only (the "/ ''"
+ * alternative text; the first declaration is the fallback for browsers
+ * without it).
+ *
+ * .council-table--stack-md opts a wide table in to the stacked rows up to
+ * 991px. The two blocks below are the same rules for the two breakpoints.
+ */
+@media (max-width: 767px) {
+  .council-table,
+  .council-table tbody {
+    display: block;
+  }
+  .council-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .council-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ac-space-3) var(--ac-space-5);
+    padding: var(--ac-space-4) 0;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .council-table tbody tr:first-child {
+    border-top: 2px solid var(--ac-color-heading);
+  }
+  /* The stacked table's heavy top rule replaces the toolbar's bottom rule. */
+  .council-filter-toolbar:has(+ .council-table-wrap > .council-table) {
+    border-bottom: 0;
+  }
+  .council-table td,
+  .council-table tbody th {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .council-table tbody th,
+  .council-table td[data-label] {
+    flex: 1 1 100%;
+  }
+  .council-table :is(th, td).is-numeric {
+    text-align: left;
+  }
+  .council-table td[data-label]::before {
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    display: inline-block;
+    min-width: 5em;
+    margin-right: var(--ac-space-3);
+    color: var(--ac-color-text-secondary);
+    font-weight: 400;
+  }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .council-table--stack-md,
+  .council-table--stack-md tbody {
+    display: block;
+  }
+  .council-table--stack-md thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .council-table--stack-md tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ac-space-3) var(--ac-space-5);
+    padding: var(--ac-space-4) 0;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .council-table--stack-md tbody tr:first-child {
+    border-top: 2px solid var(--ac-color-heading);
+  }
+  .council-filter-toolbar:has(+ .council-table-wrap > .council-table--stack-md) {
+    border-bottom: 0;
+  }
+  .council-table--stack-md td,
+  .council-table--stack-md tbody th {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .council-table--stack-md tbody th,
+  .council-table--stack-md td[data-label] {
+    flex: 1 1 100%;
+  }
+  .council-table--stack-md :is(th, td).is-numeric {
+    text-align: left;
+  }
+  .council-table--stack-md td[data-label]::before {
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    display: inline-block;
+    min-width: 5em;
+    margin-right: var(--ac-space-3);
+    color: var(--ac-color-text-secondary);
+    font-weight: 400;
+  }
+}

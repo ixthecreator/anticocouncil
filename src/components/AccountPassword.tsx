@@ -78,7 +78,7 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
     return () => document.removeEventListener("keydown", handleKey);
   }, [busy, onClose]);
   return <div className="cloud-modal-backdrop"><div ref={panel} tabIndex={-1} className="cloud-members cloud-password-dialog" role="dialog" aria-modal="true" aria-labelledby="cloud-password-title" aria-busy={busy}>
-    <header><div><span className="cloud-eyebrow">ACCOUNT SECURITY</span><h2 id="cloud-password-title">设置本站密码</h2></div><button type="button" className="cloud-button" disabled={busy} onClick={onClose}>关闭</button></header>
+    <header><div><h2 id="cloud-password-title">设置本站密码</h2></div><button type="button" className="cloud-button" disabled={busy} onClick={onClose}>关闭</button></header>
     <p className="cloud-password-email">{identity.email}</p>
     <p>使用 Google 登录的账号可添加独立密码，并继续保留 Google 登录；已有本站密码的账号可在此修改密码。成员身份和权限保持原样。</p>
     {!saved && <form className="cloud-auth-form" onSubmit={async event => {
@@ -89,9 +89,9 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
       catch (err) { setError(cloudBackend.accessErrorMessage(err)); }
       finally { setPassword(""); setConfirmation(""); setBusy(false); }
     }}>
-      <label>新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
+      <label>新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" aria-describedby="cloud-site-password-hint" value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
       <label>再次输入新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={busy}/></label>
-      <p className="cloud-help">至少 8 位。这是本站独立密码，无需填写 Google 或邮箱本身的密码。</p>
+      <p className="cloud-help" id="cloud-site-password-hint">至少 8 位。这是本站独立密码，无需填写 Google 或邮箱本身的密码。</p>
       <button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在保存…" : "保存本站密码"}</button>
     </form>}
     {notice && <p className="cloud-notice" role="status">{notice}</p>}

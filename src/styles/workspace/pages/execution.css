@@ -1,0 +1,618 @@
+/*
+ * Execution pages: the post-meeting board (PostMeetingView.tsx), execution
+ * supervision (SupervisionView.tsx) and the minutes archive
+ * (ArchiveView.tsx). Values come from src/design-system/tokens.css only.
+ * Shared primitives (buttons, form groups, tags, tables, empty states, stat
+ * numbers, the filter toolbar) are styled in components.css; this file only
+ * lays them out.
+ */
+
+/* ------------------------------------------------------------------ */
+/* 会后执行: three status columns, stacked on narrow screens            */
+/* ------------------------------------------------------------------ */
+
+.execution-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ac-space-8);
+  align-items: start;
+}
+@media (min-width: 992px) {
+  .execution-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--ac-space-7);
+  }
+}
+
+/* A column is a section under a heavy brand rule, like every other
+   workspace section: the status is the h2 text, the count follows it in
+   small secondary text (as "会议目录 共 2 场"). */
+.execution-column {
+  min-width: 0;
+  padding: var(--ac-space-4) 0 0;
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+}
+.execution-column-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--ac-space-1) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-4);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
+}
+.execution-column-count {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+.execution-column-empty {
+  margin: 0;
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-body);
+}
+
+/* Cards are rows separated by 1px rules; the title is the one link. */
+.execution-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.execution-card {
+  padding: var(--ac-space-5) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  cursor: pointer;
+}
+/* The heading's spacing already separates the first card from the rule. */
+.execution-card:first-child {
+  padding-top: 0;
+}
+.execution-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-3);
+}
+/* Reference number and department, as on the proposal cards. */
+.execution-card-meta-line {
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.execution-card-title {
+  margin: 0 0 var(--ac-space-3);
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  overflow-wrap: anywhere;
+}
+.execution-card-meta-line + .execution-card-title {
+  margin-top: var(--ac-space-2);
+}
+.execution-card-title .council-link {
+  font-weight: 600;
+}
+
+/* Responsible person, due date, date raised: label then value. */
+.execution-card-meta {
+  display: grid;
+  gap: var(--ac-space-1);
+  margin: 0;
+  font: var(--ac-type-small);
+}
+.execution-card-meta > div {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  column-gap: var(--ac-space-3);
+}
+.execution-card-meta dt {
+  color: var(--ac-color-text-secondary);
+}
+.execution-card-meta dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-1) var(--ac-space-3);
+  margin: 0;
+  color: var(--ac-color-heading);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.execution-card-more {
+  margin: var(--ac-space-3) 0 0;
+  cursor: auto;
+}
+.execution-card-toggle.workspace-button.subtle {
+  min-height: 44px;
+  gap: var(--ac-space-2);
+}
+.execution-card-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+.execution-card-details {
+  padding: var(--ac-space-4);
+  background: var(--ac-color-surface-alt);
+}
+.execution-card-details h4 {
+  margin: 0 0 var(--ac-space-1);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+}
+.execution-card-details p {
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.execution-card-details p + h4 {
+  margin-top: var(--ac-space-4);
+}
+
+.execution-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+  margin: var(--ac-space-4) 0 0;
+  cursor: auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* 执行督办: recent-meeting count and due dates in the table             */
+/* ------------------------------------------------------------------ */
+
+.council-recent-count {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ac-space-3);
+}
+.council-recent-count > span {
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+}
+.council-filter-toolbar .council-recent-count input {
+  width: 5em;
+  font-variant-numeric: tabular-nums;
+}
+.council-due-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-3);
+  font-variant-numeric: tabular-nums;
+}
+.council-status-cell .council-meta {
+  margin-top: var(--ac-space-2);
+}
+@media (min-width: 768px) {
+  .page-supervision .council-due-date {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* Names and dates never break in the middle; the title column wraps. */
+  .page-supervision .council-table td[data-label] {
+    white-space: nowrap;
+  }
+  .page-supervision .council-action-cell {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 767px) {
+  /* The phone table shows each row as a block; the due date and the
+     status keep their label on the same line as the value and any tag. */
+  .page-supervision .council-table td:is([data-label="截止日期"], [data-label="状态"]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .page-supervision .council-table td[data-label] {
+    flex-basis: 100%;
+  }
+  .page-supervision .council-status-cell .council-meta {
+    margin: 0 0 0 var(--ac-space-3);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 纪要档案: meeting directory, meeting record and the export form      */
+/* ------------------------------------------------------------------ */
+
+/* Phones: directory, record, export, then deleting the record. Wide
+   screens: the directory on the left; the record, the export form and the
+   delete control on the right. */
+.archive-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "meetings"
+    "detail"
+    "export"
+    "manage";
+  gap: var(--ac-space-8);
+  align-items: start;
+}
+@media (min-width: 992px) {
+  .archive-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "meetings detail"
+      "meetings export"
+      "meetings manage";
+    column-gap: var(--ac-space-7);
+  }
+}
+.archive-meetings {
+  grid-area: meetings;
+  min-width: 0;
+}
+.archive-detail {
+  grid-area: detail;
+  min-width: 0;
+}
+.archive-export {
+  grid-area: export;
+  min-width: 0;
+}
+.archive-manage {
+  grid-area: manage;
+  min-width: 0;
+}
+
+.archive-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--ac-space-1) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-4);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
+}
+.archive-heading small,
+.archive-detail-section h3 small {
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+.archive-meetings .archive-heading {
+  padding-top: var(--ac-space-4);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+}
+
+/* The directory: rows with 1px rules; the selected row has a heavy
+   brand rule on the left and aria-current. */
+.archive-meeting-list {
+  max-height: 480px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--ac-color-border);
+  list-style: none;
+}
+.archive-meeting {
+  display: block;
+  width: 100%;
+  margin: 0;
+  position: relative;
+  padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-4)
+    calc(var(--ac-rule-heavy) + var(--ac-space-3));
+  border: 0;
+  border-bottom: 1px solid var(--ac-color-border);
+  border-radius: 0;
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  text-align: left;
+  cursor: pointer;
+}
+.archive-meeting-title {
+  display: block;
+  color: var(--ac-color-link);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+.archive-meeting-meta {
+  display: block;
+  margin-top: var(--ac-space-1);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+.archive-meeting:hover {
+  background: var(--ac-color-surface-alt);
+}
+.archive-meeting:hover .archive-meeting-title {
+  color: var(--ac-color-link-hover);
+  text-decoration-thickness: 2px;
+}
+.archive-meeting[aria-current="true"] {
+  background: var(--ac-color-surface-alt);
+}
+.archive-meeting[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: var(--ac-rule-heavy);
+  background: var(--ac-color-brand);
+}
+.archive-meeting[aria-current="true"] .archive-meeting-title {
+  color: var(--ac-color-heading);
+  font-weight: 700;
+  text-decoration: none;
+}
+.archive-meeting:disabled {
+  cursor: wait;
+}
+
+/* The meeting record. */
+.archive-detail-header {
+  padding-top: var(--ac-space-4);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+}
+.archive-detail-header h2 {
+  margin: 0 0 var(--ac-space-2);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h2);
+  overflow-wrap: anywhere;
+}
+.archive-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ac-space-1) var(--ac-space-5);
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Deleting the record: the last control on the page, below a 1px rule,
+   as 删除议题 ends the issue dialog. */
+.archive-manage {
+  padding-top: var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border);
+}
+.archive-manage > .workspace-help {
+  max-width: var(--ac-reading-width);
+  margin: var(--ac-space-3) 0 0;
+  overflow-wrap: anywhere;
+}
+.archive-delete.is-confirming {
+  background: var(--ac-color-error-bg);
+}
+.archive-delete.is-confirming:hover {
+  background: var(--ac-color-error-bg);
+}
+
+.archive-detail-section {
+  margin-top: var(--ac-space-7);
+  padding-top: var(--ac-space-5);
+  border-top: 1px solid var(--ac-color-border);
+}
+.archive-detail-section h3 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--ac-space-1) var(--ac-space-3);
+  margin: 0 0 var(--ac-space-4);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h3);
+}
+.archive-report {
+  max-width: var(--ac-reading-width);
+  margin: 0;
+  color: var(--ac-color-text);
+  font: var(--ac-type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.archive-report.is-empty,
+.archive-none {
+  max-width: none;
+  margin: 0;
+  padding: var(--ac-space-5);
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-body);
+  white-space: normal;
+}
+
+/* Decided issues: rows with 1px rules, the title is the link. */
+.archive-issues {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ac-color-border);
+  list-style: none;
+}
+.archive-issue {
+  padding: var(--ac-space-4) 0;
+  border-bottom: 1px solid var(--ac-color-border);
+  cursor: pointer;
+}
+/* The next section's rule closes the list. */
+.archive-issue:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.archive-issue-title {
+  margin: 0 0 var(--ac-space-2);
+  font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
+  overflow-wrap: anywhere;
+}
+.archive-issue-title .council-link {
+  font-weight: 600;
+}
+.archive-issue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-4);
+  margin: 0 0 var(--ac-space-2);
+}
+.archive-issue-votes {
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-small) / 22px var(--ac-font-family);
+  font-variant-numeric: tabular-nums;
+}
+.archive-issue-summary {
+  display: -webkit-box;
+  max-width: var(--ac-reading-width);
+  margin: 0;
+  overflow: hidden;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* The export form: a section under a heavy brand rule, like the
+   directory and the record, with form groups 25px apart. */
+.archive-export {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ac-space-6);
+  padding-top: var(--ac-space-4);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface);
+  color: var(--ac-color-text);
+}
+.archive-export .archive-heading {
+  margin: 0;
+}
+.archive-export > .workspace-field {
+  max-width: var(--ac-reading-width);
+}
+.archive-export-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.archive-export-group legend {
+  margin: 0 0 var(--ac-space-2);
+  padding: 0;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+.archive-export-group > .workspace-help {
+  margin: 0 0 var(--ac-space-3);
+}
+
+.archive-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  color: var(--ac-color-heading);
+  font: var(--ac-type-body);
+  cursor: pointer;
+}
+.archive-choice input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ac-color-brand);
+  cursor: pointer;
+}
+.archive-export-group:disabled .archive-choice,
+.archive-export-group:disabled .archive-choice input {
+  color: var(--ac-color-text-secondary);
+  cursor: not-allowed;
+}
+.archive-choice-title {
+  display: block;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+  overflow-wrap: anywhere;
+}
+.archive-choice-meta {
+  display: block;
+  margin: 0;
+  color: var(--ac-color-text-secondary);
+  font: var(--ac-type-small);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Manual selection: a scrolling list of meetings with 1px rules. */
+.archive-export-options {
+  max-height: 300px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--ac-color-border);
+  list-style: none;
+}
+.archive-export-options li {
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.archive-export-options .archive-choice {
+  align-items: flex-start;
+  padding: var(--ac-space-3) var(--ac-space-1);
+}
+.archive-export-options .archive-choice input {
+  margin-top: var(--ac-space-1);
+}
+
+/* What will be exported: the highlight pattern, surface-alt with a
+   heavy brand rule on the left. */
+.archive-export-summary {
+  padding: var(--ac-space-5);
+  border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
+  background: var(--ac-color-surface-alt);
+}
+.archive-export-summary-title {
+  margin: 0 0 var(--ac-space-2);
+  color: var(--ac-color-heading);
+  font: var(--ac-type-h5);
+}
+.archive-export-summary ul {
+  display: grid;
+  gap: var(--ac-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.archive-export-summary li {
+  overflow-wrap: anywhere;
+}
+.archive-export-summary .archive-choice-title {
+  font-weight: 400;
+}
+
+.archive-export-actions .workspace-actions {
+  margin-top: 0;
+}
+.archive-export-actions .workspace-help {
+  margin: var(--ac-space-3) 0 0;
+}
+.archive-export-status {
+  margin: 0;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
+}
+/* The empty live region stays in the accessibility tree but takes no
+   space, so its first message is announced. */
+.archive-export-status:empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.archive-export > .workspace-error {
+  margin: 0;
+}

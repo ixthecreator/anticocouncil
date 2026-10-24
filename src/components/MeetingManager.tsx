@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Meeting, Issue, Member } from "../types";
-import { CalendarDays, Pencil, Plus, X } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import { localDate } from "../lib/workspace";
 import { renameMeeting } from "../lib/meetingRename";
 
@@ -146,90 +146,110 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
 
   return (
     <section className="meeting-toolbar" aria-label="例会选择">
-      <div className="meeting-toolbar-title">
-        <span className="meeting-icon">
-          <CalendarDays size={21} />
-        </span>
-        <div>
-          <strong>当前例会</strong>
-          <span>
-            {meetings.length ? "选择要处理的会议" : "从一场新的讨论开始"}
-          </span>
+      <div className="meeting-toolbar-row">
+        <div className="workspace-field meeting-select">
+          <label className="workspace-label" htmlFor="meeting-select">
+            当前例会
+          </label>
+          <select
+            id="meeting-select"
+            disabled={!ready || busy || !meetings.length}
+            value={currentMeetingId || ""}
+            onChange={(e) => onSelectMeeting(e.target.value)}
+          >
+            <option disabled value="">
+              {meetings.length ? "选择例会" : "暂无例会，请先新建例会"}
+            </option>
+            {[...meetings]
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .map((m) => (
+                // The name comes first, so a narrow select cuts off the
+                // date rather than the name.
+                <option key={m.id} value={m.id}>
+                  {m.title} · {m.date}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div className="meeting-toolbar-actions">
+          <button
+            ref={renameButton}
+            type="button"
+            className="workspace-button"
+            disabled={!ready || busy || !selectedMeeting}
+            aria-expanded={!!renameDraft}
+            aria-controls="rename-meeting-form"
+            onClick={() => {
+              if (!ready || operationPending.current || !selectedMeeting) return;
+              if (renameDraft) {
+                closeRename();
+                return;
+              }
+              renameVersion.current++;
+              setAdding(false);
+              setRenameError("");
+              setRenameDraft({
+                meetingId: selectedMeeting.id,
+                expectedTitle: selectedMeeting.title,
+                title: selectedMeeting.title,
+              });
+            }}
+          >
+            <Pencil size={18} aria-hidden="true" />
+            修改名称
+          </button>
+          <button
+            type="button"
+            disabled={!ready || busy}
+            className="workspace-button"
+            aria-expanded={adding}
+            aria-controls="new-meeting-form"
+            onClick={() => {
+              if (!ready || operationPending.current) return;
+              closeRename(false);
+              setAdding(!adding);
+            }}
+          >
+            {adding ? (
+              <X size={18} aria-hidden="true" />
+            ) : (
+              <Plus size={18} aria-hidden="true" />
+            )}
+            {adding ? "收起" : "新建例会"}
+          </button>
         </div>
       </div>
-      <label className="meeting-select">
-        <span className="sr-only">切换例会</span>
-        <select
-          disabled={!ready || busy || !meetings.length}
-          value={currentMeetingId || ""}
-          onChange={(e) => onSelectMeeting(e.target.value)}
-        >
-          <option disabled value="">
-            {meetings.length ? "选择例会" : "暂无例会，请先创建"}
-          </option>
-          {[...meetings]
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.date} · {m.title}
-              </option>
-            ))}
-        </select>
-      </label>
-      <button
-        ref={renameButton}
-        type="button"
-        className="workspace-button"
-        disabled={!ready || busy || !selectedMeeting}
-        aria-expanded={!!renameDraft}
-        aria-controls="rename-meeting-form"
-        onClick={() => {
-          if (!ready || operationPending.current || !selectedMeeting) return;
-          if (renameDraft) {
-            closeRename();
-            return;
-          }
-          renameVersion.current++;
-          setAdding(false);
-          setRenameError("");
-          setRenameDraft({
-            meetingId: selectedMeeting.id,
-            expectedTitle: selectedMeeting.title,
-            title: selectedMeeting.title,
-          });
-        }}
-      >
-        <Pencil size={17} aria-hidden="true" />
-        修改名称
-      </button>
-      <button
-        type="button"
-        disabled={!ready || busy}
-        className={`workspace-button ${adding ? "" : "primary"}`}
-        aria-expanded={adding}
-        aria-controls="new-meeting-form"
-        onClick={() => {
-          if (!ready || operationPending.current) return;
-          closeRename(false);
-          setAdding(!adding);
-        }}
-      >
-        {adding ? <X size={17} /> : <Plus size={17} />}
-        {adding ? "收起" : "新建例会"}
-      </button>
       {renameDraft && renameDraft.meetingId === currentMeetingId && (
         <form
           id="rename-meeting-form"
-          className="meeting-create-form"
+          className="workspace-form meeting-form"
+          aria-labelledby="rename-meeting-heading"
           onSubmit={handleRenameMeeting}
         >
-          <label className="workspace-field" style={{ gridColumn: "1 / -1" }}>
-            <span>会议名称</span>
+          <h2 id="rename-meeting-heading" className="meeting-form-heading">
+            修改例会名称
+          </h2>
+          <div
+            className={`workspace-field${renameError ? " workspace-field--error" : ""}`}
+          >
+            <label className="workspace-label" htmlFor="rename-meeting-title">
+              会议名称
+            </label>
+            {renameError && (
+              <p
+                id="rename-meeting-error"
+                role="alert"
+                className="workspace-field-error"
+              >
+                <span className="ac-visually-hidden">错误：</span>
+                {renameError}
+              </p>
+            )}
             <input
+              id="rename-meeting-title"
               autoFocus
               required
               type="text"
-              aria-label="修改会议名称"
               aria-invalid={!!renameError}
               aria-describedby={renameError ? "rename-meeting-error" : undefined}
               disabled={!ready || busy}
@@ -238,8 +258,8 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
                 setRenameDraft({ ...renameDraft, title: event.target.value })
               }
             />
-          </label>
-          <div className="workspace-actions" style={{ gridColumn: "1 / -1" }}>
+          </div>
+          <div className="workspace-actions">
             <button
               type="submit"
               className="workspace-button primary"
@@ -256,57 +276,64 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
               取消
             </button>
           </div>
-          {renameError && (
-            <p id="rename-meeting-error" role="alert" className="workspace-error">
-              {renameError}
-            </p>
-          )}
         </form>
       )}
       {adding && (
         <form
           id="new-meeting-form"
-          className="meeting-create-form"
+          className="workspace-form meeting-form"
+          aria-labelledby="new-meeting-heading"
           onSubmit={handleCreateMeeting}
         >
-          <label className="workspace-field">
-            <span>
-              例会名称 <small>选填，留空将按日期命名</small>
-            </span>
-            <input
-              autoFocus
-              aria-label="例会名称"
-              type="text"
-              disabled={!ready || busy}
-              value={newMeetingTitle}
-              onChange={(e) => setNewMeetingTitle(e.target.value)}
-              placeholder="例如：九月第一次工作例会"
-            />
-          </label>
-          <label className="workspace-field">
-            <span>召开日期</span>
-            <input
-              aria-label="召开日期"
-              required
-              type="date"
-              disabled={!ready || busy}
-              value={newMeetingDate}
-              onChange={(e) => setNewMeetingDate(e.target.value)}
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={!ready || busy}
-            className="workspace-button primary"
-          >
-            <Plus size={17} />
-            {busy ? "正在保存…" : "创建例会"}
-          </button>
+          <h2 id="new-meeting-heading" className="meeting-form-heading">
+            新建例会
+          </h2>
           {error && (
             <p role="alert" className="workspace-error">
               {error}
             </p>
           )}
+          <div className="workspace-fields">
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="new-meeting-title">
+                例会名称（选填）
+              </label>
+              <p id="new-meeting-title-hint" className="workspace-help">
+                留空将按日期命名，例如“2026年10月24日例会”。
+              </p>
+              <input
+                id="new-meeting-title"
+                autoFocus
+                type="text"
+                aria-describedby="new-meeting-title-hint"
+                disabled={!ready || busy}
+                value={newMeetingTitle}
+                onChange={(e) => setNewMeetingTitle(e.target.value)}
+              />
+            </div>
+            <div className="workspace-field">
+              <label className="workspace-label" htmlFor="new-meeting-date">
+                召开日期
+              </label>
+              <input
+                id="new-meeting-date"
+                required
+                type="date"
+                disabled={!ready || busy}
+                value={newMeetingDate}
+                onChange={(e) => setNewMeetingDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="workspace-actions">
+            <button
+              type="submit"
+              disabled={!ready || busy}
+              className="workspace-button primary"
+            >
+              {busy ? "正在保存…" : "创建例会"}
+            </button>
+          </div>
         </form>
       )}
     </section>

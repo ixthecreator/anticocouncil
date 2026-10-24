@@ -1,16 +1,9 @@
 import { Action } from "./WorkspaceForms";
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { Issue, Status, Member } from "../types";
-import {
-  CheckSquare,
-  ArrowRight,
-  Shield,
-  PlayCircle,
-  ChevronDown,
-  ChevronUp,
-  Calendar,
-} from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { DeadlineTag } from "./CouncilOverview";
+import { localDate } from "../lib/workspace";
 
 interface PostMeetingViewProps {
   issues: Issue[];
@@ -18,6 +11,15 @@ interface PostMeetingViewProps {
   onUpdateIssue: (issue: Issue) => Promise<unknown>;
   onOpenDetail: (issue: Issue) => void;
 }
+
+/* Priority is shown as a text tag; the colour only supports the word. */
+const priorityTags: Record<Issue["priority"], { text: string; tone: string }> =
+  {
+    urgent: { text: "紧急", tone: "red" },
+    high: { text: "高优先级", tone: "amber" },
+    medium: { text: "中优先级", tone: "grey" },
+    low: { text: "低优先级", tone: "grey" },
+  };
 
 export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
   issues,
@@ -33,6 +35,7 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
   const [expandedIssueIds, setExpandedIssueIds] = useState<Set<string>>(
     new Set(),
   );
+  const today = localDate();
 
   const toggleExpand = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,50 +51,25 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
     return issues.filter((i) => i.status === status && !i.archived);
   };
 
-  const getStatusConfig = (status: Status) => {
+  const getStatusTitle = (status: Status) => {
     switch (status) {
       case "passed":
-        return {
-          title: "等待授权",
-          icon: CheckSquare,
-          color: "border-green-600",
-          bg: "bg-green-50",
-          text: "text-green-700",
-        };
+        return "等待授权";
       case "authorization":
-        return {
-          title: "待下发执行",
-          icon: Shield,
-          color: "border-amber-600",
-          bg: "bg-amber-50",
-          text: "text-amber-700",
-        };
+        return "待下发执行";
       case "execution":
-        return {
-          title: "执行中",
-          icon: PlayCircle,
-          color: "border-blue-600",
-          bg: "bg-blue-50",
-          text: "text-blue-700",
-        };
+        return "执行中";
       case "completed":
-        return {
-          title: "归档完成",
-          icon: CheckSquare,
-          color: "border-[var(--theme-border)]",
-          bg: "bg-[var(--theme-accent-light)]",
-          text: "text-[var(--theme-text-primary)]",
-        };
+        return "归档完成";
       default:
-        return {
-          title: status,
-          icon: CheckSquare,
-          color: "border-neutral-200",
-          bg: "bg-neutral-50",
-          text: "text-neutral-500",
-        };
+        return status;
     }
   };
+
+  const responsibleName = (issue: Issue) =>
+    members.find((member) => member.id === issue.signature)?.name ||
+    issue.signature ||
+    "待安排";
 
   const handleStatusChange = (issue: Issue, newStatus: Status) => {
     return onUpdateIssue({ ...issue, status: newStatus });
@@ -100,124 +78,126 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
   return (
     <div className="execution-board">
       {postMeetingStatuses.map((status) => {
-        const config = getStatusConfig(status);
+        const title = getStatusTitle(status);
         const columnIssues = getIssuesByStatus(status);
-        const Icon = config.icon;
+        const headingId = `execution-column-${status}`;
 
         return (
-          <div key={status} className="execution-column">
-            <div
-              className={`p-3 border-b-2 border-[var(--theme-border,#171717)] flex items-center justify-between ${config.bg} ${config.text}`}
-            >
-              <h3 className="font-sans text-sm font-bold tracking-normal uppercase flex items-center gap-1.5">
-                <Icon className="w-4 h-4" />
-                <span>{config.title}</span>
-              </h3>
-              <span className="font-sans text-xs font-bold px-1.5 py-0.5 border border-current">
-                {columnIssues.length}
-              </span>
-            </div>
+          <section
+            key={status}
+            className="execution-column"
+            aria-labelledby={headingId}
+          >
+            <h2 id={headingId} className="execution-column-heading">
+              {title}
+              <small className="execution-column-count">
+                {columnIssues.length} 项
+              </small>
+            </h2>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {columnIssues.length === 0 ? (
-                <div className="text-xs font-sans text-[var(--theme-text-secondary,#525252)] italic text-center py-6 border border-dashed border-[var(--theme-border,#171717)]/30">
-                  无相关议案
-                </div>
-              ) : (
-                columnIssues.map((issue) => {
+            {columnIssues.length === 0 ? (
+              <p className="execution-column-empty">无相关议案</p>
+            ) : (
+              <ul className="execution-cards">
+                {columnIssues.map((issue) => {
                   const isExpanded = expandedIssueIds.has(issue.id);
                   const isExecution = status === "execution";
+                  const detailsId = `execution-details-${issue.id}`;
+                  const priority =
+                    priorityTags[issue.priority] || priorityTags.low;
+                  /* The reference number sits in the meta line, never in
+                     the title link (as on the proposal cards). */
+                  const meta = [issue.serialNumber, issue.category]
+                    .filter(Boolean)
+                    .join(" · ");
                   return (
-                    <div
+                    <li
                       key={issue.id}
-                      className={`p-3 border-2 transition-colors cursor-pointer bg-[var(--theme-card-bg,#ffffff)] ${config.color}`}
+                      className="execution-card"
                       onClick={() => onOpenDetail(issue)}
                     >
-                      <div className="flex items-start justify-between mb-2 gap-2">
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className={`self-start px-1.5 py-0.5 font-sans text-xs uppercase font-bold border ${
-                              issue.priority === "urgent"
-                                ? "bg-red-600 text-white border-red-600"
-                                : issue.priority === "high"
-                                  ? "bg-neutral-900 text-white border-neutral-900"
-                                  : issue.priority === "medium"
-                                    ? "bg-neutral-200 text-neutral-800 border-neutral-300"
-                                    : "bg-white text-neutral-500 border-neutral-200"
-                            }`}
-                          >
-                            {issue.priority === "urgent"
-                              ? "紧急"
-                              : issue.priority === "high"
-                                ? "高"
-                                : issue.priority === "medium"
-                                  ? "中"
-                                  : "低"}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs font-sans text-[var(--theme-text-secondary)]">
-                            <Calendar className="w-3 h-3" />
-                            {issue.createdAt.slice(0, 10)}
-                          </span>
-                        </div>
-                        {issue.signature && (
-                          <span className="text-xs font-sans text-[var(--theme-text-primary)] border border-[var(--theme-border)] px-1 py-0.5 whitespace-nowrap">
-                            {issue.signature}
-                          </span>
-                        )}
-                      </div>
+                      {/* The column heading already names the status, so
+                          the card only tags its priority. */}
+                      <p className="execution-card-tags">
+                        <span className={`council-tag ${priority.tone}`}>
+                          {priority.text}
+                        </span>
+                      </p>
 
-                      <h4 className="font-sans font-bold text-sm text-[var(--theme-text-primary)] leading-tight mb-2">
+                      {meta && <p className="execution-card-meta-line">{meta}</p>}
+
+                      <h3 className="execution-card-title">
                         <button
                           type="button"
-                          className="agenda-title"
+                          className="council-link"
                           onClick={(event) => {
                             event.stopPropagation();
                             onOpenDetail(issue);
                           }}
                         >
-                          {issue.serialNumber ? `[${issue.serialNumber}] ` : ""}
                           {issue.title}
                         </button>
-                      </h4>
+                      </h3>
+
+                      <dl className="execution-card-meta">
+                        <div>
+                          <dt>负责人</dt>
+                          <dd>{responsibleName(issue)}</dd>
+                        </div>
+                        <div>
+                          <dt>截止日期</dt>
+                          <dd>
+                            <span>{issue.dueDate || "未设置"}</span>
+                            <DeadlineTag dueDate={issue.dueDate} today={today} />
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>提出日期</dt>
+                          <dd>{issue.createdAt.slice(0, 10)}</dd>
+                        </div>
+                      </dl>
 
                       {isExecution && (
                         <div
-                          className="mt-2"
+                          className="execution-card-more"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
+                            type="button"
                             onClick={(e) => toggleExpand(issue.id, e)}
-                            className="flex items-center gap-1 text-xs font-sans text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
+                            className="workspace-button subtle execution-card-toggle"
+                            aria-expanded={isExpanded}
+                            aria-controls={isExpanded ? detailsId : undefined}
                           >
                             {isExpanded ? (
-                              <ChevronUp className="w-3 h-3" />
+                              <ChevronUp aria-hidden="true" />
                             ) : (
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown aria-hidden="true" />
                             )}
                             {isExpanded ? "收起详情" : "展示更多"}
                           </button>
 
                           {isExpanded && (
-                            <div className="mt-2 pt-2 border-t border-[var(--theme-border)]/20 space-y-2">
+                            <div
+                              id={detailsId}
+                              className="execution-card-details"
+                            >
                               {issue.description && (
-                                <div>
-                                  <h5 className="text-xs font-sans uppercase text-[var(--theme-text-secondary)] mb-1">
-                                    议案描述
-                                  </h5>
-                                  <p className="text-xs font-sans text-[var(--theme-text-primary)] whitespace-pre-wrap leading-relaxed">
-                                    {issue.description}
-                                  </p>
-                                </div>
+                                <>
+                                  <h4>议案描述</h4>
+                                  <p>{issue.description}</p>
+                                </>
                               )}
                               {issue.discussion && (
-                                <div>
-                                  <h5 className="text-xs font-sans uppercase text-[var(--theme-text-secondary)] mb-1">
-                                    讨论与附注
-                                  </h5>
-                                  <p className="text-xs font-sans text-[var(--theme-text-primary)] whitespace-pre-wrap leading-relaxed">
-                                    {issue.discussion}
-                                  </p>
-                                </div>
+                                <>
+                                  <h4>讨论与附注</h4>
+                                  <p>{issue.discussion}</p>
+                                </>
+                              )}
+                              {!issue.description && !issue.discussion && (
+                                <p className="council-meta">
+                                  暂无描述或附注。
+                                </p>
                               )}
                             </div>
                           )}
@@ -226,7 +206,7 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
 
                       {/* Quick Move Actions */}
                       <div
-                        className="flex items-center gap-1 mt-3 pt-2 border-t border-[var(--theme-border)]/20"
+                        className="execution-card-actions"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {status === "passed" && (
@@ -234,7 +214,6 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
                             onClick={() =>
                               handleStatusChange(issue, "authorization")
                             }
-                            className="full-width"
                           >
                             移交授权
                           </Action>
@@ -244,7 +223,6 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
                             onClick={() =>
                               handleStatusChange(issue, "execution")
                             }
-                            className="full-width"
                           >
                             下发执行
                           </Action>
@@ -254,18 +232,17 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
                             onClick={() =>
                               handleStatusChange(issue, "completed")
                             }
-                            className="full-width"
                           >
                             标记完成
                           </Action>
                         )}
                       </div>
-                    </div>
+                    </li>
                   );
-                })
-              )}
-            </div>
-          </div>
+                })}
+              </ul>
+            )}
+          </section>
         );
       })}
     </div>

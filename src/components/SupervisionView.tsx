@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Meeting, Issue, Member } from "../types";
-import { localDate, statusLabels } from "../lib/workspace";
-import { DeadlineTag } from "./CouncilOverview";
+import { localDate } from "../lib/workspace";
+import { DeadlineTag, StatusTag } from "./CouncilOverview";
 import { Empty } from "./WorkspaceForms";
 
 interface SupervisionViewProps {
@@ -79,13 +79,15 @@ export function SupervisionView({
           <option value="overview">按近期会议回顾</option>
         </select>
         {scope === "overview" && (
-          <label className="council-recent-count">
-            最近
+          <div className="council-recent-count">
+            <label htmlFor="supervision-recent-count">回顾最近</label>
             <input
-              aria-label="回顾会议数量"
+              id="supervision-recent-count"
               type="number"
+              inputMode="numeric"
               min="1"
               max="20"
+              aria-describedby="supervision-recent-count-unit"
               value={recentN}
               onChange={(event) =>
                 setRecentN(
@@ -96,8 +98,8 @@ export function SupervisionView({
                 )
               }
             />
-            次会议
-          </label>
+            <span id="supervision-recent-count-unit">次会议（1–20）</span>
+          </div>
         )}
         <span>{records.length} 项事项</span>
       </div>
@@ -109,8 +111,8 @@ export function SupervisionView({
         </Empty>
       ) : (
         <div className="council-table-wrap">
-          <table className="council-table">
-            <caption className="sr-only">
+          <table className="council-table council-table--stack-md">
+            <caption className="ac-visually-hidden">
               {scope === "current"
                 ? "待完成的执行事项"
                 : `最近 ${recentN} 次会议的执行记录`}
@@ -122,7 +124,7 @@ export function SupervisionView({
                 <th scope="col">截止日期</th>
                 <th scope="col">状态</th>
                 <th scope="col">
-                  <span className="sr-only">操作</span>
+                  <span className="ac-visually-hidden">操作</span>
                 </th>
               </tr>
             </thead>
@@ -136,6 +138,11 @@ export function SupervisionView({
                     ?.name ||
                   issue.signature ||
                   "待安排";
+                /* The reference number sits in the meta line, never in the
+                   title link (as on the proposal cards). */
+                const meta = [issue.serialNumber, issue.category, meeting?.title]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <tr key={issue.id}>
                     <th scope="row">
@@ -143,16 +150,12 @@ export function SupervisionView({
                         className="council-link"
                         onClick={() => onOpenDetail(issue)}
                       >
-                        {issue.serialNumber ? `${issue.serialNumber} · ` : ""}
                         {issue.title}
                       </button>
-                      <p className="council-meta">
-                        {issue.category}
-                        {meeting ? ` · ${meeting.title}` : ""}
-                      </p>
+                      {meta && <p className="council-meta">{meta}</p>}
                     </th>
-                    <td>{responsible}</td>
-                    <td>
+                    <td data-label="负责人">{responsible}</td>
+                    <td data-label="截止日期">
                       <div className="council-due-date">
                         <span>{issue.dueDate || "未设置"}</span>
                         {!issue.archived && issue.status !== "completed" && (
@@ -160,15 +163,11 @@ export function SupervisionView({
                         )}
                       </div>
                     </td>
-                    <td>
-                      <span
-                        className={`council-tag ${issue.status === "completed" ? "green" : issue.status === "execution" ? "blue" : "grey"}`}
-                      >
-                        {statusLabels[issue.status]}
-                      </span>
+                    <td data-label="状态" className="council-status-cell">
+                      <StatusTag status={issue.status} />
                       {issue.archived && <p className="council-meta">已归档</p>}
                     </td>
-                    <td>
+                    <td className="council-action-cell">
                       <button
                         className="council-link council-nowrap"
                         onClick={() => onOpenDetail(issue)}
