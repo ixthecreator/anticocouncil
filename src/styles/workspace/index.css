@@ -4,7 +4,6 @@
  * come from src/index.css. The order below is the cascade order: later files
  * override earlier ones at equal specificity.
  */
-@import "./legacy-utilities.css";
 @import "./components.css";
 @import "./shell.css";
 @import "./pages/overview.css";

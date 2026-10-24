@@ -159,42 +159,11 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
           aria-labelledby="archive-detail-heading"
         >
           <header className="archive-detail-header">
-            <div>
-              <h2 id="archive-detail-heading">{selectedMeeting.title}</h2>
-              <p className="archive-detail-meta">
-                <span>会期：{selectedMeeting.week}</span>
-                <span>日期：{selectedMeeting.date}</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={exportBusy}
-              onClick={async () => {
-                if (confirmDeleteId === selectedMeeting.id) {
-                  try {
-                    await onDeleteMeeting(selectedMeeting.id);
-                    const remaining = meetings.filter(
-                      (m) => m.id !== selectedMeeting.id,
-                    );
-                    setSelectedMeetingId(
-                      remaining.length > 0 ? remaining[0].id : null,
-                    );
-                    setConfirmDeleteId(null);
-                  } catch (error) {
-                    console.error("Deletion failed", error);
-                  }
-                } else {
-                  setConfirmDeleteId(selectedMeeting.id);
-                  setTimeout(() => setConfirmDeleteId(null), 3000);
-                }
-              }}
-              className={`workspace-button danger archive-delete${confirmDeleteId === selectedMeeting.id ? " is-confirming" : ""}`}
-            >
-              <Trash2 aria-hidden="true" />
-              {confirmDeleteId === selectedMeeting.id
-                ? "确认删除存档？"
-                : "删除存档"}
-            </button>
+            <h2 id="archive-detail-heading">{selectedMeeting.title}</h2>
+            <p className="archive-detail-meta">
+              <span>会期：{selectedMeeting.week}</span>
+              <span>日期：{selectedMeeting.date}</span>
+            </p>
           </header>
 
           <section
@@ -451,6 +420,46 @@ export const ArchiveView: React.FC<ArchiveViewProps> = ({
         </p>
         {exportError && <p role="alert" className="workspace-error">{exportError}</p>}
       </section>
+
+      {/* Deleting the record is the last control on the page, set apart
+          below a rule, as 删除议题 is at the end of the issue dialog. */}
+      {selectedMeeting && (
+        <div className="archive-manage">
+          <button
+            type="button"
+            disabled={exportBusy}
+            onClick={async () => {
+              if (confirmDeleteId === selectedMeeting.id) {
+                try {
+                  await onDeleteMeeting(selectedMeeting.id);
+                  const remaining = meetings.filter(
+                    (m) => m.id !== selectedMeeting.id,
+                  );
+                  setSelectedMeetingId(
+                    remaining.length > 0 ? remaining[0].id : null,
+                  );
+                  setConfirmDeleteId(null);
+                } catch (error) {
+                  console.error("Deletion failed", error);
+                }
+              } else {
+                setConfirmDeleteId(selectedMeeting.id);
+                setTimeout(() => setConfirmDeleteId(null), 3000);
+              }
+            }}
+            aria-describedby="archive-delete-hint"
+            className={`workspace-button danger archive-delete${confirmDeleteId === selectedMeeting.id ? " is-confirming" : ""}`}
+          >
+            <Trash2 aria-hidden="true" />
+            {confirmDeleteId === selectedMeeting.id
+              ? "确认删除存档？"
+              : "删除存档"}
+          </button>
+          <p id="archive-delete-hint" className="workspace-help">
+            删除「{selectedMeeting.title}」的存档。仍有关联议题或汇报记录的会议不能删除。
+          </p>
+        </div>
+      )}
     </div>
   );
 };

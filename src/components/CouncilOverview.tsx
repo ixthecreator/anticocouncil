@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import type { Issue, Meeting, WorkspaceData } from "../types";
 import type { WorkspacePage } from "../lib/workspaceNavigation";
@@ -38,6 +39,44 @@ export function StatusTag({ status }: { status: Issue["status"] }) {
     <span className={`council-tag ${statusTone[status] || "grey"}`}>
       {statusLabels[status] || status}
     </span>
+  );
+}
+
+/*
+ * A control that changes the workspace page is a real #page link, so it reads
+ * as a link and can open in a new tab; a plain click stays in the app (the
+ * same interception as the workspace navigation).
+ */
+export function PageLink({
+  page,
+  onFollow,
+  className = "council-link",
+  children,
+}: {
+  page: WorkspacePage;
+  onFollow: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={`#${page}`}
+      className={className}
+      onClick={(event) => {
+        if (
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return;
+        event.preventDefault();
+        onFollow();
+      }}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -114,12 +153,12 @@ export function CouncilOverview({
                 <time dateTime={featured.date}>{meetingDay(featured.date)}</time>
               </p>
               <h2 id="featured-meeting-title" className="council-feature-title">
-                <button
-                  className="council-link"
-                  onClick={() => onOpenMeeting(featured)}
+                <PageLink
+                  page="session"
+                  onFollow={() => onOpenMeeting(featured)}
                 >
                   {featured.title}
-                </button>
+                </PageLink>
               </h2>
               <p className="council-meta">
                 {featured.week ? `${featured.week} · ` : ""}
@@ -131,12 +170,14 @@ export function CouncilOverview({
                   "查阅本次议程，安排每周汇报，并记录讨论与执行分工。"}
               </p>
               <div className="workspace-actions">
-                <button
+                <PageLink
+                  page="session"
                   className="workspace-button primary"
-                  onClick={() => onOpenMeeting(featured)}
+                  onFollow={() => onOpenMeeting(featured)}
                 >
-                  查看议程与汇报 <ArrowRight aria-hidden="true" />
-                </button>
+                  查看议程与汇报
+                  <ArrowRight aria-hidden="true" />
+                </PageLink>
               </div>
             </>
           ) : (
@@ -149,12 +190,14 @@ export function CouncilOverview({
                 创建第一场例会，开始每周汇报与议程记录。
               </p>
               <div className="workspace-actions">
-                <button
+                <PageLink
+                  page="session"
                   className="workspace-button primary"
-                  onClick={() => onNavigate("session")}
+                  onFollow={() => onNavigate("session")}
                 >
-                  新建例会 <ArrowRight aria-hidden="true" />
-                </button>
+                  新建例会
+                  <ArrowRight aria-hidden="true" />
+                </PageLink>
               </div>
             </>
           )}
@@ -166,12 +209,14 @@ export function CouncilOverview({
         >
           <div className="council-widget-heading">
             <h2 id="overview-agenda-title">待议事项</h2>
-            <button
+            <PageLink
+              page="proposals"
               className="council-link council-more-link"
-              onClick={() => onNavigate("proposals")}
+              onFollow={() => onNavigate("proposals")}
             >
-              全部议题 <ArrowRight aria-hidden="true" />
-            </button>
+              全部议题
+              <ArrowRight aria-hidden="true" />
+            </PageLink>
           </div>
           {filteredAgenda.length ? (
             <ul className="council-row-list">
@@ -221,21 +266,26 @@ export function CouncilOverview({
               {filteredActions.slice(0, 5).map((item) => (
                 <li className="council-action-item" key={item.id}>
                   <h3>
-                    <button
-                      className="council-link"
-                      onClick={() => {
-                        if (item.kind === "editorial")
-                          onOpenEditorial(item.title);
-                        else {
+                    {item.kind === "editorial" ? (
+                      <PageLink
+                        page="editorial"
+                        onFollow={() => onOpenEditorial(item.title)}
+                      >
+                        {item.title}
+                      </PageLink>
+                    ) : (
+                      <button
+                        className="council-link"
+                        onClick={() => {
                           const issue = data.issues.find(
                             (issue) => issue.id === item.recordId,
                           );
                           if (issue) onOpenIssue(issue);
-                        }
-                      }}
-                    >
-                      {item.title}
-                    </button>
+                        }}
+                      >
+                        {item.title}
+                      </button>
+                    )}
                   </h3>
                   <p className="council-meta">{item.description}</p>
                   {item.dueDate && (
@@ -276,49 +326,53 @@ export function CouncilOverview({
             value={completed}
             aria-label={`执行事项已完成 ${completed} 项，共 ${executionCount} 项`}
           />
-          <button
+          <PageLink
+            page="supervision"
             className="council-link council-more-link"
-            onClick={() => onNavigate("supervision")}
+            onFollow={() => onNavigate("supervision")}
           >
-            查看执行督办 <ArrowRight aria-hidden="true" />
-          </button>
-        </section>
-
-        <section
-          className="council-widget"
-          aria-labelledby="overview-records-title"
-        >
-          <h2 id="overview-records-title">最近记录</h2>
-          {recentRecords.length ? (
-            <ul className="council-row-list">
-              {recentRecords.map((meeting) => (
-                <li key={meeting.id} className="council-recent-record">
-                  <h3>
-                    <button
-                      className="council-link"
-                      onClick={() => onOpenMeeting(meeting)}
-                    >
-                      {meeting.title}
-                    </button>
-                  </h3>
-                  <p className="council-meta">
-                    <time dateTime={meeting.date}>{meeting.date}</time>
-                    {meeting.week ? ` · ${meeting.week}` : ""}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty>尚无已记录内容的会议。</Empty>
-          )}
-          <button
-            className="council-link council-more-link"
-            onClick={() => onNavigate("archive")}
-          >
-            查阅全部纪要 <ArrowRight aria-hidden="true" />
-          </button>
+            查看执行督办
+            <ArrowRight aria-hidden="true" />
+          </PageLink>
         </section>
       </aside>
+
+      <section
+        className="council-widget council-overview-records"
+        aria-labelledby="overview-records-title"
+      >
+        <h2 id="overview-records-title">最近记录</h2>
+        {recentRecords.length ? (
+          <ul className="council-row-list">
+            {recentRecords.map((meeting) => (
+              <li key={meeting.id} className="council-recent-record">
+                <h3>
+                  <PageLink
+                    page="session"
+                    onFollow={() => onOpenMeeting(meeting)}
+                  >
+                    {meeting.title}
+                  </PageLink>
+                </h3>
+                <p className="council-meta">
+                  <time dateTime={meeting.date}>{meeting.date}</time>
+                  {meeting.week ? ` · ${meeting.week}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Empty>尚无已记录内容的会议。</Empty>
+        )}
+        <PageLink
+          page="archive"
+          className="council-link council-more-link"
+          onFollow={() => onNavigate("archive")}
+        >
+          查阅全部纪要
+          <ArrowRight aria-hidden="true" />
+        </PageLink>
+      </section>
     </div>
   );
 }

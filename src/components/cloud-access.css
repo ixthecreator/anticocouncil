@@ -1,7 +1,10 @@
 /*
  * Member access: the cloud sign-in gateway, the account menu in the
  * workspace header, and the password and member dialogs. Values come from
- * src/design-system/tokens.css only. Focus uses the global ring in base.css.
+ * src/design-system/tokens.css only. Focus uses the global ring in base.css;
+ * link-styled buttons add .ac-focus--link in the markup. The only exceptions
+ * are programmatic focus targets (tabindex="-1"), which, like
+ * main[tabindex="-1"] in base.css, receive focus from script and show no ring.
  */
 .cloud-gateway {
   min-height: 100vh;
@@ -145,8 +148,7 @@
   border: 2px solid var(--ac-color-brand);
   border-radius: 0;
   color: var(--ac-color-brand);
-  font: var(--ac-type-h5);
-  font-weight: 600;
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -199,12 +201,6 @@
   color: var(--ac-color-link-hover);
   text-decoration-thickness: 2px;
 }
-.cloud-password-links button:focus-visible,
-.cloud-gate-footer button:focus-visible {
-  background: var(--ac-color-surface);
-  color: var(--ac-color-focus-inner);
-  text-decoration: none;
-}
 .cloud-password-links button:disabled,
 .cloud-gate-footer button:disabled {
   cursor: not-allowed;
@@ -238,6 +234,9 @@
 .cloud-gate-card > .cloud-gate-actions,
 .cloud-gate-card > .cloud-button {
   margin-top: var(--ac-space-6);
+}
+.cloud-gate-card > .cloud-button + .cloud-help {
+  margin-top: var(--ac-space-3);
 }
 
 .cloud-gate-footer {
@@ -425,8 +424,9 @@
   font: var(--ac-type-body);
   text-align: left;
 }
-.cloud-members:focus {
+.cloud-members[tabindex="-1"]:focus {
   outline: 0;
+  box-shadow: var(--ac-shadow-overlay);
 }
 .cloud-members header {
   display: flex;

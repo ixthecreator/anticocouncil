@@ -4,13 +4,6 @@
  * layout widths come from .ac-container and .ac-surface in base.css.
  */
 .public-site {
-  /* Deprecated aliases for stylesheets still being migrated to --ac-* tokens. */
-  --public-purple: var(--ac-color-brand);
-  --public-masthead: var(--ac-color-brand-dark);
-  --public-ink: var(--ac-color-heading);
-  --public-muted: var(--ac-color-text-secondary);
-  --public-rule: var(--ac-color-border);
-  --public-link: var(--ac-color-link);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -66,6 +59,14 @@
   color: var(--ac-color-on-brand);
   text-decoration: none;
 }
+.public-site .public-brand:hover {
+  color: var(--ac-color-on-brand);
+}
+.public-brand:hover .public-brand-name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
 .public-brand img {
   display: block;
   width: 48px;
@@ -84,6 +85,24 @@
   color: var(--ac-color-on-brand);
   font: var(--ac-type-h4);
   font-weight: 400;
+}
+/* Right slot of the band: the member entry (the workspace puts the account
+   here), white 16px semibold text on the brand colour. */
+.public-site .public-header-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ac-space-3);
+  min-height: 44px;
+  margin-left: auto;
+  color: var(--ac-color-on-brand);
+  font: var(--ac-type-h5);
+  font-weight: 600;
+  text-decoration: none;
+}
+.public-site .public-header-entry:hover {
+  color: var(--ac-color-on-brand);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 
 /* Primary navigation: a white bar with a 4px bar under the current item. */
@@ -112,9 +131,6 @@
 }
 .public-site .public-navigation a[aria-current="page"] {
   border-bottom-color: var(--ac-color-brand);
-}
-.public-navigation-portal {
-  margin-left: auto;
 }
 
 /* Service strip: "示例内容" tag plus one sentence. */
@@ -166,8 +182,7 @@
   background: var(--ac-color-brand);
   border: 2px solid var(--ac-color-brand);
   color: var(--ac-color-on-brand);
-  font: var(--ac-type-h5);
-  font-weight: 600;
+  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
   text-decoration: none;
 }
 .public-site .public-button:hover {
@@ -243,9 +258,6 @@
   align-items: start;
   gap: var(--ac-space-7) var(--ac-space-8);
 }
-.public-home-intro {
-  padding-top: var(--ac-space-3);
-}
 .public-home-intro .public-button {
   margin-top: var(--ac-space-6);
 }
@@ -292,6 +304,12 @@
 .public-site .public-term-aside li a {
   font-size: var(--ac-font-size-h4);
   font-weight: 600;
+  text-decoration: none;
+}
+.public-site .public-term-aside li a:hover {
+  color: var(--ac-color-link-hover);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 .public-term-aside li p {
   margin-top: var(--ac-space-2);
@@ -338,7 +356,7 @@
   margin-top: var(--ac-space-4);
   padding: var(--ac-space-5);
   background: var(--ac-color-surface-alt);
-  color: var(--ac-color-text);
+  color: var(--ac-color-text-secondary);
 }
 
 /* Archive index: term directory beside the term collections. */
@@ -475,7 +493,6 @@
 /* 404. */
 .public-not-found {
   max-width: var(--ac-reading-width);
-  padding-block: var(--ac-space-5);
 }
 .public-not-found > p:not(.public-lead) {
   margin-top: var(--ac-space-5);
@@ -534,6 +551,10 @@
   .public-article-contents {
     position: static;
   }
+  /* The breadcrumb already links back to the term. */
+  .public-site .public-return {
+    display: none;
+  }
 }
 
 @media (max-width: 575px) {
@@ -550,8 +571,36 @@
   .public-navigation-list {
     column-gap: var(--ac-space-5);
   }
-  .public-navigation-portal {
+  /* The member entry takes its own row under the brand. */
+  .public-site .public-header-entry {
+    flex-basis: 100%;
     margin-left: 0;
+  }
+  /* Phones show only the parent page, as a back link. */
+  .public-breadcrumbs {
+    margin-bottom: var(--ac-space-4);
+  }
+  .public-breadcrumbs li:not(:nth-last-child(2)) {
+    display: none;
+  }
+  .public-breadcrumbs li + li::before {
+    content: none;
+  }
+  .public-breadcrumbs li:nth-last-child(2)::before {
+    content: "";
+    display: inline-block;
+    width: 0.45em;
+    height: 0.45em;
+    margin-inline: var(--ac-space-1) var(--ac-space-3);
+    border: 0;
+    border-bottom: 1px solid var(--ac-color-text-secondary);
+    border-left: 1px solid var(--ac-color-text-secondary);
+    transform: rotate(45deg);
+  }
+  .public-breadcrumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
   .public-main {
     padding-block: var(--ac-space-4) var(--ac-space-7);
@@ -570,6 +619,7 @@
     background: none;
   }
   .public-navigation,
+  .public-header-entry,
   .public-notice,
   .public-footer,
   .public-breadcrumbs,

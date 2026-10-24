@@ -111,7 +111,7 @@ export function SupervisionView({
         </Empty>
       ) : (
         <div className="council-table-wrap">
-          <table className="council-table">
+          <table className="council-table council-table--stack-md">
             <caption className="ac-visually-hidden">
               {scope === "current"
                 ? "待完成的执行事项"
@@ -138,6 +138,11 @@ export function SupervisionView({
                     ?.name ||
                   issue.signature ||
                   "待安排";
+                /* The reference number sits in the meta line, never in the
+                   title link (as on the proposal cards). */
+                const meta = [issue.serialNumber, issue.category, meeting?.title]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <tr key={issue.id}>
                     <th scope="row">
@@ -145,13 +150,9 @@ export function SupervisionView({
                         className="council-link"
                         onClick={() => onOpenDetail(issue)}
                       >
-                        {issue.serialNumber ? `${issue.serialNumber} · ` : ""}
                         {issue.title}
                       </button>
-                      <p className="council-meta">
-                        {issue.category}
-                        {meeting ? ` · ${meeting.title}` : ""}
-                      </p>
+                      {meta && <p className="council-meta">{meta}</p>}
                     </th>
                     <td data-label="负责人">{responsible}</td>
                     <td data-label="截止日期">
@@ -162,7 +163,7 @@ export function SupervisionView({
                         )}
                       </div>
                     </td>
-                    <td className="council-status-cell">
+                    <td data-label="状态" className="council-status-cell">
                       <StatusTag status={issue.status} />
                       {issue.archived && <p className="council-meta">已归档</p>}
                     </td>

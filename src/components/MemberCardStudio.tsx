@@ -88,6 +88,7 @@ export default function MemberCardStudio({ draftScope, libraryReady, sharedLibra
   const [savedData, setSavedData] = useState<MemberCardData | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const resetButton = useRef<HTMLButtonElement>(null);
   const uploadSequence = useRef(0);
   const importSequence = useRef(0);
   const latestData = useRef(data);
@@ -244,9 +245,10 @@ export default function MemberCardStudio({ draftScope, libraryReady, sharedLibra
           }}><Download size={16} aria-hidden="true" />下载草稿</button>
           <button type="button" className="card-text-button" disabled={uploading || !!busy} onClick={() => importInput.current?.click()}><Upload size={16} aria-hidden="true" />导入草稿</button>
           <input ref={importInput} type="file" accept="application/json,.json" aria-label="导入名片草稿" hidden onChange={event => void importDraft(event)} />
-          <button type="button" className="card-text-button" disabled={uploading || !!busy} onClick={() => setResetConfirm(value => !value)}><RotateCcw size={16} aria-hidden="true" />重新制作</button>
+          <button ref={resetButton} type="button" className="workspace-button danger card-reset-button" disabled={uploading || !!busy} aria-expanded={resetConfirm} aria-controls={resetConfirm ? "card-reset-confirm" : undefined} onClick={() => setResetConfirm(value => !value)}><RotateCcw size={16} aria-hidden="true" />重新制作</button>
         </div>
-        {resetConfirm && <div className="card-reset-confirm"><p>将清空头像并恢复示例文字，已保存到资料库的名片会保留。</p><button type="button" className="workspace-button danger" onClick={() => { setData({ ...defaultMemberCardData }); setResetConfirm(false); setNotice(""); setError(""); }}>确认重新制作</button><button type="button" className="workspace-button" onClick={() => setResetConfirm(false)}>取消</button></div>}
+        {/* Both buttons close the confirm, so focus goes back to 重新制作. */}
+        {resetConfirm && <div id="card-reset-confirm" className="card-reset-confirm" onKeyDown={event => { if (event.key === "Escape") { setResetConfirm(false); resetButton.current?.focus(); } }}><p>将清空头像并恢复示例文字，已保存到资料库的名片会保留。</p><button type="button" className="workspace-button danger" onClick={() => { setData({ ...defaultMemberCardData }); setResetConfirm(false); setNotice("已恢复示例名片，可以重新填写。"); setError(""); resetButton.current?.focus(); }}>确认重新制作</button><button type="button" className="workspace-button" onClick={() => { setResetConfirm(false); resetButton.current?.focus(); }}>取消</button></div>}
       </div>
       <p className="card-privacy">编辑与导出在此浏览器完成。{sharedLibrary ? "点击“保存到资料库”后，名片上的信息和头像将向工作区成员共享。" : "本地试用中保存的名片仅在此浏览器的资料库可见。"}</p>
     </section>

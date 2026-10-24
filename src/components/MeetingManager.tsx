@@ -163,8 +163,10 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
             {[...meetings]
               .sort((a, b) => b.date.localeCompare(a.date))
               .map((m) => (
+                // The name comes first, so a narrow select cuts off the
+                // date rather than the name.
                 <option key={m.id} value={m.id}>
-                  {m.date} · {m.title}
+                  {m.title} · {m.date}
                 </option>
               ))}
           </select>
@@ -199,7 +201,7 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
           <button
             type="button"
             disabled={!ready || busy}
-            className={`workspace-button ${adding ? "" : "primary"}`}
+            className="workspace-button"
             aria-expanded={adding}
             aria-controls="new-meeting-form"
             onClick={() => {

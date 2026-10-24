@@ -2,7 +2,7 @@ import { Action } from "./WorkspaceForms";
 import React, { useState } from "react";
 import { Issue, Status, Member } from "../types";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { DeadlineTag, StatusTag } from "./CouncilOverview";
+import { DeadlineTag } from "./CouncilOverview";
 import { localDate } from "../lib/workspace";
 
 interface PostMeetingViewProps {
@@ -89,10 +89,10 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
             aria-labelledby={headingId}
           >
             <h2 id={headingId} className="execution-column-heading">
-              <span>{title}</span>
-              <span className="council-tag grey execution-column-count">
+              {title}
+              <small className="execution-column-count">
                 {columnIssues.length} 项
-              </span>
+              </small>
             </h2>
 
             {columnIssues.length === 0 ? (
@@ -105,18 +105,26 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
                   const detailsId = `execution-details-${issue.id}`;
                   const priority =
                     priorityTags[issue.priority] || priorityTags.low;
+                  /* The reference number sits in the meta line, never in
+                     the title link (as on the proposal cards). */
+                  const meta = [issue.serialNumber, issue.category]
+                    .filter(Boolean)
+                    .join(" · ");
                   return (
                     <li
                       key={issue.id}
                       className="execution-card"
                       onClick={() => onOpenDetail(issue)}
                     >
+                      {/* The column heading already names the status, so
+                          the card only tags its priority. */}
                       <p className="execution-card-tags">
-                        <StatusTag status={issue.status} />
                         <span className={`council-tag ${priority.tone}`}>
                           {priority.text}
                         </span>
                       </p>
+
+                      {meta && <p className="execution-card-meta-line">{meta}</p>}
 
                       <h3 className="execution-card-title">
                         <button
@@ -127,7 +135,6 @@ export const PostMeetingView: React.FC<PostMeetingViewProps> = ({
                             onOpenDetail(issue);
                           }}
                         >
-                          {issue.serialNumber ? `[${issue.serialNumber}] ` : ""}
                           {issue.title}
                         </button>
                       </h3>

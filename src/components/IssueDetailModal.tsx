@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { Issue, Member, Priority, Status } from "../types";
 import { X } from "lucide-react";
 import { statusLabels } from "../lib/workspace";
@@ -45,25 +46,51 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [dueDate, setDueDate] = useState(issue.dueDate || "");
   const panelRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const signatureRef = useRef<HTMLInputElement>(null);
+  const saveRef = useRef<HTMLButtonElement>(null);
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const confirmDeleteRef = useRef<HTMLButtonElement>(null);
+  /* Read by the keyboard handler, which is set up once per dialog. */
+  const savingRef = useRef(saving);
+  const onCloseRef = useRef(onClose);
+  /* Set once the issue is deleted: the control that opened the dialog
+     belonged to it and is gone. */
+  const deletedRef = useRef(false);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
+    savingRef.current = saving;
+    onCloseRef.current = onClose;
+  });
+
+  // Focus: into the dialog on open, trapped while open, and back to the
+  // opener on close. Runs once, so saving or deleting never moves focus.
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
-    panel?.querySelector<HTMLElement>("input")?.focus();
+    titleRef.current?.focus();
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !saving) onClose();
-      if (event.key !== "Tab") return;
+      if (event.key === "Escape" && !savingRef.current) onCloseRef.current();
+      if (event.key !== "Tab" || !panel) return;
       const focusable = Array.from(
-        panel?.querySelectorAll<HTMLElement>(
-          "button:not(:disabled), input, textarea, select, a[href]",
-        ) || [],
+        panel.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]",
+        ),
       ).filter((el) => el.offsetParent !== null);
       const first = focusable[0],
         last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      const active = document.activeElement;
+      // Focus that fell out of the dialog (e.g. off a button that became
+      // disabled) comes back in at the near end.
+      if (!active || !panel.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
+        return;
+      }
+      if (event.shiftKey && active === first) {
         event.preventDefault();
         last?.focus();
       }
-      if (!event.shiftKey && document.activeElement === last) {
+      if (!event.shiftKey && active === last) {
         event.preventDefault();
         first?.focus();
       }
@@ -71,17 +98,25 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
     document.addEventListener("keydown", handler);
     return () => {
       document.removeEventListener("keydown", handler);
-      previous?.focus();
+      if (!deletedRef.current && previous?.isConnected) previous.focus();
+      else
+        document
+          .getElementById("workspace-main")
+          ?.focus({ preventScroll: true });
     };
-  }, [saving]);
+  }, []);
 
   const handleSave = async () => {
+    // A missing field: show its error, then move focus to it so the label,
+    // the error and the invalid state are read together.
     if (!title.trim()) {
-      setErrorMsg(TITLE_ERROR);
+      flushSync(() => setErrorMsg(TITLE_ERROR));
+      titleRef.current?.focus();
       return;
     }
     if (!signature.trim()) {
-      setErrorMsg(SIGNATURE_ERROR);
+      flushSync(() => setErrorMsg(SIGNATURE_ERROR));
+      signatureRef.current?.focus();
       return;
     }
     setErrorMsg("");
@@ -102,6 +137,9 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
       onClose();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "保存失败，请重试。");
+      // 保存 was disabled while saving, which dropped focus; put it back.
+      flushSync(() => setSaving(false));
+      saveRef.current?.focus();
     } finally {
       setSaving(false);
     }
@@ -122,7 +160,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
         aria-labelledby="issue-detail-title"
         className="issue-dialog"
       >
-        <header className="issue-dialog-header">
+        <div className="issue-dialog-header">
           <div className="issue-dialog-heading">
             <h2 id="issue-detail-title">
               {issue.title ? "议题详情" : "新建议题"}
@@ -151,7 +189,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
             <X aria-hidden="true" />
             关闭<span className="ac-visually-hidden">议题详情</span>
           </button>
-        </header>
+        </div>
 
         <div className="issue-dialog-body">
           <div className="issue-dialog-form">
@@ -167,6 +205,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 </p>
               )}
               <input
+                ref={titleRef}
                 id="issue-title"
                 type="text"
                 aria-required="true"
@@ -339,6 +378,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                   选择成员后自动填入；不在名单中的经办人可直接填写。
                 </span>
                 <input
+                  ref={signatureRef}
                   id="issue-signature"
                   type="text"
                   aria-required="true"
@@ -365,17 +405,24 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
           </div>
         </div>
 
-        <footer className="issue-dialog-footer">
+        <div className="issue-dialog-footer">
           {errorMsg && (
             <div className="workspace-error issue-dialog-error" role="alert">
               <span>{errorMsg}</span>
             </div>
           )}
           {showDeleteConfirm ? (
-            <div className="issue-dialog-confirm">
-              <p>确定要删除这项议题吗？删除后无法恢复。</p>
+            <div
+              className="issue-dialog-confirm"
+              role="group"
+              aria-labelledby="issue-delete-question"
+            >
+              <p id="issue-delete-question">
+                确定要删除这项议题吗？删除后无法恢复。
+              </p>
               <div className="workspace-actions">
                 <button
+                  ref={confirmDeleteRef}
                   type="button"
                   className="workspace-button danger"
                   disabled={saving}
@@ -383,11 +430,14 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                     setSaving(true);
                     try {
                       await onDelete(issue.id);
+                      deletedRef.current = true;
                       onClose();
                     } catch (err) {
                       setErrorMsg(
                         err instanceof Error ? err.message : "删除失败",
                       );
+                      flushSync(() => setSaving(false));
+                      confirmDeleteRef.current?.focus();
                     } finally {
                       setSaving(false);
                     }
@@ -399,7 +449,12 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                   type="button"
                   className="workspace-button"
                   autoFocus
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() => {
+                    // The confirmation goes away with this button in it;
+                    // focus returns to 删除议题, which comes back.
+                    flushSync(() => setShowDeleteConfirm(false));
+                    deleteRef.current?.focus();
+                  }}
                 >
                   保留议题
                 </button>
@@ -408,6 +463,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
           ) : (
             <div className="issue-dialog-actions">
               <button
+                ref={saveRef}
                 id="save-issue-btn"
                 type="button"
                 disabled={saving}
@@ -426,6 +482,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
                 取消
               </button>
               <button
+                ref={deleteRef}
                 id="delete-issue-btn"
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -435,7 +492,7 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               </button>
             </div>
           )}
-        </footer>
+        </div>
       </div>
     </div>
   );

@@ -4,8 +4,8 @@
  * session view with agenda, minutes and the division (SessionView.tsx) and
  * the weekly report table (AttendanceView.tsx). .agenda-title is also used
  * by PostMeetingView.tsx. Values come from src/design-system/tokens.css.
- * Shared primitives (buttons, form groups, tags, tables, empty states) are
- * styled in components.css; this file only lays them out.
+ * Shared primitives (buttons, form groups, tags, tables, stat numbers,
+ * empty states) are styled in components.css; this file only lays them out.
  */
 
 /* ------------------------------------------------------------------ */
@@ -33,6 +33,16 @@
   flex-wrap: wrap;
   gap: var(--ac-space-3);
 }
+/* Below 992px the select takes the full row so the meeting name is not cut
+   off under the chevron; the two buttons go on the line below. */
+@media (max-width: 991px) {
+  .meeting-select {
+    flex-basis: 100%;
+  }
+  .meeting-toolbar-actions {
+    flex-basis: 100%;
+  }
+}
 
 /* The rename and create forms open under the row. */
 .meeting-form {
@@ -51,43 +61,24 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Meeting figures: three numbers separated by 1px rules              */
+/* Meeting figures: the shared stat strip (components.css)            */
 /* ------------------------------------------------------------------ */
 
+/* The figures are a <dl class="council-stat-strip">: the strip's own
+   strong/span styles sit inside dt and dd. A dt has to come first in the
+   source, so each pair is reversed to show the number above its label. */
 .meeting-stats {
   margin: 0 0 var(--ac-space-8);
 }
-.meeting-stats dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.meeting-stats .council-stat-strip {
   margin: 0;
 }
-/* The label comes first in the source and sits under the number. */
-.meeting-stats dl > div {
-  display: flex;
+.meeting-stats .council-stat-strip > div {
   flex-direction: column-reverse;
   justify-content: flex-end;
-  gap: var(--ac-space-1);
-  min-width: 0;
-  padding: 0 var(--ac-space-5);
-  border-left: 1px solid var(--ac-color-border);
-}
-.meeting-stats dl > div:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-.meeting-stats dt {
-  color: var(--ac-color-text);
-  font: var(--ac-type-small);
 }
 .meeting-stats dd {
   margin: 0;
-  color: var(--ac-color-brand);
-  font: 700 var(--ac-font-size-h1) / 40px var(--ac-font-family);
-  font-variant-numeric: tabular-nums;
-}
-.meeting-stats dd span {
-  color: var(--ac-color-text-secondary);
 }
 
 /* ------------------------------------------------------------------ */
@@ -172,14 +163,14 @@
   color: var(--ac-color-link);
   font: 600 var(--ac-font-size-h4) / 26px var(--ac-font-family);
   text-align: left;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration: none;
   text-underline-offset: 0.2em;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
 .agenda-title:hover {
   color: var(--ac-color-link-hover);
+  text-decoration: underline;
   text-decoration-thickness: 2px;
 }
 
@@ -425,20 +416,21 @@
     width: var(--ac-rule-heavy);
     background: var(--ac-color-brand);
   }
+  /* Number and name share the first line; status and action wrap below,
+     the status lined up under the name: the 30px number column plus the
+     row's 20px column gap put the name 50px in. */
   .attendance-table tbody .attendance-queue {
     flex: none;
     align-self: flex-start;
-    width: var(--ac-space-5);
+    width: var(--ac-space-7);
   }
-  /* Number and name share the first line; status and action wrap below,
-     the status lined up under the name. */
   .attendance-table tbody th {
     flex: 1 1 calc(100% - var(--ac-space-8));
     min-width: 0;
   }
   .attendance-table tbody td.attendance-status {
     width: auto;
-    margin-left: calc(2 * var(--ac-space-5));
+    margin-left: var(--ac-space-8);
   }
   .attendance-table tbody td.attendance-action {
     width: auto;
@@ -451,14 +443,8 @@
 /* ------------------------------------------------------------------ */
 
 @media (max-width: 575px) {
-  .meeting-toolbar-actions {
-    flex: 1 1 100%;
-  }
   .meeting-toolbar-actions > .workspace-button {
     flex: 1 1 0;
-  }
-  .meeting-stats dl > div {
-    padding: 0 var(--ac-space-3);
   }
   .checkin-form > .workspace-button {
     flex: 1 1 100%;

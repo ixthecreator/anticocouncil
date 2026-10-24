@@ -24,7 +24,22 @@
   </head>
   <body>
     <noscript data-workspace-only>
-      <p class="ac-noscript-banner">工作台需要 JavaScript。请在浏览器设置中开启 JavaScript 后刷新页面；公开档案馆不需要 JavaScript 也能阅读。</p>
+      <style>
+        .ac-noscript-banner h1 {
+          margin: 0 0 var(--ac-space-2);
+          font: var(--ac-type-h3);
+        }
+        .ac-noscript-banner a {
+          color: inherit;
+          font-weight: 700;
+          text-decoration: underline;
+          text-underline-offset: 0.2em;
+        }
+      </style>
+      <main class="ac-noscript-banner">
+        <h1>需要开启 JavaScript</h1>
+        <p>工作台需要 JavaScript。请在浏览器设置中开启 JavaScript 后刷新页面；<a href="/archive">公开档案馆</a>不需要 JavaScript 也能阅读。</p>
+      </main>
     </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

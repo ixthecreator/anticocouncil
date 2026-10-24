@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Issue, Meeting, WorkspaceData } from "../types";
 import { voteTotals } from "../lib/workspace";
 import { responsibleName } from "../lib/councilOverview";
-import { DeadlineTag, StatusTag } from "./CouncilOverview";
+import { DeadlineTag, PageLink, StatusTag } from "./CouncilOverview";
 import { Empty } from "./WorkspaceForms";
 
 export function ProposalIndex({
@@ -64,6 +64,8 @@ export function ProposalIndex({
                         {issue.serialNumber ? `${issue.serialNumber} · ` : ""}
                         {issue.category}
                       </p>
+                      {/* The title is the card's one control that opens the
+                          record; the dialog shows and edits it. */}
                       <h2 id={`proposal-${issue.id}-title`}>
                         <button
                           className="council-link"
@@ -96,12 +98,12 @@ export function ProposalIndex({
                       <dt>所属会议</dt>
                       <dd>
                         {meeting ? (
-                          <button
-                            className="council-link"
-                            onClick={() => onOpenMeeting(meeting)}
+                          <PageLink
+                            page="session"
+                            onFollow={() => onOpenMeeting(meeting)}
                           >
                             {meeting.title}
-                          </button>
+                          </PageLink>
                         ) : (
                           "未关联会议"
                         )}
@@ -126,24 +128,6 @@ export function ProposalIndex({
                       </div>
                     )}
                   </dl>
-                  <div className="workspace-actions">
-                    <button
-                      className="workspace-button"
-                      onClick={() => onOpenIssue(issue)}
-                    >
-                      查看与编辑议题
-                    </button>
-                    {issue.status === "voting" &&
-                      !issue.archived &&
-                      meeting && (
-                        <button
-                          className="workspace-button primary"
-                          onClick={() => onOpenMeeting(meeting)}
-                        >
-                          查看所属例会
-                        </button>
-                      )}
-                  </div>
                 </article>
               </li>
             );

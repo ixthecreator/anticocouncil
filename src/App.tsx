@@ -14,7 +14,10 @@ import {
   ActivityEvent,
 } from "./types";
 import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
-import { workspacePageFromHash } from "./lib/workspaceNavigation";
+import {
+  workspaceNavigation,
+  workspacePageFromHash,
+} from "./lib/workspaceNavigation";
 import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
 import "./styles/workspace/index.css";
@@ -133,6 +136,21 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     window.addEventListener("hashchange", navigate);
     return () => window.removeEventListener("hashchange", navigate);
   }, []);
+  // Every workspace page has its own document title. After an in-app page
+  // change (navigation links, links in the page, back and forward) focus
+  // moves to the start of the new page, so the next Tab reaches its
+  // breadcrumbs and heading first. The first page keeps the browser's focus.
+  const shownPage = useRef(activeTab);
+  useEffect(() => {
+    const pageTitle = workspaceNavigation.find(
+      (item) => item.id === activeTab,
+    )?.title;
+    if (pageTitle)
+      document.title = `${pageTitle} · ${storageMode === "local" ? "本地试用" : "协作工作台"} · 安提柯议会`;
+    if (shownPage.current === activeTab) return;
+    shownPage.current = activeTab;
+    document.getElementById("workspace-main")?.focus({ preventScroll: true });
+  }, [activeTab, storageMode]);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [listSortKey, setListSortKey] = useState<
     "priority" | "category" | "status"
@@ -504,24 +522,38 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
         )}
         {activeTab === "session" && selectedMeeting && ready && (
           <section className="meeting-stats" aria-label="本次会议概览">
-            <dl>
+            {/* The shared stat strip (as on 执行督办), kept as a list of
+                label and value pairs. */}
+            <dl className="council-stat-strip">
               <div>
-                <dt>本周安排汇报的成员</dt>
-                <dd>{currentReports.length}</dd>
-              </div>
-              <div>
-                <dt>本次例会议题</dt>
-                <dd>{currentIssues.length}</dd>
-              </div>
-              <div>
-                <dt>已汇报或免汇报</dt>
+                <dt>
+                  <span>本周安排汇报的成员</span>
+                </dt>
                 <dd>
-                  {
-                    currentReports.filter(
-                      (row) => row.reportStatus !== "pending",
-                    ).length
-                  }
-                  <span> / {currentReports.length}</span>
+                  <strong>{currentReports.length}</strong>
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  <span>本次例会议题</span>
+                </dt>
+                <dd>
+                  <strong>{currentIssues.length}</strong>
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  <span>已汇报或免汇报</span>
+                </dt>
+                <dd>
+                  <strong>
+                    {
+                      currentReports.filter(
+                        (row) => row.reportStatus !== "pending",
+                      ).length
+                    }{" "}
+                    / {currentReports.length}
+                  </strong>
                 </dd>
               </div>
             </dl>

@@ -25,10 +25,8 @@
 }
 .brand-intro .brand-intro__name {
   margin: 0;
-  padding-left: 0.3em;
   color: var(--ac-color-on-brand);
   font: var(--ac-type-h3);
-  letter-spacing: 0.3em;
 }
 @keyframes brand-intro-reveal {
   0% { opacity: 0; transform: translateY(6px); }

@@ -137,21 +137,10 @@
 .auth-loading-actions {
   margin-top: var(--ac-space-6);
 }
-.auth-loading-actions .public-button {
-  margin-top: 0;
-}
-.auth-loading-actions .cloud-login-wait {
-  margin-top: 0;
-}
 
 /* The same loading state inside the workspace content area. */
 .workspace-loading .auth-spinner {
-  width: 120px;
-  height: var(--ac-rule-heavy);
   margin: 0 0 var(--ac-space-5);
-  border: 0;
-  border-radius: 0;
-  animation: none;
 }
 .workspace-loading .auth-loading {
   width: 100%;

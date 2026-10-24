@@ -6,31 +6,32 @@
  * global ones in src/design-system/base.css. Values come from tokens.css.
  */
 
+/*
+ * Two steps in reading order: 第 1 步 编辑名片, then 第 2 步 名片预览. Each
+ * opens under a heavy brand rule, like the other workspace sections. One
+ * column up to 991px (editor first, as in the source and focus order); from
+ * 992px the steps sit side by side and the preview stays in view.
+ */
 .card-studio {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--ac-space-7);
+  gap: var(--ac-space-8);
   align-items: start;
+}
+.card-editor,
+.card-preview-section {
+  min-width: 0;
+  padding-top: var(--ac-space-5);
+  border-top: var(--ac-rule-heavy) solid var(--ac-color-brand);
 }
 @media (min-width: 992px) {
   .card-studio {
     grid-template-columns: 340px minmax(0, 1fr);
+    column-gap: var(--ac-space-7);
   }
-  /* Line the preview heading up with the editor heading. */
   .card-preview-section {
     position: sticky;
     top: var(--ac-space-5);
-    padding-top: var(--ac-space-5);
-  }
-}
-/* One column: the preview comes first, the editor below it, so the
-   step labels would read out of order and are left out. */
-@media (max-width: 991px) {
-  .card-preview-section {
-    grid-row: 1;
-  }
-  .card-section-heading > .card-step {
-    display: none;
   }
 }
 
@@ -61,38 +62,36 @@
 /* Editor                                                              */
 /* ------------------------------------------------------------------ */
 
-.card-editor {
-  min-width: 0;
-  padding: var(--ac-space-5);
-  background: var(--ac-color-surface-alt);
-}
-
-/* Two pressed-state buttons: 填写信息 / 排版微调. */
+/*
+ * 填写信息 / 排版微调: two pressed-state buttons shown as tabs, like the
+ * primary navigation: a 1px rule under the row, a heavy brand bar under the
+ * current one, an underline on hover.
+ */
 .card-editor-modes {
   display: flex;
+  gap: var(--ac-space-7);
   margin-top: var(--ac-space-5);
+  border-bottom: 1px solid var(--ac-color-border);
 }
 .card-editor-modes button {
-  flex: 1;
   min-height: 44px;
   margin: 0;
-  padding: var(--ac-space-3) var(--ac-space-4);
-  border: 2px solid var(--ac-color-brand);
+  padding: var(--ac-space-3) 0;
+  border: 0;
+  border-block: var(--ac-rule-heavy) solid transparent;
   border-radius: 0;
-  background: var(--ac-color-surface);
-  color: var(--ac-color-brand);
-  font: 600 var(--ac-font-size-body) / 20px var(--ac-font-family);
+  background: none;
+  color: var(--ac-color-heading);
+  font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
   cursor: pointer;
 }
-.card-editor-modes button + button {
-  border-left-width: 0;
-}
 .card-editor-modes button:hover {
-  background: var(--ac-color-brand-tint);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
 }
 .card-editor-modes button[aria-pressed="true"] {
-  background: var(--ac-color-brand);
-  color: var(--ac-color-on-brand);
+  border-bottom-color: var(--ac-color-brand);
 }
 
 /* Form groups: label, optional hint, then the control. */
@@ -289,7 +288,7 @@
   cursor: pointer;
 }
 .card-layout-targets button:hover {
-  background: var(--ac-color-brand-tint);
+  background: var(--ac-color-surface-alt);
 }
 .card-layout-targets button[aria-pressed="true"] {
   background: var(--ac-color-brand);
@@ -315,7 +314,7 @@
   margin: var(--ac-space-3) 0 0;
   padding: var(--ac-space-3) var(--ac-space-4);
   border-left: var(--ac-rule-heavy) solid var(--ac-color-brand);
-  background: var(--ac-color-surface);
+  background: var(--ac-color-surface-alt);
   color: var(--ac-color-text);
   font: var(--ac-type-small);
 }
@@ -382,9 +381,6 @@
 /* Preview: a plain frame around the canvas                             */
 /* ------------------------------------------------------------------ */
 
-.card-preview-section {
-  min-width: 0;
-}
 .card-preview-heading {
   display: flex;
   flex-wrap: wrap;
@@ -495,6 +491,7 @@
   height: 16px;
 }
 .card-text-button:disabled {
+  background: none;
   color: var(--ac-color-text-secondary);
   text-decoration: none;
   opacity: 1;
@@ -517,10 +514,17 @@
   color: var(--ac-color-text);
   font: var(--ac-type-body);
 }
+/* 下载草稿 and 导入草稿 read as links; 重新制作 clears the draft, so it is
+   the destructive secondary button (it opens a confirm first). */
 .card-draft-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--ac-space-6);
+  align-items: center;
+  gap: var(--ac-space-3) var(--ac-space-6);
+}
+.card-reset-button svg {
+  width: 16px;
+  height: 16px;
 }
 .card-reset-confirm {
   display: flex;
@@ -544,9 +548,6 @@
 }
 
 @media (max-width: 575px) {
-  .card-editor {
-    padding: var(--ac-space-4);
-  }
   .card-preview-stage {
     padding: var(--ac-space-3);
   }

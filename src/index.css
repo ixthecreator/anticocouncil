@@ -1,12 +1,17 @@
-@import "tailwindcss";
+/*
+ * Tailwind supplies the preflight reset and the theme layer only. No
+ * component uses utility classes, so automatic source detection is off and
+ * no utilities are generated (stray words in scripts and documents would
+ * otherwise become rules such as .rounded or .filter). To use utilities
+ * again, add an explicit `@source` for the folder that needs them.
+ */
+@import "tailwindcss" source(none);
 
 @import "./design-system/tokens.css";
 @import "./design-system/base.css";
 
 @theme {
   --font-sans: var(--ac-font-family);
-  --font-serif: var(--ac-font-family);
-  --font-display: var(--ac-font-family);
   --font-mono: var(--ac-font-mono);
 
   /* Breakpoints follow the parliament layout grid. */
@@ -14,45 +19,6 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1220px;
-
-  /* The smallest text in the system is 14px. */
-  --text-xs: 0.875rem;
-  --text-xs--line-height: 1.5714;
-  --text-sm: 0.875rem;
-  --text-sm--line-height: 1.5714;
-
-  /* Neutral and status utilities resolve to design tokens. */
-  --color-neutral-50: var(--ac-color-surface-alt);
-  --color-neutral-100: var(--ac-color-page);
-  --color-neutral-200: var(--ac-color-border);
-  --color-neutral-300: var(--ac-color-border);
-  --color-neutral-400: var(--ac-color-text-secondary);
-  --color-neutral-500: var(--ac-color-text-secondary);
-  --color-neutral-600: var(--ac-color-text);
-  --color-neutral-700: var(--ac-color-text);
-  --color-neutral-800: var(--ac-color-heading);
-  --color-neutral-900: var(--ac-color-heading);
-  --color-neutral-950: var(--ac-color-heading);
-  --color-brand: var(--ac-color-brand);
-  --color-brand-dark: var(--ac-color-brand-dark);
-  --color-brand-tint: var(--ac-color-brand-tint);
-  --color-link: var(--ac-color-link);
-  --color-red-50: var(--ac-color-error-bg);
-  --color-red-200: var(--ac-color-error-bg);
-  --color-red-300: var(--ac-color-error);
-  --color-red-500: var(--ac-color-error);
-  --color-red-600: var(--ac-color-error);
-  --color-red-700: var(--ac-color-error-text);
-  --color-red-800: var(--ac-color-error-text);
-  --color-green-50: var(--ac-color-success-bg);
-  --color-green-600: var(--ac-color-success);
-  --color-green-700: var(--ac-color-success-text);
-  --color-amber-50: var(--ac-color-warning-bg);
-  --color-amber-600: var(--ac-color-warning);
-  --color-amber-700: var(--ac-color-warning-text);
-  --color-blue-50: var(--ac-color-info-bg);
-  --color-blue-600: var(--ac-color-link);
-  --color-blue-700: var(--ac-color-info-text);
 }
 
 /*
@@ -72,22 +38,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
-}
-
-/* One colour theme. The legacy --theme-* names resolve to design tokens. */
-:root,
-.theme-parliament {
-  --theme-bg: var(--ac-color-page);
-  --theme-panel-bg: var(--ac-color-surface);
-  --theme-card-bg: var(--ac-color-surface);
-  --theme-border: var(--ac-color-border);
-  --theme-text-primary: var(--ac-color-heading);
-  --theme-text-secondary: var(--ac-color-text-secondary);
-  --theme-accent: var(--ac-color-brand);
-  --theme-accent-light: var(--ac-color-surface-alt);
-  --theme-accent-text: var(--ac-color-on-brand);
-  --theme-sidebar: var(--ac-color-brand);
-  --theme-font: var(--ac-font-family);
 }
 
 /* Element defaults shared by the public site and the workspace. */
@@ -120,8 +70,13 @@ button,
 summary {
   touch-action: manipulation;
 }
-/* Disabled buttons stay legible; components set their own muted colours. */
+/*
+ * Disabled buttons: a muted token style, never faded text. A component with
+ * its own :disabled rule (for example .workspace-button) overrides this.
+ */
 button:disabled {
-  opacity: 0.6;
+  border-color: var(--ac-color-border);
+  background-color: var(--ac-color-surface-alt);
+  color: var(--ac-color-text-secondary);
   cursor: not-allowed;
 }

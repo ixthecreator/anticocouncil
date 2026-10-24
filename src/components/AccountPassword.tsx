@@ -89,9 +89,9 @@ export function PasswordSettingsDialog({ identity, onClose }: { identity: CloudI
       catch (err) { setError(cloudBackend.accessErrorMessage(err)); }
       finally { setPassword(""); setConfirmation(""); setBusy(false); }
     }}>
-      <label>新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
+      <label>新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" aria-describedby="cloud-site-password-hint" value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
       <label>再次输入新密码<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={confirmation} onChange={event => setConfirmation(event.target.value)} disabled={busy}/></label>
-      <p className="cloud-help">至少 8 位。这是本站独立密码，无需填写 Google 或邮箱本身的密码。</p>
+      <p className="cloud-help" id="cloud-site-password-hint">至少 8 位。这是本站独立密码，无需填写 Google 或邮箱本身的密码。</p>
       <button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在保存…" : "保存本站密码"}</button>
     </form>}
     {notice && <p className="cloud-notice" role="status">{notice}</p>}

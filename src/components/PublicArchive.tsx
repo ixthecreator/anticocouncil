@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   archiveRecords,
   archiveTerms,
@@ -180,8 +180,8 @@ export function ArchiveArticle({ record }: { record: ArchiveRecord }) {
             ))}
             <p className="public-article-end">
               <a className="public-emphasised-link" href={termHref}>
-                返回{term?.title}
-                <ArrowRight size={18} aria-hidden="true" />
+                <ArrowLeft size={18} aria-hidden="true" />
+                返回{term?.title ?? "届次目录"}
               </a>
             </p>
           </div>

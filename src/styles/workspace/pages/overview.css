@@ -1,9 +1,10 @@
 /*
  * Overview page: CouncilOverview.tsx. A main column (the meeting feature and
- * the agenda list) and a side column of small widgets. Each widget has a
- * heavy brand rule above it; rows inside are separated by 1px rules. Shared
- * primitives (.council-link, .council-tag, .council-meta, .workspace-button,
- * .workspace-empty) come from components.css.
+ * the agenda list) beside a side column of to-dos and progress, which end at
+ * about the same height; recent records run full width below both. Each
+ * widget has a heavy brand rule above it; rows inside are separated by 1px
+ * rules. Shared primitives (.council-link, .council-tag, .council-meta,
+ * .workspace-button, .workspace-empty) come from components.css.
  */
 
 .council-overview-grid {
@@ -16,6 +17,9 @@
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     align-items: start;
   }
+  .council-overview-records {
+    grid-column: 1 / -1;
+  }
 }
 .council-overview-main,
 .council-overview-side {
@@ -24,15 +28,14 @@
   gap: var(--ac-space-8);
   min-width: 0;
 }
-/* Tablet: the side widgets pair up under the main column. */
+/* Tablet: the to-do list and the progress widget sit side by side under
+   the main column. */
 @media (min-width: 768px) and (max-width: 991px) {
   .council-overview-side {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--ac-space-8) var(--ac-space-7);
-  }
-  .council-overview-side > :first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: var(--ac-space-7);
   }
 }
 
@@ -69,6 +72,7 @@
   color: var(--ac-color-heading);
   font: var(--ac-type-h2);
   overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 .council-feature-description {
   max-width: var(--ac-reading-width);
@@ -80,6 +84,12 @@
 }
 .council-meeting-feature .workspace-actions {
   margin-top: var(--ac-space-6);
+}
+/* The call to action is a link drawn as a primary button: on focus it keeps
+   the button colours inside the focus ring instead of the plain-link look. */
+.council-meeting-feature a.workspace-button.primary:focus-visible {
+  background-color: var(--ac-color-brand);
+  color: var(--ac-color-on-brand) !important;
 }
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +158,7 @@
   margin: 0;
   color: var(--ac-color-heading);
   overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 .council-row-list > li > .council-meta,
 .council-issue-row-text > .council-meta {
@@ -231,6 +242,9 @@
   }
   .council-meeting-feature {
     padding: var(--ac-space-4) var(--ac-space-4) var(--ac-space-5);
+  }
+  .council-feature-title {
+    font: var(--ac-type-h3);
   }
   .council-meeting-feature .workspace-actions .workspace-button {
     width: 100%;

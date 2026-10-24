@@ -10,25 +10,52 @@
 /* Shared by the daily pages                                           */
 /* ------------------------------------------------------------------ */
 
-/* Filters on the left, a related external document on the right. */
-.daily-toolbar .daily-toolbar-link {
+/*
+ * The page opens like the proposal and supervision pages: no section band
+ * under the h1. First the page's main action (one primary button) with a
+ * related external document on the right, then the add or edit form when it
+ * is open, then the filter toolbar with the live result count.
+ */
+.daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ac-space-4) var(--ac-space-5);
+  margin: 0 0 var(--ac-space-5);
+}
+.daily-related {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-left: auto;
 }
-.daily-toolbar .daily-toolbar-link svg,
-.daily-related svg {
-  margin-left: var(--ac-space-2);
+/* The form follows the button that opened it. */
+.daily-form > .workspace-form {
+  margin-top: 0;
 }
+/* Phones: the confirm step takes a full line and its buttons share it. */
 @media (max-width: 575px) {
-  .daily-toolbar .daily-toolbar-link {
-    margin-left: 0;
+  .workspace-actions > .daily-confirm {
+    flex: 1 1 100%;
+  }
+  .daily-confirm > .workspace-button {
+    flex: 1 1 auto;
   }
 }
-/* A related document when the page has no filters. */
-.daily-related {
-  margin: 0 0 var(--ac-space-5);
+/* Pages without filters show the result count on its own line. */
+.daily-count {
+  margin: 0 0 var(--ac-space-3);
+  padding-top: var(--ac-space-4);
+  border-top: 1px solid var(--ac-color-border);
+}
+/*
+ * Focus moves by script to the form heading when a form opens, and to the
+ * result count after a delete removes the focused row. They are not
+ * controls, so (like main[tabindex="-1"] in base.css) they show no ring.
+ */
+.daily-view [tabindex="-1"]:is(:focus, :focus-visible) {
+  outline: 0;
+  box-shadow: none;
 }
 
 /* A heading at the top of an add or edit form. */
@@ -80,10 +107,10 @@
 /* 月度沙龙: events grouped by month, date on the left                  */
 /* ------------------------------------------------------------------ */
 
-.activity-month {
+.activity-month + .activity-month {
   margin-top: var(--ac-space-7);
 }
-.activity-month > h3 {
+.activity-month > h2 {
   margin: 0;
   padding-bottom: var(--ac-space-3);
   border-bottom: 2px solid var(--ac-color-heading);
@@ -123,7 +150,7 @@
   gap: var(--ac-space-2) var(--ac-space-4);
   margin-bottom: var(--ac-space-3);
 }
-.activity-title h4 {
+.activity-title h3 {
   margin: 0;
   color: var(--ac-color-heading);
   font: var(--ac-type-h4);
@@ -168,19 +195,42 @@
   flex-wrap: wrap;
   column-gap: var(--ac-space-3);
 }
-/* The actions column takes only the room its buttons need. */
+/*
+ * The actions column takes only the room its buttons need. Rows are
+ * top-aligned, so the buttons move up by the difference between their
+ * height and a line of text: their labels sit on the first line of the
+ * other cells, and the row grows no taller for them.
+ */
 .daily-table .daily-table-actions {
   width: 1%;
   white-space: nowrap;
 }
-.daily-table-actions .workspace-actions {
+.daily-table-actions > .workspace-actions {
   flex-wrap: nowrap;
   justify-content: flex-end;
-  margin-top: 0;
+  margin-block: calc(-1 * var(--ac-space-3));
+}
+/* While 删除 asks for confirmation, 确认删除 and 取消 take a line of their
+   own under the edit button, so the column keeps its width. */
+.daily-table-actions > .workspace-actions:has(> .daily-confirm) {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.daily-confirm {
+  flex-wrap: nowrap;
 }
 @media (min-width: 992px) {
   .editorial-table tbody th {
     width: 25%;
+  }
+}
+/* 992-1219px: the editorial table is at its narrowest, so its row buttons
+   stack and leave the names in 分工 room for one line. */
+@media (min-width: 992px) and (max-width: 1219px) {
+  .editorial-table .daily-table-actions > .workspace-actions,
+  .editorial-table .daily-confirm {
+    flex-direction: column;
+    align-items: flex-end;
   }
 }
 @media (min-width: 1220px) {
@@ -190,69 +240,23 @@
 }
 
 /*
- * Stacked rows. components.css stacks every .council-table below 768px.
- * The editorial table has too many columns for 768-991px as well, so it
- * stacks the same way up to 991px.
+ * Stacked rows: components.css stacks every .council-table below 768px, and
+ * the editorial table (council-table--stack-md) up to 991px. In a stacked
+ * row the roles and the buttons each take a full line.
  */
-@media (min-width: 768px) and (max-width: 991px) {
-  .editorial-table,
-  .editorial-table tbody {
-    display: block;
-  }
-  .editorial-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-  .editorial-table tbody tr {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ac-space-3) var(--ac-space-5);
-    padding: var(--ac-space-4) 0;
-    border-bottom: 1px solid var(--ac-color-border);
-  }
-  .editorial-table tbody tr:first-child {
-    border-top: 2px solid var(--ac-color-heading);
-  }
-  .editorial-table td,
-  .editorial-table tbody th {
-    display: block;
-    width: auto;
-    padding: 0;
-    border: 0;
-  }
-  .editorial-table tbody th {
-    flex: 1 1 100%;
-  }
-  .editorial-table td[data-label]::before {
-    content: attr(data-label) "：";
-    color: var(--ac-color-heading);
-    font-weight: 600;
-  }
-}
-/* Tweaks for stacked rows: the editorial table up to 991px ... */
 @media (max-width: 991px) {
-  .daily-toolbar:has(+ .council-table-wrap > .editorial-table) {
-    border-bottom: 0;
-  }
   .editorial-table td:has(> .daily-roles),
   .editorial-table .daily-table-actions {
     flex: 1 1 100%;
     width: auto;
     white-space: normal;
   }
-  .editorial-table .daily-table-actions .workspace-actions {
+  .editorial-table .daily-table-actions > .workspace-actions {
+    flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-start;
-  }
-  /* Role labels match the labels the stacked cells show. */
-  .editorial-table .daily-roles dt {
-    color: var(--ac-color-heading);
-    font-weight: 600;
+    margin-block: 0;
   }
 }
 /* ... and the inventory table below 768px. */
@@ -262,9 +266,12 @@
     width: auto;
     white-space: normal;
   }
-  .inventory-table .daily-table-actions .workspace-actions {
+  .inventory-table .daily-table-actions > .workspace-actions {
+    flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-start;
+    margin-block: 0;
   }
 }
 
@@ -334,7 +341,7 @@
   min-width: 0;
   padding-top: var(--ac-space-4);
 }
-.asset-body h3 {
+.asset-body h2 {
   margin: 0;
   color: var(--ac-color-heading);
   font: var(--ac-type-h4);
@@ -352,7 +359,7 @@
 .asset-footer .council-link svg {
   margin: 0 var(--ac-space-2) 0 0;
 }
-.asset-body .workspace-actions {
+.asset-body > .workspace-actions {
   margin-top: auto;
   padding-top: var(--ac-space-3);
 }

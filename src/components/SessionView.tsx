@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import type { Issue, Meeting } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
@@ -50,6 +50,24 @@ export function SessionView({
   const [report, setReport] = useState(currentMeeting?.regularReport || "");
   const [summary, setSummary] = useState(currentMeeting?.summary || "");
   const [editingNotes, setEditingNotes] = useState(false);
+  // An action that changes an issue's status removes or disables its own
+  // button. Focus then moves to the first of these elements that is on the
+  // page once the change has rendered, so keyboard and screen reader users
+  // keep their place and hear the result.
+  const focusTargets = useRef<string[]>([]);
+  const moveFocus = () => {
+    const target = focusTargets.current
+      .map((id) => document.getElementById(id))
+      .find((element) => element);
+    if (!target) return;
+    focusTargets.current = [];
+    target.focus();
+  };
+  const focusAfterChange = (...ids: string[]) => {
+    focusTargets.current = ids;
+    requestAnimationFrame(moveFocus);
+  };
+  useEffect(moveFocus);
   if (!currentMeeting)
     return (
       <Empty>还没有当前例会。点击「新建例会」，开始汇报与议程记录。</Empty>
@@ -89,7 +107,7 @@ export function SessionView({
               </h2>
               <button
                 type="button"
-                className="workspace-button primary"
+                className="workspace-button"
                 onClick={onAddIssue}
               >
                 <Plus size={18} aria-hidden="true" />
@@ -110,13 +128,18 @@ export function SessionView({
                       <h3>
                         <button
                           type="button"
+                          id={`agenda-title-${i.id}`}
                           className="agenda-title"
+                          aria-describedby={`agenda-status-${i.id}`}
                           onClick={() => onOpenDetail(i)}
                         >
                           {i.title}
                         </button>
                       </h3>
-                      <span className={`council-tag ${statusTone[i.status]}`}>
+                      <span
+                        id={`agenda-status-${i.id}`}
+                        className={`council-tag ${statusTone[i.status]}`}
+                      >
                         {statusLabels[i.status]}
                       </span>
                     </div>
@@ -145,17 +168,19 @@ export function SessionView({
                               };
                             });
                             setActiveId(i.id);
+                            focusAfterChange(`voting-title-${i.id}`);
                           }}
                         >
                           发起表决
                         </Action>
                         <Action
-                          onClick={() =>
-                            change("issues", i.id, (old) => {
+                          onClick={async () => {
+                            await change("issues", i.id, (old) => {
                               if (!old) throw new Error("议题不存在");
                               return advanceIssue(old, "agenda", "execution");
-                            })
-                          }
+                            });
+                            focusAfterChange(`agenda-title-${i.id}`);
+                          }}
                         >
                           直接执行
                         </Action>
@@ -241,7 +266,9 @@ export function SessionView({
           aria-labelledby="voting-heading"
         >
           <div className="workspace-heading">
-            <h2 id="voting-heading">会议表决</h2>
+            <h2 id="voting-heading" tabIndex={-1}>
+              会议表决
+            </h2>
             <span className={`council-tag ${voting.length ? "blue" : "grey"}`}>
               {voting.length ? "表决进行中" : "尚未开始"}
             </span>
@@ -266,7 +293,13 @@ export function SessionView({
                   </Field>
                 </div>
               )}
-              <h3 className="voting-title">{active.title}</h3>
+              <h3
+                id={`voting-title-${active.id}`}
+                className="voting-title"
+                tabIndex={-1}
+              >
+                {active.title}
+              </h3>
               {active.description && (
                 <p className="voting-description">{active.description}</p>
               )}
@@ -444,13 +477,15 @@ export function SessionView({
                 <Action
                   className="primary"
                   disabled={!Object.values(totals).some((n) => n > 0)}
-                  onClick={() =>
-                    updateVoting((old) => ({
+                  onClick={async () => {
+                    await updateVoting((old) => ({
                       ...old,
                       status: votingResult(old),
                       votes: voteTotals(old),
-                    }))
-                  }
+                    }));
+                    // The agenda row now carries the result in its tag.
+                    focusAfterChange(`agenda-title-${active.id}`, "voting-heading");
+                  }}
                 >
                   结束表决并保存结果
                 </Action>

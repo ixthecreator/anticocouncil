@@ -39,8 +39,14 @@ export function PublicLayout({
               <span className="ac-visually-hidden">，返回首页</span>
             </a>
             <span className="public-product-name">
-              {page === "workspace" ? "成员工作台" : "公开档案馆"}
+              {page === "workspace" ? "工作台" : "公开档案馆"}
             </span>
+            {page !== "workspace" && (
+              <a className="public-header-entry" href="/portal">
+                进入协作工作台
+                <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            )}
           </div>
         </div>
         <nav className="public-navigation" aria-label="网站导航">
@@ -53,12 +59,6 @@ export function PublicLayout({
             <li>
               <a href="/archive" aria-current={current("archive")}>
                 公开档案馆
-              </a>
-            </li>
-            <li className="public-navigation-portal">
-              <a href="/portal" aria-current={current("workspace")}>
-                进入协作工作台
-                <ArrowRight size={16} aria-hidden="true" />
               </a>
             </li>
           </ul>

@@ -41,28 +41,12 @@
   font: var(--ac-type-h2);
   overflow-wrap: anywhere;
 }
-.workspace-heading h3 {
-  margin: 0;
-  color: var(--ac-color-heading);
-  font: var(--ac-type-h3);
-  overflow-wrap: anywhere;
-}
 /* A count after a heading, e.g. "议程与执行 3". */
-.workspace-heading :is(h2, h3) small {
+.workspace-heading h2 small {
   margin-left: var(--ac-space-3);
   color: var(--ac-color-text-secondary);
   font: var(--ac-type-small);
   font-variant-numeric: tabular-nums;
-}
-
-/* A short label above a heading, in plain words. */
-.eyebrow {
-  display: block;
-  margin: 0 0 var(--ac-space-2);
-  color: var(--ac-color-text-secondary);
-  font: 600 var(--ac-font-size-small) / 22px var(--ac-font-family);
-  letter-spacing: normal;
-  text-transform: none;
 }
 
 /* ------------------------------------------------------------------ */
@@ -162,9 +146,34 @@
   vertical-align: -0.15em;
 }
 
+/*
+ * A record title: the one link of a list row or card, i.e. a council-link
+ * that is the content of a heading or of a table row header. Semibold link
+ * colour, no underline at rest, a 2px underline on hover (as the public
+ * record lists). The heading sets the size.
+ */
+:is(h2, h3, h4) > .council-link,
+.council-table tbody th > .council-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+:is(h2, h3, h4) > .council-link:hover,
+.council-table tbody th > .council-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* Link-styled buttons take the link focus look of base.css: white
+   background, black text, no underline, inside the double ring. */
+.council-link:focus-visible,
+.workspace-button.subtle:focus-visible {
+  background-color: var(--ac-color-surface);
+  color: var(--ac-color-focus-inner) !important;
+  text-decoration: none !important;
+}
+
 /* Disabled: a muted token style, never faded text. */
 .workspace-button:disabled,
-.workspace-button[aria-disabled="true"],
 .workspace-button.primary:disabled,
 .workspace-button.danger:disabled {
   border-color: var(--ac-color-border);
@@ -184,12 +193,6 @@
   cursor: not-allowed;
 }
 
-/* A button rendered as a link element takes the link focus colours. */
-a.workspace-button:focus-visible {
-  border-color: var(--ac-color-focus-inner);
-  background: var(--ac-color-surface);
-}
-
 /* A row of buttons. */
 .workspace-actions {
   display: flex;
@@ -198,24 +201,22 @@ a.workspace-button:focus-visible {
   gap: var(--ac-space-3);
   margin-top: var(--ac-space-4);
 }
-.workspace-actions:has(> .workspace-field) {
-  align-items: flex-end;
-}
 .workspace-actions .workspace-actions {
   margin-top: 0;
 }
-/* A text link in a row of buttons is centred on the same 44px line. */
-.workspace-actions > a:not(.workspace-button) {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
+/* Phones: buttons in a row grow to fill it, so a row of buttons never
+   ends at a ragged edge; a lone button spans the full width. */
+@media (max-width: 575px) {
+  .workspace-actions > .workspace-button:not(.subtle) {
+    flex: 1 1 auto;
+  }
 }
 
 /* ------------------------------------------------------------------ */
 /* Forms                                                               */
 /* ------------------------------------------------------------------ */
 
-/* A form block: secondary background, single column on small screens. */
+/* A form block on a secondary background: one column, groups 25px apart. */
 .workspace-form {
   margin: var(--ac-space-5) 0;
   padding: var(--ac-space-5);
@@ -234,16 +235,6 @@ a.workspace-button:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--ac-space-6);
-}
-@media (min-width: 768px) {
-  /* Short fields pair up on wide screens; long ones take the full row. */
-  .workspace-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--ac-space-7);
-  }
-}
-.workspace-fields > :is(.workspace-field:has(textarea), :not(.workspace-field)) {
-  grid-column: 1 / -1;
 }
 .workspace-fields > .workspace-button {
   justify-self: start;
@@ -264,13 +255,9 @@ a.workspace-button:focus-visible {
   color: var(--ac-color-heading);
   font: 600 var(--ac-font-size-body) / 24px var(--ac-font-family);
 }
-.workspace-field small,
 .workspace-field .workspace-help {
   color: var(--ac-color-text-secondary);
   font: var(--ac-type-small);
-}
-.workspace-field > span:first-child small {
-  margin-left: var(--ac-space-2);
 }
 
 .workspace-field
@@ -327,12 +314,6 @@ a.workspace-button:focus-visible {
   background: var(--ac-color-surface-alt);
 }
 
-.workspace-field :is(input[type="checkbox"], input[type="radio"]) {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--ac-color-brand);
-}
-
 /* A group with an error: heavy error rule on the left, bold message. */
 .workspace-field--error {
   padding-left: var(--ac-space-4);
@@ -365,19 +346,12 @@ a.workspace-button:focus-visible {
   color: var(--ac-color-text-secondary);
   font: var(--ac-type-small);
 }
-.council-spaced {
-  margin-top: var(--ac-space-5);
-}
 .council-nowrap {
   white-space: nowrap;
 }
 .notes-text {
   margin: var(--ac-space-3) 0;
   white-space: pre-wrap;
-}
-.full-width {
-  width: 100%;
-  margin: var(--ac-space-4) 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -474,11 +448,10 @@ a.workspace-button:focus-visible {
 }
 
 /* ------------------------------------------------------------------ */
-/* Tags and badges: a text label, colour only as support               */
+/* Tags: a text label, colour only as support                          */
 /* ------------------------------------------------------------------ */
 
-.council-tag,
-.workspace-badge {
+.council-tag {
   display: inline-block;
   padding: var(--ac-space-1) var(--ac-space-3);
   border: 0;
@@ -496,8 +469,7 @@ a.workspace-button:focus-visible {
   background: var(--ac-color-info-bg);
   color: var(--ac-color-info-text);
 }
-.council-tag.green,
-.workspace-badge.success {
+.council-tag.green {
   background: var(--ac-color-success-bg);
   color: var(--ac-color-success-text);
 }
@@ -581,10 +553,16 @@ a.workspace-button:focus-visible {
 /* Tables                                                              */
 /* ------------------------------------------------------------------ */
 
-/* position: relative keeps visually hidden captions inside the scroll box. */
+/*
+ * position: relative keeps visually hidden captions inside the scroll box.
+ * The 5px inline padding (pulled back with a negative margin) gives the 4px
+ * focus ring of a control at either edge room inside the scroll box, which
+ * would otherwise clip it.
+ */
 .council-table-wrap {
   position: relative;
-  max-width: 100%;
+  margin-inline: calc(-1 * var(--ac-space-2));
+  padding-inline: var(--ac-space-2);
   overflow-x: auto;
 }
 .council-table {
@@ -638,12 +616,22 @@ a.workspace-button:focus-visible {
     flex-basis: 100%;
     margin-left: 0;
   }
+}
 
-  /*
-   * Small screens: each row becomes a block — the row header first, then
-   * the other cells in a wrapping line. Column headers stay in the markup
-   * for assistive technology; a cell with data-label shows its label.
-   */
+/*
+ * Stacked rows. Below 768px every .council-table shows each row as a block:
+ * the row header first, then one line per labelled cell, the label in
+ * secondary text beside the value (the same summary-list look as the fact
+ * lists on the proposal and execution cards). Cells without a label, such
+ * as actions, share the last line. Column headers stay in the markup for
+ * assistive technology, so the generated label is visual only (the "/ ''"
+ * alternative text; the first declaration is the fallback for browsers
+ * without it).
+ *
+ * .council-table--stack-md opts a wide table in to the stacked rows up to
+ * 991px. The two blocks below are the same rules for the two breakpoints.
+ */
+@media (max-width: 767px) {
   .council-table,
   .council-table tbody {
     display: block;
@@ -667,6 +655,10 @@ a.workspace-button:focus-visible {
   .council-table tbody tr:first-child {
     border-top: 2px solid var(--ac-color-heading);
   }
+  /* The stacked table's heavy top rule replaces the toolbar's bottom rule. */
+  .council-filter-toolbar:has(+ .council-table-wrap > .council-table) {
+    border-bottom: 0;
+  }
   .council-table td,
   .council-table tbody th {
     display: block;
@@ -674,12 +666,71 @@ a.workspace-button:focus-visible {
     padding: 0;
     border: 0;
   }
-  .council-table tbody th {
+  .council-table tbody th,
+  .council-table td[data-label] {
     flex: 1 1 100%;
   }
+  .council-table :is(th, td).is-numeric {
+    text-align: left;
+  }
   .council-table td[data-label]::before {
-    content: attr(data-label) "：";
-    color: var(--ac-color-heading);
-    font-weight: 600;
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    display: inline-block;
+    min-width: 5em;
+    margin-right: var(--ac-space-3);
+    color: var(--ac-color-text-secondary);
+    font-weight: 400;
+  }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .council-table--stack-md,
+  .council-table--stack-md tbody {
+    display: block;
+  }
+  .council-table--stack-md thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .council-table--stack-md tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ac-space-3) var(--ac-space-5);
+    padding: var(--ac-space-4) 0;
+    border-bottom: 1px solid var(--ac-color-border);
+  }
+  .council-table--stack-md tbody tr:first-child {
+    border-top: 2px solid var(--ac-color-heading);
+  }
+  .council-filter-toolbar:has(+ .council-table-wrap > .council-table--stack-md) {
+    border-bottom: 0;
+  }
+  .council-table--stack-md td,
+  .council-table--stack-md tbody th {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .council-table--stack-md tbody th,
+  .council-table--stack-md td[data-label] {
+    flex: 1 1 100%;
+  }
+  .council-table--stack-md :is(th, td).is-numeric {
+    text-align: left;
+  }
+  .council-table--stack-md td[data-label]::before {
+    content: attr(data-label);
+    content: attr(data-label) / "";
+    display: inline-block;
+    min-width: 5em;
+    margin-right: var(--ac-space-3);
+    color: var(--ac-color-text-secondary);
+    font-weight: 400;
   }
 }

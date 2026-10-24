@@ -2,10 +2,9 @@ import {
   useEffect,
   useRef,
   useState,
-  type KeyboardEvent,
+  type FocusEvent,
   type MouseEvent,
   type ReactNode,
-  type RefObject,
 } from "react";
 import {
   ChevronDown,
@@ -16,7 +15,6 @@ import {
   FileText,
   Menu,
   Monitor,
-  Search,
   Settings2,
   TriangleAlert,
   Upload,
@@ -103,16 +101,51 @@ export function WorkspaceShell({
           : CircleCheck;
   const today = new Date();
 
-  // Popovers close when the pointer goes down anywhere outside them.
+  // Popovers (the 日常工作 menu and 设置) close when the pointer goes down
+  // outside them, and on Escape wherever focus is; focus inside a closing
+  // popover returns to its summary.
   useEffect(() => {
+    const popovers = () => [extraNavigation.current, settingsDetails.current];
     const closeOutside = (event: PointerEvent) => {
-      for (const details of [extraNavigation.current, settingsDetails.current])
+      for (const details of popovers())
         if (details?.open && !details.contains(event.target as Node))
           details.open = false;
     };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      for (const details of popovers()) {
+        if (!details?.open) continue;
+        const hadFocus = details.contains(document.activeElement);
+        details.open = false;
+        if (hadFocus) details.querySelector("summary")?.focus();
+      }
+    };
     document.addEventListener("pointerdown", closeOutside);
-    return () => document.removeEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
   }, []);
+  // A floating popover also closes when keyboard focus moves out of it, so
+  // it never covers the control that takes focus next (WCAG 2.4.11). The
+  // 日常工作 list inside the phone menu is not floating and stays open.
+  // A click on plain text inside the popover moves focus to an ancestor
+  // (main has tabindex -1); that is not leaving, so it stays open.
+  const closeOnFocusOut = (event: FocusEvent<HTMLDetailsElement>) => {
+    const details = event.currentTarget;
+    const next = event.relatedTarget;
+    const popover = details.lastElementChild;
+    if (
+      details.open &&
+      next instanceof Node &&
+      !details.contains(next) &&
+      !next.contains(details) &&
+      popover &&
+      getComputedStyle(popover).position === "absolute"
+    )
+      details.open = false;
+  };
 
   const go = (next: WorkspacePage) => {
     onNavigate(next);
@@ -141,15 +174,6 @@ export function WorkspaceShell({
         return;
       event.preventDefault();
       go(next);
-    };
-  const closeOnEscape =
-    (details: RefObject<HTMLDetailsElement | null>) =>
-    (event: KeyboardEvent) => {
-      if (event.key === "Escape" && details.current?.open) {
-        event.stopPropagation();
-        details.current.open = false;
-        details.current.querySelector("summary")?.focus();
-      }
     };
 
   return (
@@ -189,6 +213,10 @@ export function WorkspaceShell({
           className="workspace-navigation"
           aria-label="工作区导航"
           onKeyDown={(event) => {
+            // Escape inside the open 日常工作 list closes only that list
+            // (handled at document level).
+            const daily = extraNavigation.current;
+            if (daily?.open && daily.contains(event.target as Node)) return;
             if (event.key === "Escape" && menuOpen) {
               setMenuOpen(false);
               menuButton.current?.focus();
@@ -227,10 +255,7 @@ export function WorkspaceShell({
                 </li>
               ))}
               <li className="workspace-navigation-daily">
-                <details
-                  ref={extraNavigation}
-                  onKeyDown={closeOnEscape(extraNavigation)}
-                >
+                <details ref={extraNavigation} onBlur={closeOnFocusOut}>
                   <summary className={dailyActive ? "has-active-page" : undefined}>
                     日常工作
                     {dailyActive && (
@@ -261,10 +286,25 @@ export function WorkspaceShell({
             <span className="council-tag purple">
               {mode === "local" ? "本地试用" : "成员协作"}
             </span>
+            {/* Phones show only the first clause. */}
             <p>
-              {mode === "local"
-                ? "数据只保存在此浏览器；团队协作请进入云端 Portal。"
-                : "议会成员共享此工作区，请等待保存确认后离开。"}
+              {mode === "local" ? (
+                <>
+                  数据只保存在此浏览器
+                  <span className="workspace-service-more">
+                    ；团队协作请进入协作工作台
+                  </span>
+                  。
+                </>
+              ) : (
+                <>
+                  议会成员共享此工作区
+                  <span className="workspace-service-more">
+                    ，请等待保存确认后离开
+                  </span>
+                  。
+                </>
+              )}
             </p>
             <span
               className={`save-status ${pending || !ready ? "is-pending" : ""} connection-${connection}`}
@@ -282,7 +322,13 @@ export function WorkspaceShell({
         tabIndex={-1}
       >
         <div className="ac-container ac-surface workspace-surface">
-          <div className="workspace-topbar">
+          {/*
+            DOM order: breadcrumbs, page heading, then the page tools, so the
+            h1 comes first on phones. From 768px the tools sit beside the
+            breadcrumbs (shell.css); no focusable element lies between, so
+            the focus order still follows the layout.
+          */}
+          <div className="workspace-page-head">
             <nav className="workspace-breadcrumbs" aria-label="面包屑">
               <ol>
                 <li>
@@ -293,32 +339,57 @@ export function WorkspaceShell({
                 <li>{current.title}</li>
               </ol>
             </nav>
+            <div className="page-heading">
+              <div className="page-heading-text">
+                <h1>{current.title}</h1>
+                <p className="page-lead">{current.description}</p>
+              </div>
+              <p className="workspace-date">
+                <time dateTime={isoDate(today)}>
+                  {today.toLocaleDateString("zh-CN", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}{" "}
+                  {today.toLocaleDateString("zh-CN", { weekday: "long" })}
+                </time>
+              </p>
+            </div>
             <div className="topbar-tools">
               {page !== "cards" && (
-                <div className="workspace-search">
-                  <Search size={20} aria-hidden="true" />
-                  <input
-                    type="search"
-                    aria-label={current.search.replace("…", "")}
-                    placeholder={current.search}
-                    value={search}
-                    onChange={(event) => onSearchChange(event.target.value)}
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      aria-label="清除搜索"
-                      onClick={() => onSearchChange("")}
-                    >
-                      <X size={20} aria-hidden="true" />
-                    </button>
-                  )}
+                <div className="workspace-search" role="search">
+                  <label
+                    className="workspace-search-label"
+                    htmlFor="workspace-search-input"
+                  >
+                    搜索
+                    <span className="ac-visually-hidden">{current.search}</span>
+                  </label>
+                  <div className="workspace-search-field">
+                    <input
+                      id="workspace-search-input"
+                      type="search"
+                      placeholder={current.searchHint}
+                      value={search}
+                      onChange={(event) => onSearchChange(event.target.value)}
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        className="workspace-search-clear"
+                        aria-label="清除搜索"
+                        onClick={() => onSearchChange("")}
+                      >
+                        <X size={20} aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               <details
                 className="shell-settings"
                 ref={settingsDetails}
-                onKeyDown={closeOnEscape(settingsDetails)}
+                onBlur={closeOnFocusOut}
               >
                 <summary aria-label="工作区设置">
                   <Settings2 size={20} aria-hidden="true" />
@@ -336,12 +407,11 @@ export function WorkspaceShell({
                       }
                     >
                       <option value="local">本地试用 · 此浏览器</option>
-                      <option value="firebase">Portal · 团队云端</option>
+                      <option value="firebase">协作工作台 · 团队云端</option>
                     </select>
                   </label>
                   <p className="workspace-help">
-                    本地试用与团队云端分别保存。进入 Portal
-                    需要登录并获得成员批准，切换不会迁移记录。
+                    本地试用与团队云端分别保存。进入协作工作台需要登录并获得成员批准，切换不会迁移记录。
                   </p>
                   <div className="settings-backup">
                     <button
@@ -377,22 +447,6 @@ export function WorkspaceShell({
               </details>
             </div>
           </div>
-          <div className="page-heading">
-            <div className="page-heading-text">
-              <h1>{current.title}</h1>
-              <p className="page-lead">{current.description}</p>
-            </div>
-            <p className="workspace-date">
-              <time dateTime={isoDate(today)}>
-                {today.toLocaleDateString("zh-CN", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}{" "}
-                {today.toLocaleDateString("zh-CN", { weekday: "long" })}
-              </time>
-            </p>
-          </div>
           {mode === "firebase" && connectionError && (
             <div className="workspace-connection-error" role="alert">
               <span>{connectionError}</span>
@@ -418,7 +472,7 @@ export function WorkspaceShell({
         <div className="ac-container workspace-footer-inner">
           <div className="workspace-footer-identity">
             <p className="workspace-footer-name">安提柯议会</p>
-            <p>共同讨论 · 共同决定 · 共同执行</p>
+            <p>© {today.getFullYear()} 安提柯议会</p>
             <p>成员交流 QQ 群：977589830</p>
           </div>
           <nav aria-label="帮助与其他入口">

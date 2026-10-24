@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import type { Attendance, Meeting } from "../types";
 import { DEFAULT_DEPARTMENTS } from "../types";
@@ -32,6 +32,18 @@ export function AttendanceView({
   const [role, setRole] = useState(DEFAULT_DEPARTMENTS[0]);
   const [editing, setEditing] = useState<Attendance | null>(null);
   const [original, setOriginal] = useState<Attendance | null>(null);
+  // 安排汇报 disables itself once the member is in the queue. Focus then
+  // moves to the member's new row in the table, once it has rendered.
+  const focusTarget = useRef("");
+  const moveFocus = () => {
+    const target = focusTarget.current
+      ? document.getElementById(focusTarget.current)
+      : null;
+    if (!target) return;
+    focusTarget.current = "";
+    target.focus();
+  };
+  useEffect(moveFocus);
   const weekMeetings = data.meetings
     .filter((candidate) => reportingWeek(candidate.date) === reportingWeek(meeting.date))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
@@ -147,6 +159,8 @@ export function AttendanceView({
                   reportAssigned: true,
                 },
             );
+            focusTarget.current = `attendance-row-${id}`;
+            requestAnimationFrame(moveFocus);
           }}
         >
           安排汇报
@@ -196,7 +210,7 @@ export function AttendanceView({
                   return (
                     <tr key={r.id} className={isNext ? "is-next" : undefined}>
                       <td className="attendance-queue">{index + 1}</td>
-                      <th scope="row">
+                      <th scope="row" id={`attendance-row-${r.id}`} tabIndex={-1}>
                         <span className="attendance-name">
                           {r.memberName}
                           {isNext && (
