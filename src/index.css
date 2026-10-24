@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @import "./design-system/tokens.css";
+@import "./design-system/base.css";
 
 @theme {
   --font-sans: var(--ac-font-family);
