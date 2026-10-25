@@ -1,0 +1,10 @@
+{
+  "name": "antico-membership",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Membership changes for the council workspace on Tencent CloudBase",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "3.18.7"
+  }
+}

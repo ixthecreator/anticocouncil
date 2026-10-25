@@ -2,9 +2,9 @@
 
 安提柯议会的公开档案馆与成员协作工作台。公开页面用于整理文章和历届资料；工作台用于会议、议题、表决、会后执行、编辑排期和资料管理。
 
-前端使用 React 19、TypeScript、Vite 和 Tailwind CSS，云端使用 Firebase Authentication 与 Firestore，也支持浏览器本地模式。
+前端使用 React 19、TypeScript、Vite 和 Tailwind CSS，云端目前使用 Firebase Authentication 与 Firestore，也支持浏览器本地模式。迁往腾讯云开发（上海）的版本已在代码中，构建时选择，步骤见 [迁移说明](docs/cloudbase.md)。
 
-[访问网站](https://www.anticocouncil.com/) · [成员登录](https://www.anticocouncil.com/portal) · [示例演示](https://www.anticocouncil.com/preview/) · [部署说明](docs/deployment.md) · [档案维护](docs/public-archive.md)
+[访问网站](https://www.anticocouncil.com/) · [成员登录](https://www.anticocouncil.com/portal) · [示例演示](https://www.anticocouncil.com/preview/) · [部署说明](docs/deployment.md) · [迁移到腾讯云开发](docs/cloudbase.md) · [档案维护](docs/public-archive.md)
 
 本文说明当前 `main` 的实现。议会风格工作台、公开档案馆、注册登录及加载页样式、PDF / Word 导出和会议改名均已合并。未合并 PR 中的功能不属于此版本；提交与发布记录请查看 [GitHub 历史](https://github.com/ixthecreator/anticocouncil/commits/main/)。
 
@@ -13,7 +13,7 @@
 | 入口 | 用途 | 数据与访问方式 |
 | --- | --- | --- |
 | `/`、`/archive`、`/archive/<slug>` | 首页、档案目录与文章 | 构建时生成的公开 HTML，无需登录；当前内容标为示例 |
-| `/portal` | 成员工作台 | Firebase 共享数据；需要登录、验证邮箱并取得成员授权 |
+| `/portal` | 成员工作台 | 云端共享数据（Firebase 或腾讯云开发）；需要登录、验证邮箱并取得成员授权 |
 | `/local` | 本地工作台 | 无需登录；记录保存在当前浏览器和站点，不会自动上传 |
 | `/preview/` | 带示例数据的独立演示 | 不连接 Firebase；操作保存在单独的浏览器存储中 |
 | `/workspace`、`/blog` | 兼容旧地址 | 分别对应云端工作台与公开档案目录 |
@@ -57,6 +57,8 @@ bun run dev
 
 `VITE_*` 会进入浏览器产物，不能放服务账号私钥或其他服务端凭据。缺少配置时云端入口会提示错误，公开页面和本地模式仍可使用，也不会回退连接旧项目。
 
+构建云开发版时另填 `VITE_CLOUD_BACKEND=cloudbase`、`VITE_CLOUDBASE_ENV_ID` 和 `VITE_CLOUDBASE_REGION`（默认 `ap-shanghai`），此时不再使用 Firebase 变量。开通环境、安全规则和云函数的步骤见 [迁移说明](docs/cloudbase.md)。
+
 **自行部署不能只改 `.env`。** 当前仓库还包含站点专用的所有者邮箱、密码邮件返回地址、Firebase 登录代理与域名跳转。请按 [部署说明](docs/deployment.md) 同步配置；Firestore 规则须单独发布，推送前端代码不会更新规则。
 
 ## 使用工作台
@@ -68,6 +70,7 @@ bun run dev
 - 管理员可审批、停用和恢复普通成员；所有者还可调整其他成员的管理员角色。
 - 授权记录 `workspaceAccess`、申请记录 `accessRequests` 与业务中的成员名册分开管理。应用角色不代表 GitHub、Vercel 或 Firebase 平台权限。
 - 登录页提供「忘记密码？」；Google 账号可在登录后通过账号菜单设置本站密码。密码设置不会替代邮箱验证或成员审批。
+- 云开发版改用邮件中的数字验证码注册和找回密码，没有 Google 登录。原有成员用原邮箱注册一次后，按导入的成员名单自动恢复角色；所有者在名单中指定，不写在代码里。
 
 ### 名片制作
 
@@ -117,7 +120,8 @@ PDF、Word 和 LaTeX 纪要按实际汇报场次收录内容，不会把整周�
 - **现有投票不是私密、不可修改的选票系统。** 选票按业务成员 ID 记录，未逐票绑定登录账号，表决结束前可以改票；工作区成员可读取业务记录。JSON 备份可能包含个人选票，PDF / Word 不导出个人选票并不代表原始记录已受隐私保护。
 - 目前是单一共享议会工作区，没有按账号或组织隔离的多租户空间。Supabase 迁移及私密投票改造尚未合并到 `main`。
 - 汇报名单需在工作台手动安排，尚未接入腾讯文档中的固定名单或自动轮值规则；示例演示的三人名单均为虚构。
-- 云端登录与共享数据仍依赖 Firebase / Google 服务，邮箱密码登录也需要网络能访问 Firebase。
+- 正式站点的登录与共享数据仍依赖 Firebase / Google 服务，邮箱密码登录也需要网络能访问 Firebase。云开发版已在代码中，环境开通并试用通过后再切换。
+- 云开发版不保存个人选票，表决只由主持人录入总数；导入旧备份时逐人选票会折算成总数。
 - [PDF 使用说明](public/antico-council-guide.pdf) 保留为旧版参考，部分导航及新功能尚未更新，请以当前页面和本文为准。
 
 ## 检查与构建
@@ -149,6 +153,8 @@ bun run check:public
 | `src/App.tsx`、`src/components/WorkspaceShell.tsx` | 工作台导航、状态、主题与备份入口 |
 | `src/lib/cloudBackend.ts`、`accessPolicy.ts`、`cloudConnection.ts`、`useWorkspace.ts` | 云端服务接口、成员权限规则、连接状态、保存与本地数据 |
 | `src/lib/firebaseBackend.ts`、`cloudAccess.ts`、`firebase.ts`、`firebaseConnection.ts` | 云端服务接口的 Firebase 实现：认证、成员授权与数据读写 |
+| `src/lib/cloudService.ts`、`cloudbaseBackend.ts`、`cloudbaseAccess.ts`、`cloudbaseData.ts`、`cloudbaseApp.ts`、`cloudbaseConnection.ts` | 构建时选择云端服务；云端服务接口的腾讯云开发实现 |
+| `cloudbase/` | 云开发的安全规则与成员云函数 `membership` |
 | `src/lib/workspace.ts`、`src/types.ts` | 业务规则、数据校验与类型 |
 | `src/lib/meetingExport.ts`、`meetingPdf.ts`、`meetingDocx.ts` | PDF / Word / LaTeX 共用导出模型与格式生成 |
 | `scripts/`、`vercel.json` | 静态页面生成、产物检查与 Vercel 配置 |

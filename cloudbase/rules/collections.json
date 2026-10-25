@@ -1,0 +1,5 @@
+{
+  "workspace-records.json": ["meetings", "issues", "members", "activities", "attendance", "editorial", "assets", "inventory"],
+  "own-records.json": ["workspaceAccess", "accessRequests"],
+  "server-only.json": ["accessRoster"]
+}

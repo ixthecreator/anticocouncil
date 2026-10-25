@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { cloudService } from "../lib/cloudService";
 import { PublicLayout } from "./LandingPage";
 import "./auth-pages.css";
+
+// CloudBase confirms an email with a code and returns listed members their access at once.
+const codeProof = cloudService === "cloudbase";
 
 export function AuthPageFrame({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
@@ -17,8 +21,8 @@ export function AuthPageFrame({ children, aside }: { children: ReactNode; aside?
               <h2>首次使用</h2>
               <ol className="auth-steps">
                 <li><strong>注册账号</strong><p>使用常用邮箱，填写成员姓名。</p></li>
-                <li><strong>验证邮箱</strong><p>打开验证邮件中的链接。</p></li>
-                <li><strong>申请加入</strong><p>提交申请，管理员批准后可进入工作台。</p></li>
+                <li><strong>验证邮箱</strong><p>{codeProof ? "填写邮件中的数字验证码。" : "打开验证邮件中的链接。"}</p></li>
+                <li><strong>申请加入</strong><p>{codeProof ? "已登记的议会成员自动恢复权限；其他人提交申请，管理员批准后可进入工作台。" : "提交申请，管理员批准后可进入工作台。"}</p></li>
               </ol>
               <div className="auth-public-entry">
                 <h3>查阅公开资料</h3>
