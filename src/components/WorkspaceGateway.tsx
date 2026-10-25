@@ -1,14 +1,18 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  OWNER_EMAIL, canChangeMemberRole, canManageMember, hasWorkspaceAccess, isWorkspaceOwner, sameAuthorizationIdentity,
-  type AccessActor, type AccessRequest, type CloudIdentity, type WorkspaceAccess,
+  OWNER_EMAIL, canChangeMemberRole, canManageMember, hasWorkspaceAccess, isOwnerRecord, isWorkspaceOwner, membershipRoster,
+  ownsWorkspace, sameAuthorizationIdentity,
+  type AccessActor, type AccessRequest, type AccessRole, type CloudIdentity, type WorkspaceAccess,
 } from "../lib/accessPolicy";
-import { cloudBackend } from "../lib/cloudBackend";
+import { cloudBackend, type EmailCodeChallenge } from "../lib/cloudBackend";
+import { downloadText, localDate } from "../lib/workspace";
 import "./cloud-access.css";
-import { PasswordRecoveryForm, PasswordSettingsDialog } from "./AccountPassword";
+import { PasswordRecoveryForm, PasswordSettingsDialog, RegistrationCodeForm } from "./AccountPassword";
 import { AuthPageFrame, AuthLoadingContent } from "./AuthPageFrame";
 
 type StorageMode = "local" | "firebase";
+// Services that confirm email with a code change passwords with one, so nothing is set directly.
+const passwordLabel = cloudBackend.setSitePassword ? "设置本站密码" : "修改本站密码";
 export interface WorkspaceGatewayProps {
   mode?: StorageMode;
   children: (props: { mode: StorageMode; onModeChange: (mode: StorageMode) => void; account?: ReactNode; draftScope: string }) => ReactNode;
@@ -57,37 +61,47 @@ function MembersPanel({ actor, onClose }: { actor: AccessActor; onClose: () => v
     setPending(id); setError("");
     try { await action(); } catch (err) { setError(cloudBackend.accessErrorMessage(err)); } finally { setPending(""); }
   };
+  const byName = (a: WorkspaceAccess, b: WorkspaceAccess) => a.name.localeCompare(b.name, "zh-CN");
+  const owners = members.filter(isOwnerRecord).sort(byName);
+  const others = members.filter(member => !isOwnerRecord(member)).sort(byName);
+  // Firebase keeps its owner outside the membership records.
+  const fixedOwner = !!OWNER_EMAIL && !owners.some(member => member.email === OWNER_EMAIL);
   return <div className="cloud-modal-backdrop"><div className="cloud-members" ref={panel} role="dialog" aria-modal="true" aria-labelledby="cloud-members-title">
     <header><div><h2 id="cloud-members-title">成员与访问管理</h2></div><button type="button" className="cloud-button" disabled={!!pending} onClick={onClose}>关闭</button></header>
     <p className="cloud-help">获批成员可以共同维护会议及日常工作记录。停用后不删除历史记录。管理员角色由所有者调整。</p>
     {error && <p className="cloud-error" role="alert">{error}</p>}
     {!loaded ? <p role="status">正在连接成员服务…</p> : <>
       <section><h3>待审批申请 <small>{requests.length}</small></h3>{!requests.length && <p className="cloud-help">目前没有待审批申请。</p>}
-        {requests.map(request => <article className="cloud-member-row" key={request.uid}><div><strong>{request.name}</strong><span>{request.email}</span></div><div className="cloud-actions"><button type="button" className="cloud-button primary" disabled={!!pending || request.uid === actor.uid || request.email === OWNER_EMAIL} onClick={() => void run(request.uid, () => cloudBackend.approveRequest(request.uid))}>{pending === request.uid ? "正在处理…" : "批准加入"}</button><button type="button" className="cloud-button" disabled={!!pending || request.uid === actor.uid} onClick={() => void run(request.uid, () => cloudBackend.declineRequest(request.uid))}>不予批准</button></div></article>)}
+        {requests.map(request => <article className="cloud-member-row" key={request.uid}><div><strong>{request.name}</strong><span>{request.email}</span></div><div className="cloud-actions"><button type="button" className="cloud-button primary" disabled={!!pending || request.uid === actor.uid || !!OWNER_EMAIL && request.email === OWNER_EMAIL} onClick={() => void run(request.uid, () => cloudBackend.approveRequest(request.uid))}>{pending === request.uid ? "正在处理…" : "批准加入"}</button><button type="button" className="cloud-button" disabled={!!pending || request.uid === actor.uid} onClick={() => void run(request.uid, () => cloudBackend.declineRequest(request.uid))}>不予批准</button></div></article>)}
       </section>
-      <section><h3>议会成员 <small>{members.filter(member => member.email !== OWNER_EMAIL).length + 1}</small></h3>
-        <article className="cloud-member-row owner"><div><strong>议会所有者</strong><span>{OWNER_EMAIL}</span></div><span className="cloud-tag">所有者</span></article>
-        {members.filter(member => member.email !== OWNER_EMAIL).sort((a,b) => a.name.localeCompare(b.name, "zh-CN")).map(member => <article className="cloud-member-row" key={member.uid}><div><strong>{member.name}{member.uid === actor.uid ? "（本人）" : ""}</strong><span>{member.email}</span><small>{member.role === "admin" ? "管理员" : "成员"} · {member.active ? "已启用" : "已停用"}</small></div><div className="cloud-actions">
+      <section><h3>议会成员 <small>{others.length + owners.length + (fixedOwner ? 1 : 0)}</small></h3>
+        {fixedOwner && <article className="cloud-member-row owner"><div><strong>议会所有者</strong><span>{OWNER_EMAIL}</span></div><span className="cloud-tag">所有者</span></article>}
+        {owners.map(member => <article className="cloud-member-row owner" key={member.uid}><div><strong>{member.name}{member.uid === actor.uid ? "（本人）" : ""}</strong><span>{member.email}</span>{!member.active && <small>已停用</small>}</div><span className="cloud-tag">所有者</span></article>)}
+        {others.map(member => <article className="cloud-member-row" key={member.uid}><div><strong>{member.name}{member.uid === actor.uid ? "（本人）" : ""}</strong><span>{member.email}</span><small>{member.role === "admin" ? "管理员" : "成员"} · {member.active ? "已启用" : "已停用"}</small></div><div className="cloud-actions">
           {canChangeMemberRole(actor, member) && <label className="cloud-role-label">角色<select aria-label={`${member.name}的角色`} value={member.role} disabled={!!pending} onChange={event => { const role = event.target.value as "member" | "admin"; void run(member.uid, () => cloudBackend.updateMember(actor, member, { role })); }}><option value="member">成员</option><option value="admin">管理员</option></select></label>}
           {canManageMember(actor, member) ? <button type="button" className={`cloud-button ${member.active ? "danger" : ""}`} disabled={!!pending} onClick={() => void run(member.uid, () => cloudBackend.updateMember(actor, member, { active: !member.active }))}>{pending === member.uid ? "正在处理…" : member.active ? "停用访问" : "恢复访问"}</button> : <span className="cloud-help">{member.uid === actor.uid ? "不能修改自己的授权" : "由所有者管理"}</span>}
         </div></article>)}
+      </section>
+      <section><h3>迁移成员名单</h3><p className="cloud-help">导出全部成员的姓名、邮箱、角色和启用状态，每行一人，可导入新云端的成员名单。成员用同一邮箱注册后会自动恢复原有角色。文件含成员邮箱，请只交给负责迁移的管理员。</p>
+        <button type="button" className="cloud-button" disabled={!!pending} onClick={() => downloadText(membershipRoster(members), `antico-member-roster-${localDate()}.jsonl`, "application/x-ndjson;charset=utf-8")}>导出成员名单</button>
       </section>
     </>}
   </div></div>;
 }
 
-function CloudAccount({ identity, role, onLogout, workspacePending = 0 }: { identity: CloudIdentity; role: "member" | "admin"; onLogout: () => Promise<void>; workspacePending?: number }) {
+function CloudAccount({ identity, role, onLogout, workspacePending = 0 }: { identity: CloudIdentity; role: AccessRole; onLogout: () => Promise<void>; workspacePending?: number }) {
   const [managing, setManaging] = useState(false);
   const [passwordSettings, setPasswordSettings] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const actor: AccessActor = { ...identity, role };
+  const manager = ownsWorkspace(actor) || role === "admin";
   useEffect(() => { setManaging(false); }, [identity.uid, role]);
   return <div className="cloud-account">
-    <details><summary><span className="cloud-avatar">{(identity.name || identity.email).slice(0,1)}</span><span>{identity.name || identity.email}<small>{isWorkspaceOwner(identity) ? "所有者" : role === "admin" ? "管理员" : "议会成员"}</small></span></summary>
-      <div className="cloud-account-menu"><strong>{identity.name || "已登录"}</strong><p>{identity.email}</p><button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={() => setPasswordSettings(true)}>设置本站密码</button>{(isWorkspaceOwner(identity) || role === "admin") && <button type="button" className="cloud-button" onClick={() => setManaging(true)}>成员与访问管理</button>}<button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={async () => { if (workspacePending > 0) return; setBusy(true); setError(""); try { await onLogout(); } catch (err) { setError(cloudBackend.accessErrorMessage(err)); } finally { setBusy(false); } }}>{busy ? "正在退出…" : "退出账号"}</button>{workspacePending > 0 && <p role="status">有记录正在等待保存确认</p>}{error && <p className="cloud-error" role="alert">{error}</p>}</div>
+    <details><summary><span className="cloud-avatar">{(identity.name || identity.email).slice(0,1)}</span><span>{identity.name || identity.email}<small>{ownsWorkspace(actor) ? "所有者" : role === "admin" ? "管理员" : "议会成员"}</small></span></summary>
+      <div className="cloud-account-menu"><strong>{identity.name || "已登录"}</strong><p>{identity.email}</p><button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={() => setPasswordSettings(true)}>{passwordLabel}</button>{manager && <button type="button" className="cloud-button" onClick={() => setManaging(true)}>成员与访问管理</button>}<button type="button" className="cloud-button" disabled={busy || workspacePending > 0} onClick={async () => { if (workspacePending > 0) return; setBusy(true); setError(""); try { await onLogout(); } catch (err) { setError(cloudBackend.accessErrorMessage(err)); } finally { setBusy(false); } }}>{busy ? "正在退出…" : "退出账号"}</button>{workspacePending > 0 && <p role="status">有记录正在等待保存确认</p>}{error && <p className="cloud-error" role="alert">{error}</p>}</div>
     </details>
-    {managing && (isWorkspaceOwner(identity) || role === "admin") && <MembersPanel actor={actor} onClose={() => setManaging(false)}/>}
+    {managing && manager && <MembersPanel actor={actor} onClose={() => setManaging(false)}/>}
     {passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </div>;
 }
@@ -114,10 +128,12 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [codeChallenge, setCodeChallenge] = useState<EmailCodeChallenge | null>(null);
   const configured = !cloudBackend.configurationError;
   const google = cloudBackend.googleLogin;
+  const codeProof = cloudBackend.emailProof === "code";
   const selectEmailScreen = (next: "login" | "register" | "reset" | "setup") => {
-    google?.cancel(); setScreen(next); setPassword(""); setError(""); setNotice("");
+    google?.cancel(); setScreen(next); setPassword(""); setError(""); setNotice(""); setCodeChallenge(null);
   };
 
   useEffect(() => {
@@ -149,6 +165,8 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
           setPasswordSettings(false);
         }
         identityRef.current = state.identity;
+        // A confirmed registration code signs the account in and ends that step.
+        if (state.identity) setCodeChallenge(null);
         setIdentity(state.identity); setAuthReady(state.ready); setAuthError(state.error);
         setRedirectError(state.redirectError);
         setRedirectPending(state.redirectPending);
@@ -189,24 +207,28 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     finally { setGooglePending(false); setGoogleDelayed(false); }
   };
   const returnToEmailLogin = () => { google?.cancel(); window.location.reload(); };
-  const logout = async () => { await cloudBackend.logout(); identityRef.current = null; setIdentity(null); setAccess(null); setRequest(null); setName(""); setPassword(""); setPasswordSettings(false); setScreen("login"); setError(""); setNotice(""); setRedirectError(""); };
+  const logout = async () => { await cloudBackend.logout(); identityRef.current = null; setIdentity(null); setAccess(null); setRequest(null); setName(""); setPassword(""); setPasswordSettings(false); setCodeChallenge(null); setScreen("login"); setError(""); setNotice(""); setRedirectError(""); };
   const owner = isWorkspaceOwner(identity);
   const approved = authReady && (owner || accessReady && hasWorkspaceAccess(identity, access));
 
   if (mode === "local") return <Fragment key="local">{children({ mode, onModeChange, draftScope: "local" })}</Fragment>;
-  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, draftScope: `cloud:${identity.uid}`, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "admin" : access!.role} onLogout={logout}/> })}</Fragment>;
+  if (identity && approved) return <Fragment key={`cloud:${identity.uid}`}>{children({ mode, onModeChange, draftScope: `cloud:${identity.uid}`, account: <CloudAccount key={identity.uid} identity={identity} role={owner ? "owner" : access!.role} onLogout={logout}/> })}</Fragment>;
 
   return <div className="cloud-gateway"><AuthPageFrame><section className="cloud-gate-card">
-    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员连接自有 Firebase 项目后再使用云端协作。你可以先进入本地试用。</p><button type="button" className="cloud-button primary" onClick={() => onModeChange("local")}>进入本地试用</button><p className="cloud-help">试用数据仅保存在当前浏览器，不会同步到云端。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
+    {!configured ? <><h1>云端工作区尚未配置</h1><p>请议会管理员完成云端服务配置后再使用云端协作。你可以先进入本地试用。</p><button type="button" className="cloud-button primary" onClick={() => onModeChange("local")}>进入本地试用</button><p className="cloud-help">试用数据仅保存在当前浏览器，不会同步到云端。</p></> : !authReady ? <AuthLoadingContent title="正在确认登录状态" description="正在连接账号服务，请稍候。">{authDelayed && <div className="cloud-login-wait"><p role="status">暂时还没有收到完整的登录结果。请检查网络后重新载入此页，也可以在系统浏览器中打开本站重试。</p><button type="button" className="cloud-button" onClick={() => window.location.reload()}>重新载入登录页</button></div>}</AuthLoadingContent> : !identity && (screen === "reset" || screen === "setup") ? <PasswordRecoveryForm key={screen} setup={screen === "setup"} initialEmail={email} onBack={() => { setScreen("login"); setError(""); setNotice(""); }}/>
+    : !identity && codeChallenge ? <RegistrationCodeForm key={codeChallenge.email} challenge={codeChallenge} onBack={() => { setCodeChallenge(null); setError(""); setNotice(""); }}/>
     : !identity ? <>
-      <h1>{screen === "login" ? "成员登录" : "注册成员账号"}</h1><p>首次使用须验证邮箱并申请加入，经管理员批准后可进入工作台。</p>
+      <h1>{screen === "login" ? "成员登录" : "注册成员账号"}</h1><p>{codeProof ? "已登记的议会成员首次使用时，请用登记的邮箱注册一次，注册后自动恢复原有权限；其他人注册后需经管理员批准。" : "首次使用须验证邮箱并申请加入，经管理员批准后可进入工作台。"}</p>
       <div className="cloud-auth-tabs"><button type="button" aria-pressed={screen === "login"} onClick={() => selectEmailScreen("login")} disabled={busy}>邮箱登录</button><button type="button" aria-pressed={screen === "register"} onClick={() => selectEmailScreen("register")} disabled={busy}>注册账号</button></div>
-      <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => screen === "login" ? cloudBackend.loginWithEmail(email, password) : cloudBackend.registerWithEmail(name, email, password), screen === "register" ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
+      <form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(async () => {
+        if (screen === "login") return cloudBackend.loginWithEmail(email, password);
+        setCodeChallenge(await cloudBackend.registerWithEmail(name, email, password));
+      }, screen === "register" && !codeProof ? "验证邮件已发送，请查看收件箱或垃圾邮件文件夹。" : ""); }}>
         {screen === "register" && <label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label>}
         <label>邮箱地址<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} disabled={busy}/></label>
         <label>密码<input required type="password" minLength={screen === "register" ? 8 : undefined} autoComplete={screen === "register" ? "new-password" : "current-password"} aria-describedby={screen === "register" ? "cloud-register-password-hint" : undefined} value={password} onChange={event => setPassword(event.target.value)} disabled={busy}/></label>
-        {screen === "register" && <p className="cloud-help" id="cloud-register-password-hint">至少 8 位。注册后会收到邮箱验证链接，完成验证及成员审批后即可进入。</p>}
-        <button className="cloud-button primary" type="submit" disabled={busy}>{busy ? "正在处理…" : screen === "login" ? "登录" : "注册并发送验证邮件"}</button>
+        {screen === "register" && <p className="cloud-help" id="cloud-register-password-hint">{codeProof ? "至少 8 位。提交后会向邮箱发送数字验证码，填写后即完成注册。" : "至少 8 位。注册后会收到邮箱验证链接，完成验证及成员审批后即可进入。"}</p>}
+        <button className="cloud-button primary" type="submit" disabled={busy}>{busy ? "正在处理…" : screen === "login" ? "登录" : codeProof ? "注册并发送验证码" : "注册并发送验证邮件"}</button>
       </form>
       <div className="cloud-password-links"><button type="button" className="ac-focus--link" disabled={busy} onClick={() => selectEmailScreen("reset")}>忘记密码？</button>{google && <button type="button" className="ac-focus--link" disabled={busy} onClick={() => selectEmailScreen("setup")}>给 Google 账号设置本站密码</button>}</div>
       {google && <><div className="cloud-divider"><span>或者</span></div><button type="button" className="cloud-button google" disabled={busy || redirectPending} onClick={() => void startGoogleLogin()}>{googlePending ? "正在前往 Google…" : redirectPending ? "正在确认 Google 登录…" : "使用 Google 账号登录"}</button></>}
@@ -231,7 +253,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
       <h1>申请加入议会工作区</h1><p>邮箱已验证：<strong>{identity.email}</strong></p><p>填写成员姓名，让管理员确认你的申请。</p><form className="cloud-auth-form" onSubmit={event => { event.preventDefault(); void run(() => cloudBackend.requestAccess(name), "加入申请已提交。"); }}><label>成员姓名<input required maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} disabled={busy}/></label><button type="submit" className="cloud-button primary" disabled={busy}>{busy ? "正在提交…" : "提交加入申请"}</button></form>
     </>}
     {redirectError && <p className="cloud-error" role="alert">{redirectError}</p>}{(error || authError) && <p className="cloud-error" role="alert">{error || authError}</p>}{notice && <p className="cloud-notice" role="status">{notice}</p>}
-    {configured && <footer className="cloud-gate-footer">{identity && <><button type="button" className="ac-focus--link" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" className="ac-focus--link" disabled={busy} onClick={() => setPasswordSettings(true)}>设置本站密码</button>}</>}<button type="button" className="ac-focus--link" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>}
+    {configured && <footer className="cloud-gate-footer">{identity && <><button type="button" className="ac-focus--link" disabled={busy} onClick={() => void run(logout)}>退出账号 / 更换账号</button>{identity.verified && <button type="button" className="ac-focus--link" disabled={busy} onClick={() => setPasswordSettings(true)}>{passwordLabel}</button>}</>}<button type="button" className="ac-focus--link" disabled={busy} onClick={() => onModeChange("local")}>本地试用</button><p>试用数据仅保存在当前浏览器，不会同步到云端。</p></footer>}
     {identity?.verified && passwordSettings && <PasswordSettingsDialog key={identity.uid} identity={identity} onClose={() => setPasswordSettings(false)}/>}
   </section></AuthPageFrame></div>;
 }

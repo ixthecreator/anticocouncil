@@ -9,6 +9,7 @@ import {
   voteTotals,
   votingResult,
   weekday,
+  withoutNamedBallots,
   advanceIssue,
   reportingWeek,
   weeklyReports,
@@ -103,6 +104,22 @@ test("simple majority ignores abstentions; absolute majority includes them; ties
     votingResult({ ...value, ballots: { a: "approve", b: "reject" } }),
   ).toBe("rejected");
   expect(votingResult(issue())).toBe("rejected");
+});
+test("a service without named ballots keeps only the totals of a members' vote", () => {
+  const counted = recordBallot(recordBallot(issue(), "a", "approve"), "b", "reject");
+  const stored = withoutNamedBallots(counted as unknown as Record<string, unknown>) as unknown as Issue;
+  expect(stored.ballots).toBeUndefined();
+  expect("ballots" in stored).toBe(false);
+  expect(stored.voteMode).toBe("manual");
+  expect(stored.votes).toEqual({ approve: 1, reject: 1, abstain: 0 });
+  expect(voteTotals(stored)).toEqual(voteTotals(counted));
+  expect(votingResult(stored)).toBe(votingResult(counted));
+  // A closed vote whose ballots were already dropped keeps the totals it recorded.
+  const closed = { ...counted, status: "rejected", ballots: undefined, votes: { approve: 1, reject: 1, abstain: 0 } };
+  expect((withoutNamedBallots(closed as unknown as Record<string, unknown>) as unknown as Issue).votes).toEqual({ approve: 1, reject: 1, abstain: 0 });
+  // Manual votes pass unchanged.
+  const manual = { ...issue(), voteMode: "manual", ballots: undefined, votes: { approve: 3, reject: 0, abstain: 1 } };
+  expect(withoutNamedBallots(manual as unknown as Record<string, unknown>)).toBe(manual as unknown as Record<string, unknown>);
 });
 test("legacy manual votes remain readable", () => {
   const value = {

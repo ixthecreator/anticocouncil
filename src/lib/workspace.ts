@@ -73,6 +73,15 @@ export function recordBallot(
   };
 }
 
+/** Keeps only the totals of a vote, for services that must not store who voted how. */
+export function withoutNamedBallots<T extends Record<string, unknown>>(issue: T): T {
+  if (issue.ballots === undefined && issue.voteMode !== "members") return issue;
+  const { ballots: _ballots, ...rest } = issue;
+  // A members' vote whose ballots were already removed keeps the totals it recorded.
+  const votes = (issue.ballots === undefined && issue.votes) || voteTotals(issue as unknown as Issue);
+  return { ...rest, voteMode: "manual", votes } as unknown as T;
+}
+
 export function advanceIssue(
   issue: Issue,
   expected: Issue["status"],

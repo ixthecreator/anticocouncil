@@ -2,6 +2,8 @@
 
 网站前端由 Vercel 托管；账号使用 Firebase Authentication，业务数据使用 Firestore。`backend/` 不参与正式网站的构建或请求处理。
 
+本文说明现行的 Firebase 版。迁往腾讯云开发的环境、规则、云函数和数据搬运见 [迁移到腾讯云开发](cloudbase.md)。
+
 ## 维护现有站点
 
 正式入口为 [www.anticocouncil.com](https://www.anticocouncil.com/)，生产分支为 `main`，关联 [Vercel 项目 anticocouncil](https://vercel.com/ixthecreators-projects/anticocouncil)。当前仓库的默认 Firebase 项目为 `antico-council`，见 [`.firebaserc`](../.firebaserc)。
@@ -29,7 +31,7 @@
 
 | 文件 | 需要核对的配置 |
 | --- | --- |
-| [`src/lib/accessPolicy.ts`](../src/lib/accessPolicy.ts) | `OWNER_EMAIL`（所有者邮箱） |
+| [`src/lib/accessPolicy.ts`](../src/lib/accessPolicy.ts) | `OWNER_EMAIL`（所有者邮箱，仅 Firebase 版使用；云开发版的所有者在成员名单中指定） |
 | [`src/lib/cloudAccess.ts`](../src/lib/cloudAccess.ts) | `PASSWORD_RESET_RETURN_URL`（密码邮件完成后的返回页） |
 | [`firestore.rules`](../firestore.rules) | `owner()` 和授权/申请校验中的所有者邮箱，必须与前端一致 |
 | [`vercel.json`](../vercel.json) | `/__/auth/:path*` 与 `/__/firebase/init.json` 的代理目标，必须指向自己的 Firebase 项目 |
