@@ -44,7 +44,7 @@ export function SessionView({
   onAddIssue: () => void;
   onOpenDetail: (issue: Issue) => void;
 }) {
-  const { data, change } = workspace;
+  const { data, change, namedBallots } = workspace;
   const [activeId, setActiveId] = useState("");
   const [memberId, setMemberId] = useState("");
   const [report, setReport] = useState(currentMeeting?.regularReport || "");
@@ -160,9 +160,9 @@ export function SessionView({
                               return {
                                 ...old,
                                 status: "voting",
-                                voteMode: "members",
+                                voteMode: namedBallots ? "members" : "manual",
                                 voteRule: "simple",
-                                ballots: {},
+                                ...(namedBallots ? { ballots: {} } : {}),
                                 votes: { approve: 0, reject: 0, abstain: 0 },
                                 updatedAt: new Date().toISOString(),
                               };
@@ -304,7 +304,7 @@ export function SessionView({
                 <p className="voting-description">{active.description}</p>
               )}
               <div className="voting-settings">
-                <Field label="计票方式">
+                {namedBallots && <Field label="计票方式">
                   <select
                     value={active.voteMode || "manual"}
                     disabled={
@@ -326,7 +326,7 @@ export function SessionView({
                     <option value="members">成员投票</option>
                     <option value="manual">主持人录票</option>
                   </select>
-                </Field>
+                </Field>}
                 <Field label="通过规则">
                   <select
                     value={active.voteRule || "simple"}
@@ -364,7 +364,7 @@ export function SessionView({
                   </>
                 )}
               </p>
-              {active.voteMode === "members" ? (
+              {namedBallots && active.voteMode === "members" ? (
                 <div className="voting-ballot">
                   <Field label="投票成员">
                     <select
@@ -441,12 +441,14 @@ export function SessionView({
                             disabled={delta < 0 && totals[vote] === 0}
                             onClick={() =>
                               updateVoting((old) => {
-                                if (old.voteMode === "members")
+                                if (namedBallots && old.voteMode === "members")
                                   throw new Error(
                                     "当前为成员投票，不能手动修改票数。",
                                   );
                                 return {
                                   ...old,
+                                  // Without named ballots, a members' vote continues from its totals.
+                                  ...(namedBallots ? {} : { voteMode: "manual" as const, ballots: undefined }),
                                   votes: {
                                     ...voteTotals(old),
                                     [vote]: Math.max(

@@ -1,0 +1,4 @@
+{
+  "read": "doc.uid == auth.uid",
+  "write": false
+}

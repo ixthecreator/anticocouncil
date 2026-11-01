@@ -11,15 +11,18 @@ import {
 
 export const firebaseBackend: CloudBackend = {
   configurationError: firebaseConfiguration.error,
+  emailProof: "link",
+  namedBallots: true,
   accessErrorMessage: cloudAccessError,
   dataErrorMessage: firebaseErrorMessage,
 
   observeAuthentication: onChange => observeCloudAuthentication(getCloudAuth(), onChange),
   loginWithEmail: async (email, password) => { await loginWithEmail(email, password); },
-  registerWithEmail,
+  // Firebase confirms the email and resets the password through links in its emails.
+  registerWithEmail: async (name, email, password) => { await registerWithEmail(name, email, password); return null; },
   resendVerification,
   refreshAuthentication: refreshCloudAuthentication,
-  requestPasswordReset,
+  requestPasswordReset: async email => { await requestPasswordReset(email); return null; },
   setSitePassword,
   logout: logoutCloud,
   googleLogin: { start: loginWithGoogle, cancel: cancelGoogleLogin },

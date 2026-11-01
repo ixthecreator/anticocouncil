@@ -1,0 +1,4 @@
+{
+  "read": "get(`database.workspaceAccess.${auth.uid}`).active == true",
+  "write": "get(`database.workspaceAccess.${auth.uid}`).active == true"
+}

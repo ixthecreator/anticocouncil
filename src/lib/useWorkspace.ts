@@ -291,6 +291,8 @@ export function useWorkspace(control?: {
   return {
     data,
     mode,
+    // False when the service keeps only vote totals, so no one records who voted how.
+    namedBallots: cloudBackend.namedBallots,
     switchMode,
     ready,
     dataLoaded,

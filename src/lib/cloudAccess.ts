@@ -11,6 +11,7 @@ import { collection, deleteDoc, doc, onSnapshot, runTransaction, serverTimestamp
 import { getDatabase, getFirebaseApp } from "./firebase";
 import {
   OWNER_EMAIL, canChangeMemberRole, canManageMember, isWorkspaceOwner, readAccessRequest, readWorkspaceAccess, sameAuthorizationIdentity,
+  validEmail, validMemberName, validateSitePassword,
   type AccessActor, type AccessRequest, type AccessRole, type CloudIdentity, type WorkspaceAccess,
 } from "./accessPolicy";
 import type { CloudAuthenticationState, MembershipListener, OwnAccessListener } from "./cloudBackend";
@@ -201,15 +202,6 @@ async function verifiedIdentity() {
   if (!identity.verified || !identity.email) throw new Error("请先验证邮箱，再刷新认证状态。");
   return identity;
 }
-function validEmail(email: string): string {
-  const value = email.trim();
-  if (value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new Error("请填写有效的邮箱地址。");
-  return value;
-}
-function validateSitePassword(password: string, confirmation = password) {
-  if (password.length < 8 || password.length > 128 || !password.trim()) throw new Error("请设置 8 至 128 位密码。");
-  if (password !== confirmation) throw new Error("两次输入的密码不一致，请重新输入。");
-}
 export const PASSWORD_RESET_RETURN_URL = "https://www.anticocouncil.com/portal";
 export const PASSWORD_RESET_NOTICE = "如果该邮箱已注册且可接收密码邮件，请查看收件箱或垃圾邮件文件夹，并按邮件说明操作。";
 export async function requestPasswordReset(email: string): Promise<void> {
@@ -254,8 +246,7 @@ export const loginWithEmail = (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, address, password);
 };
 export async function registerWithEmail(name: string, email: string, password: string) {
-  const cleanName = name.trim();
-  if (!cleanName || cleanName.length > 80) throw new Error("请填写 1 至 80 字的成员姓名。");
+  const cleanName = validMemberName(name);
   validateSitePassword(password);
   const address = validEmail(email);
   const auth = getCloudAuth();
@@ -300,8 +291,7 @@ export const logoutCloud = () => {
 };
 export async function requestWorkspaceAccess(name: string) {
   const identity = await verifiedIdentity();
-  const cleanName = name.trim();
-  if (!cleanName || cleanName.length > 80) throw new Error("请填写 1 至 80 字的成员姓名。");
+  const cleanName = validMemberName(name);
   if (isWorkspaceOwner(identity)) throw new Error("所有者无需申请访问。");
   await setDoc(doc(getDatabase(), "accessRequests", identity.uid), { name: cleanName, email: identity.email, requestedAt: serverTimestamp() });
 }
