@@ -1,3 +1,4 @@
+import { validateSubmission } from "./editorialSubmission";
 import type { Attendance, Issue, Meeting, WorkspaceData } from "../types";
 
 export const collectionNames = [
@@ -283,6 +284,8 @@ export function parseBackup(value: unknown): Partial<WorkspaceData> {
           !["选题", "撰稿", "编辑", "排版", "已发布"].includes(row.status))
       )
         throw new Error("编辑安排格式无效。");
+      if (key === "editorial" && row.submission !== undefined)
+        validateSubmission(row.submission);
       if (
         key === "assets" &&
         !["作者名片", "美工素材", "往期成果"].includes(row.kind)

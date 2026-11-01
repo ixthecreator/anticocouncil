@@ -363,3 +363,14 @@
   margin-top: auto;
   padding-top: var(--ac-space-3);
 }
+
+/* Manuscripts remain readable on narrow screens and preserve paragraph breaks. */
+.editorial-submission-help,
+.editorial-view .workspace-field:has(textarea),
+.editorial-view .workspace-field:has(input[type="url"]) { grid-column: 1 / -1; }
+.editorial-manuscript { margin-top: .65rem; font-weight: normal; }
+.editorial-manuscript summary { cursor: pointer; color: var(--ac-color-link); }
+.editorial-manuscript-body { margin-top: .65rem; max-width: 50rem; }
+.editorial-manuscript-text { white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: 28rem; overflow-y: auto; font: inherit; line-height: 1.75; }
+.editorial-manuscript-body p { overflow-wrap: anywhere; }

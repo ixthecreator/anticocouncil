@@ -75,6 +75,15 @@ export interface Attendance {
   reportMeetingId?: string; // Actual reporting/exemption meeting; meetingId retains the assignment origin.
 }
 
+/** A manuscript shared with approved workspace members. Legacy schedules omit it. */
+export interface EditorialSubmission {
+  content: string;
+  url: string;
+  contact: string;
+  submittedAt: string;
+  updatedAt: string;
+}
+
 export interface EditorialItem {
   id: string;
   title: string;
@@ -85,6 +94,7 @@ export interface EditorialItem {
   dueDate: string;
   status: '选题' | '撰稿' | '编辑' | '排版' | '已发布';
   notes: string;
+  submission?: EditorialSubmission;
 }
 
 export interface LibraryAsset {
