@@ -9,6 +9,8 @@ import {
 import type { EditorialItem, InventoryItem, LibraryAsset } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
 import { safeUrl } from "../lib/workspace";
+import { matchesEditorial, saveEditorialSchedule } from "../lib/editorialSubmission";
+import { EditorialManuscript, EditorialSubmissionForm } from "./EditorialSubmissionForm";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 import { Download, ExternalLink, FileImage, Plus, X } from "lucide-react";
 
@@ -170,6 +172,9 @@ export function OperationsView({
   search: string;
 }) {
   const [editorial, setEditorial] = useState<EditorialItem | null>(null);
+  const [submissionMode, setSubmissionMode] = useState(false);
+  const [editorialIsNew, setEditorialIsNew] = useState(true);
+  const [originalEditorial, setOriginalEditorial] = useState<EditorialItem | null>(null);
   const [asset, setAsset] = useState<LibraryAsset | null>(null);
   const [inventory, setInventory] = useState<InventoryItem | null>(null);
   const [filter, setFilter] = useState("全部");
@@ -187,16 +192,11 @@ export function OperationsView({
   const formId = useId();
   const results = useRef<HTMLParagraphElement>(null);
   // The add button opens a blank form and, while that form is open, closes it.
-  const adding =
-    !!open &&
-    !(
-      kind === "editorial"
-        ? data.editorial
-        : kind === "assets"
-          ? data.assets
-          : data.inventory
-    ).some((row) => row.id === open.id);
+  const adding = !!open && (kind === "editorial"
+    ? editorialIsNew
+    : !(kind === "assets" ? data.assets : data.inventory).some(row => row.id === open.id));
   const close = () => {
+    setSubmissionMode(false);
     setEditorial(null);
     setAsset(null);
     setInventory(null);
@@ -205,6 +205,9 @@ export function OperationsView({
   const toggleAdd = (opener: HTMLElement) => {
     if (adding) return close();
     form.remember(opener);
+    setSubmissionMode(false);
+    setEditorialIsNew(true);
+    setOriginalEditorial(null);
     if (kind === "editorial") setEditorial(freshEditorial());
     else if (kind === "assets") setAsset(freshAsset());
     else setInventory(freshInventory());
@@ -218,7 +221,7 @@ export function OperationsView({
   const focusResults = () => results.current?.focus();
   const filterId = useId();
   const editorialRows = data.editorial.filter(
-    (row) => matched(row) && (filter === "全部" || row.department === filter),
+    (row) => matchesEditorial(row, search) && (filter === "全部" || row.department === filter),
   );
   const assetRows = data.assets.filter(
     (row) => matched(row) && (filter === "全部" || row.kind === filter),
@@ -248,9 +251,23 @@ export function OperationsView({
   return (
     <div className={`daily-view operations-view ${kind}-view`}>
       <div className="daily-actions">
+        {kind === "editorial" && (
+          <button type="button" className="workspace-button primary"
+            aria-expanded={!!editorial && submissionMode}
+            aria-controls={editorial && submissionMode ? formId : undefined}
+            onClick={event => {
+              form.remember(event.currentTarget);
+              setEditorial(freshEditorial());
+              setEditorialIsNew(true);
+              setOriginalEditorial(null);
+              setSubmissionMode(true);
+            }}>
+            <Plus aria-hidden="true" />在线投稿
+          </button>
+        )}
         <button
           type="button"
-          className={`workspace-button${open ? "" : " primary"}`}
+          className={`workspace-button${open || kind === "editorial" ? "" : " primary"}`}
           aria-expanded={adding}
           aria-controls={adding ? formId : undefined}
           onClick={(event) => toggleAdd(event.currentTarget)}
@@ -279,15 +296,20 @@ export function OperationsView({
       </div>
       {open && (
         <div id={formId} className="daily-form">
-          {editorial && (
+          {editorial && submissionMode && (
+            <EditorialSubmissionForm key={editorial.id} initial={editorial}
+              isNew={adding} workspace={workspace} onClose={close} headingRef={form.heading} />
+          )}
+          {editorial && !submissionMode && (
             <SaveForm
               key={editorial.id}
               onCancel={close}
               onSave={async () => {
                 if (!editorial.title.trim()) throw new Error("请输入选题。");
-                await save("editorial", {
-                  ...editorial,
-                  title: editorial.title.trim(),
+                await workspace.change("editorial", editorial.id, latest => {
+                  return saveEditorialSchedule(latest, {
+                    ...editorial, title: editorial.title.trim(),
+                  }, originalEditorial);
                 });
                 close();
               }}
@@ -668,6 +690,7 @@ export function OperationsView({
                   <tr key={row.id}>
                     <th scope="row">
                       {row.title}
+                      {row.submission && <EditorialManuscript item={row} />}
                       {row.notes && (
                         <span className="council-meta daily-notes">
                           {row.notes}
@@ -742,11 +765,24 @@ export function OperationsView({
                         <button
                           type="button"
                           className="workspace-button"
-                          onClick={(event) =>
-                            editRow(setEditorial, row, event.currentTarget)
-                          }
+                          onClick={(event) => {
+                            setSubmissionMode(false);
+                            setEditorialIsNew(false);
+                            setOriginalEditorial(row);
+                            editRow(setEditorial, row, event.currentTarget);
+                          }}
                         >
                           编辑安排
+                          <Context>{row.title}</Context>
+                        </button>
+                        <button type="button" className="workspace-button"
+                          onClick={event => {
+                            setSubmissionMode(true);
+                            setEditorialIsNew(false);
+                            setOriginalEditorial(row);
+                            editRow(setEditorial, row, event.currentTarget);
+                          }}>
+                          {row.submission ? "编辑投稿" : "补充稿件"}
                           <Context>{row.title}</Context>
                         </button>
                         <DeleteButton
