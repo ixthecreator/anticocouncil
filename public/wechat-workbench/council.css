@@ -1,0 +1,98 @@
+/* Match the council shell. Article surfaces keep their own typography and styles. */
+.council-skin {
+  --bg: #f8f7f7;
+  --paper: #fff;
+  --ink: #212121;
+  --muted: #717171;
+  --line: #cbc9cd;
+  --accent: #373151;
+  --council-tint: #efedf3;
+  --council-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+}
+.council-skin #councilDraftHome,
+.council-skin .sidebar,
+.council-skin #draftEditor > header,
+.council-skin .editor,
+.council-skin .preview-panel > :not(.phone),
+.council-skin dialog > :not(.raw-grid):not(.tools-grid),
+.council-skin .raw-input,
+.council-skin .tools-grid > form {
+  font-family: var(--council-font);
+}
+.council-skin #preview,
+.council-skin #rawPreview,
+.council-skin .tool-preview { color: #30352f; }
+.council-skin button,
+.council-skin input,
+.council-skin textarea,
+.council-skin select,
+.council-skin dialog { border-radius: 0; }
+.council-skin button:hover { background: var(--council-tint); }
+.council-skin button.primary:hover { background: #29253d; }
+.council-skin button:focus-visible,
+.council-skin a:focus-visible { outline-color: var(--accent); }
+.council-skin input:focus,
+.council-skin textarea:focus,
+.council-skin select:focus { border-color: var(--accent); }
+.council-skin .sidebar,
+.council-skin .preview-panel { background: var(--bg); }
+.council-skin .sidebar .brand,
+.council-skin .section-label { color: var(--accent); }
+.council-skin .new,
+.council-skin .draft.active { background: var(--council-tint); }
+.council-skin #draftEditor > header { background: var(--paper); }
+.council-skin #draftEditor > header > div:first-child { flex: 1; min-width: 110px; }
+.council-skin #draftEditor { display: flex; flex-direction: column; }
+.council-skin #draftEditor > .workspace { height: auto; flex: 1; min-height: 0; }
+.council-skin #draftEditor > header { height: auto; min-height: 78px; padding: 12px 18px; }
+.council-skin #draftEditor .header-actions { flex-wrap: wrap; gap: 7px; }
+.council-skin #councilDraftBack { margin-right: 6px; color: var(--accent); }
+.council-skin #councilDraftHome {
+  overflow: auto;
+  padding: 24px;
+  background: var(--paper);
+}
+.council-skin .council-drafts-header {
+  height: auto;
+  padding: 0 0 16px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border-bottom: 4px solid var(--accent);
+}
+.council-skin .council-drafts-header h1 { margin: 0; font-size: 24px; }
+.council-skin .council-drafts-actions,
+.council-skin .council-drafts-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.council-skin .council-drafts-tabs { margin-top: 16px; }
+.council-skin .council-drafts-tabs button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--council-tint);
+  border-bottom: 3px solid var(--accent);
+}
+.council-skin #councilLocalPanel,
+.council-skin #councilRemotePanel { margin-top: 14px; }
+.council-skin #councilLocalList { margin-bottom: 16px; }
+.council-skin .wechat-library-item { border: 0; border-bottom: 1px solid var(--line); }
+.council-skin #councilRemotePanel #wechatLibraryDialog {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+.council-skin #councilRemotePanel #wechatLibraryDialog > .panel-heading { display: none; }
+.council-skin #councilRemotePanel #wechatLibraryList { max-height: none; }
+@media (max-width: 1050px) {
+  .council-skin .sidebar { width: 164px; padding: 22px 12px 12px; }
+  .council-skin #draftEditor > .workspace { grid-template-columns: minmax(0, 1fr) minmax(260px, 40%); }
+  .council-skin .editor { padding-inline: 16px; }
+}
+@media (max-width: 760px) {
+  .council-skin body { display: block; height: auto; min-height: 100vh; overflow: auto; }
+  .council-skin .sidebar { display: none; }
+  .council-skin #draftEditor > .workspace { grid-template-columns: minmax(0, 1fr); }
+  .council-skin #councilDraftHome { padding: 16px; }
+}
+
