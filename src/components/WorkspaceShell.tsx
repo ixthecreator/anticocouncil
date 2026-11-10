@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  isWorkbenchPage,
   workspaceNavigation as navigation,
   type WorkspacePage,
 } from "../lib/workspaceNavigation";
@@ -247,7 +248,7 @@ export function WorkspaceShell({
                 <li key={item.id}>
                   <a
                     href={`#${item.id}`}
-                    aria-current={page === item.id ? "page" : undefined}
+                    aria-current={page === item.id ? "page" : item.id === "workbench" && isWorkbenchPage(page) ? "location" : undefined}
                     onClick={follow(item.id)}
                   >
                     {item.title}
@@ -333,9 +334,12 @@ export function WorkspaceShell({
               <ol>
                 <li>
                   <a href="#overview" onClick={follow("overview")}>
-                    工作台
+                    {isWorkbenchPage(page) ? "议会概览" : "工作台"}
                   </a>
                 </li>
+                {isWorkbenchPage(page) && page !== "workbench" && (
+                  <li><a href="#workbench" onClick={follow("workbench")}>工作台</a></li>
+                )}
                 <li>{current.title}</li>
               </ol>
             </nav>
@@ -498,3 +502,4 @@ export function WorkspaceShell({
     </div>
   );
 }
+

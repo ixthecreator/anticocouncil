@@ -15,9 +15,11 @@ import {
 } from "./types";
 import { WorkspaceShell, type WorkspacePage } from "./components/WorkspaceShell";
 import {
+  isWorkbenchPage,
   workspaceNavigation,
   workspacePageFromHash,
 } from "./lib/workspaceNavigation";
+import { Workbench } from "./components/Workbench";
 import { CouncilOverview } from "./components/CouncilOverview";
 import { ProposalIndex } from "./components/ProposalIndex";
 import "./styles/workspace/index.css";
@@ -437,7 +439,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     (i) => i.meetingId === currentMeetingId && !i.archived,
   );
   const currentReports = selectedMeeting ? weeklyReports(data, selectedMeeting.date) : [];
-  const showsCouncilRecords = activeTab !== "cards" && activeTab !== "workbench";
+  const showsCouncilRecords = activeTab !== "cards" && !isWorkbenchPage(activeTab);
 
   return (
     <div className="council-app parliament-app theme-parliament">
@@ -560,11 +562,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
             </dl>
           </section>
         )}
-        {activeTab === "workbench" && (
-          <div className="page-body">
-            <Empty>公众号排版工具待接入。</Empty>
-          </div>
-        )}
+        {isWorkbenchPage(activeTab) && <Workbench page={activeTab} />}
         {activeTab === "cards" && <React.Suspense fallback={<p role="status">正在打开名片制作…</p>}>
           <MemberCardStudio key={props.draftScope} draftScope={props.draftScope} libraryReady={ready}
             sharedLibrary={storageMode === "firebase"} onSave={asset => save("assets", asset)}
@@ -703,3 +701,4 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     </div>
   );
 }
+

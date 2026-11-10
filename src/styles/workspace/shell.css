@@ -127,6 +127,7 @@
   text-underline-offset: 0.2em;
 }
 .workspace-navigation-list > li > a[aria-current="page"],
+.workspace-navigation-list > li > a[aria-current="location"],
 .workspace-navigation-daily summary.has-active-page {
   border-bottom-color: var(--ac-color-brand);
 }
@@ -564,6 +565,7 @@
     border-left: var(--ac-rule-heavy) solid transparent;
   }
   .workspace-navigation-list > li > a[aria-current="page"],
+  .workspace-navigation-list > li > a[aria-current="location"],
   .workspace-navigation-daily summary.has-active-page {
     border-left-color: var(--ac-color-brand);
   }
