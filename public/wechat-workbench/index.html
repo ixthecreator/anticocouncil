@@ -1,0 +1,73 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>工作台</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./council.css"></head><body>
+<main id="councilDraftHome" hidden>
+ <header class="council-drafts-header"><h1>稿件</h1><div class="council-drafts-actions">
+  <button id="councilNew" class="primary">新建文章</button><button id="councilRaw">自动排版</button><button id="councilSettings">服务设置</button>
+ </div></header>
+ <div class="council-drafts-tabs" aria-label="稿件来源"><button id="councilWechat" aria-pressed="false">公众号草稿</button><button id="councilLocal" aria-pressed="true">本地草稿</button></div>
+ <p id="councilDraftStatus" role="status"></p>
+ <section id="councilLocalPanel" aria-label="本地草稿"><div id="councilLocalList"></div><button id="councilManage">稿件管理</button></section>
+ <section id="councilRemotePanel" aria-label="公众号草稿" hidden></section>
+</main>
+<aside class="sidebar"><a class="brand" href="/">工作台</a><button id="new" class="new">＋ 新建文章</button><div class="section-label">我的稿件 <span id="draftCount"></span></div><nav id="drafts"></nav><div class="sidebar-bottom"><button id="libraryOpen">稿件管理</button><button id="import">↥ 导入</button><button id="export">↧ 备份</button><button id="settings">⚙ 设置</button></div></aside>
+<main id="draftEditor"><header><div><button id="councilDraftBack" hidden>← 返回草稿</button><span class="breadcrumb">工作台 / </span><span id="currentName">未命名文章</span></div><div class="header-actions"><span id="saveState">已保存</span><button id="wechatLibraryOpen">微信草稿箱</button><button class="primary" id="rawOpen">自动排版</button><button id="assistantToggle">✧ 素材助手</button><button id="sync">存入公众号草稿箱 ↗</button></div></header>
+<div class="workspace"><section class="editor"><div class="editor-top"><span class="eyebrow">正文编辑</span><button id="delete" title="移入回收站">移入回收站</button></div><input id="title" class="title" aria-label="文章标题" placeholder="写下一个标题"><div class="metadata"><input id="author" aria-label="作者" placeholder="作者"><span>·</span><span id="wordCount">0 字</span></div><textarea id="digest" class="digest" aria-label="摘要" placeholder="添加摘要…" rows="2"></textarea><div class="cover-line"><button id="coverButton">＋ 添加封面</button><img id="coverImage" alt="文章封面" hidden><span id="coverStatus"></span></div><div class="toolbar" id="plainToolbar"><button data-format="paragraph">段落</button><button data-format="heading">小标题</button><button data-format="emphasis">重点</button><button data-format="bold" title="加粗" aria-label="加粗"><b>B</b></button><button data-format="quote">引文</button><button data-format="note">编者按</button><button data-format="line" title="分隔线" aria-label="分隔线">―</button><button id="imageButton" title="插入图片">▧ 图片</button><span></span><button id="example">载入示例</button></div><div id="richToolbar" class="toolbar" hidden><span id="richModeLabel">微信原稿</span><button type="button" data-rich-format="bold">加粗</button><button type="button" data-rich-format="italic">斜体</button><button type="button" data-rich-format="underline">下划线</button><button type="button" id="richImage">插入图片</button><button type="button" id="richConvert">改用工作台排版</button></div><div id="richBody" role="textbox" aria-multiline="true" aria-label="微信富文本正文" contenteditable="true" hidden></div><textarea id="body" aria-label="文章正文" placeholder="从这里开始写作…" spellcheck="false"></textarea><details id="markerPanel" class="marker-panel"><summary>稿件结构 <span id="markerCount"></span></summary><div class="marker-controls"><label>查看 <select id="markerFilter"><option value="all">全部标记</option><option value="structure">段落与标题</option><option value="focus">重点与引文</option></select></label></div><ol id="markerList" aria-label="稿件标记"></ol></details><footer><span id="wechatSyncState" aria-live="polite">本地自动保存</span><span id="themeName">史料</span></footer></section>
+<aside class="preview-panel"><div class="panel-heading"><span>微信阅读预览</span><div><button id="referenceDraftOpen" hidden>版式设置</button><button id="templateOpen">自定义模板</button></div></div><div id="themes" class="themes"></div><div id="customPicker" hidden><label>我的模板 <select id="customSelect"></select></label></div><div class="preview-actions"><button id="rulesOpen">稿件规范</button><button id="autoSync" aria-pressed="false">开启微信自动同步</button><button id="remoteRead" hidden>读取微信版本</button></div><div class="adjust" id="previewAdjust"><label>字号 <select id="fontSize"><option>13</option><option>14</option><option>15</option><option selected>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option></select></label><label>强调色 <input id="color" type="color" aria-label="强调色"></label></div><div class="phone"><div class="phone-status"><span>9:41</span><span>••• ▰</span></div><div class="wechat-nav"><span>〈</span><span>公众号</span><span>•••</span></div><div id="wechatHeading"></div><div id="preview"></div><div class="wechat-end"><span>阅读原文</span><span>阅读　　赞　在看</span></div><div class="phone-bottom"></div></div></aside></div></main>
+<aside id="assistant" class="assistant" hidden><div class="panel-heading"><strong>✧ 素材助手</strong><button id="assistantClose" aria-label="关闭助手">✕</button></div><div class="assistant-body" id="messages"><div class="assistant-intro"><span>✧</span><h2>从一个问题开始</h2><p>找文章，理思路，写下一段。</p><button class="suggestion">按我给出的关键词找几篇文章</button><button class="suggestion">帮我拟一份文学书评提纲</button></div></div><form id="chatForm"><textarea id="prompt" aria-label="向助手提问" placeholder="输入主题或写作要求…" required></textarea><div><label><input id="webSearch" type="checkbox" checked> 联网检索</label><button class="primary" id="ask">发送 ↑</button></div></form></aside>
+<dialog id="settingsDialog">
+<form id="settingsForm">
+ <div class="panel-heading"><h2>服务设置</h2><button type="button" id="settingsClose" aria-label="关闭设置">✕</button></div>
+ <h3>DeepSeek</h3>
+ <label>模型<input name="model" placeholder="使用站点默认模型"></label>
+ <label>API Key<input name="key" type="password" autocomplete="off"></label>
+ <label>搜索 Key<input name="searchKey" type="password" autocomplete="off"></label>
+ <p class="setting-note">你填写的 Key 在当前页面会话中使用。</p>
+ <h3>微信公众号</h3>
+ <p id="wechatConnection" class="setting-note"></p>
+ <div class="dialog-actions"><button type="button" id="checkWechat">检查连接</button><button type="button" id="clearKeys">清除会话 Key</button><button type="submit" class="primary">保存设置</button></div>
+ <p id="settingsStatus" role="status"></p>
+</form>
+</dialog>
+<dialog id="templateDialog" class="wide-dialog">
+<div class="panel-heading"><h2>自定义模板</h2><button type="button" id="templateClose" aria-label="关闭自定义模板">✕</button></div>
+<div class="tools-grid"><form id="templateForm">
+<label>模板<select id="templateEdit"></select></label>
+<label>模板名称<input name="name" maxlength="40" required placeholder="例如：我的文章样式"></label>
+<div class="two"><label>基础版式<select name="theme"><option value="history">史料</option><option value="literature">文学</option><option value="essay">随笔</option><option value="review">书评</option></select></label><label>强调色<input name="color" type="color"></label></div>
+<div class="two"><label>正文字号<input name="fontSize" type="number" min="13" max="22" required></label><label>小标题字号<input name="headingSize" type="number" min="15" max="32" required></label></div>
+<div class="two"><label>正文行距<input name="lineHeight" type="number" min="1.4" max="3" step="0.1" required></label><label>段落间距<input name="paragraphGap" type="number" min="4" max="48" required></label></div>
+<div class="two"><label>引文样式<select name="quote"><option value="line">左侧竖线</option><option value="box">边框</option><option value="plain">纯文字</option></select></label><label class="check-line"><input type="checkbox" name="numbered">章节自动编号</label></div>
+<div class="dialog-actions"><button type="button" id="templateRemove" hidden>移除模板</button><button class="primary" type="submit">保存并应用到当前稿</button></div>
+</form><div id="templatePreview" class="tool-preview" aria-label="模板实时预览"></div></div></dialog>
+<dialog id="rulesDialog">
+<div class="panel-heading"><h2>稿件规范</h2><button id="rulesClose" aria-label="关闭稿件规范">✕</button></div>
+<form id="rulesForm"><label>规范说明（供 AI 整理参考）<textarea name="text" maxlength="4000" rows="5" placeholder="粘贴写作、排版或投稿要求"></textarea></label>
+<button type="button" id="rulesUpload">导入 TXT / Markdown</button><input type="file" id="rulesFile" accept=".txt,.md,text/plain,text/markdown" hidden>
+<div class="two"><label>标题字数上限（0 为不限）<input name="titleLimit" type="number" min="0" max="200"></label><label>禁用词（逗号或换行分隔）<textarea name="forbidden" rows="2" maxlength="1000"></textarea></label></div>
+<div class="two"><label class="check-line"><input type="checkbox" name="requireAuthor">要求作者</label><label class="check-line"><input type="checkbox" name="requireCover">要求封面</label></div>
+<div class="dialog-actions"><button type="button" id="rulesCheck">检查当前稿</button><button class="primary" type="submit">保存规范</button></div><p id="rulesStatus" role="status"></p></form></dialog>
+<dialog id="libraryDialog" class="wide-dialog">
+<div class="panel-heading"><h2>稿件管理</h2><button id="libraryClose" aria-label="关闭稿件管理">✕</button></div>
+<div class="library-tools"><button id="libraryActive" aria-pressed="true">我的稿件</button><button id="libraryTrash" aria-pressed="false">回收站</button><input id="libraryQuery" placeholder="搜索标题或正文" aria-label="搜索稿件"><button id="libraryAll">全选当前结果</button></div>
+<div id="libraryList" class="library-list"></div>
+<div id="activeBatch" class="library-tools"><select id="batchTemplate" aria-label="批量模板"></select><button id="batchApply">批量套用</button><button id="batchCheck">批量检查规范</button><button id="batchTrash">移入回收站</button></div>
+<div id="trashBatch" class="library-tools" hidden><button id="batchRestore">恢复选中</button><button id="batchPurge">永久删除</button></div>
+<div class="library-tools"><button id="batchBackup">备份选中</button><button id="libraryBackup">备份全部</button><button id="libraryImport">从备份导入</button></div>
+<div id="libraryStatus" role="status"></div></dialog>
+<dialog id="wechatLibraryDialog" class="wide-dialog">
+<div class="panel-heading"><h2>微信草稿箱</h2><button id="wechatLibraryClose" aria-label="关闭微信草稿箱">✕</button></div>
+<div class="library-tools"><button id="wechatLibraryReload">刷新草稿</button><button id="wechatLibrarySettings" hidden>服务设置</button></div>
+<div id="wechatLibraryList" class="library-list"></div>
+<div class="library-tools"><button id="wechatLibraryPrev">上一页</button><button id="wechatLibraryNext">下一页</button><span id="wechatLibraryStatus" role="status"></span></div>
+</dialog>
+<dialog id="remoteDialog" class="wide-dialog"><div class="panel-heading"><h2>微信草稿版本</h2><button id="remoteClose" aria-label="关闭微信草稿版本">✕</button></div><p id="remoteSummary"></p><pre id="remoteText" class="tool-preview"></pre><div class="dialog-actions"><button id="remoteCopy">另存为本地文本稿</button><button class="primary" id="remoteAccept">标记为已核对</button></div></dialog>
+<dialog id="referenceDialog" class="wide-dialog">
+<div class="panel-heading"><h2>参考版式</h2><button type="button" id="referenceClose" aria-label="关闭参考版式">✕</button></div>
+<div class="tools-grid"><form id="referenceForm">
+<div id="referenceAssets"></div>
+<details><summary>字号、间距和颜色</summary><div id="referenceStyle" class="two"></div></details>
+<div class="dialog-actions"><button type="button" id="referenceReset">恢复参考参数</button><button type="submit" class="primary">保存版式</button></div>
+<p id="referenceStatus" role="status"></p>
+</form><div class="tool-preview" id="referencePreview" aria-label="参考版式预览"></div></div>
+</dialog>
+<dialog id="rawDialog"><div class="panel-heading"><h2>自动排版</h2><button id="rawClose" aria-label="关闭原文排版">✕</button></div><div class="raw-grid"><div class="raw-input"><textarea id="rawText" aria-label="原始文本" placeholder="粘贴文章原文，右侧会自动排版…"></textarea><div class="raw-options"><select id="rawTheme" aria-label="原文排版模板"><option value="reference" selected>参考版式</option><option value="history">史料</option><option value="literature">文学</option><option value="essay">随笔</option><option value="review">书评</option></select><label><input id="rawPolish" type="checkbox"> <span id="rawAiLabel">AI 整理（发送原文）</span></label><button id="rawGenerate">整理预览</button></div>
+<div class="raw-options"><button id="rawImport">导入 TXT</button><input type="file" id="rawFile" accept=".txt,.md,text/plain,text/markdown" hidden><button id="rawAddImages">添加配图</button><input type="file" id="rawImagesFile" accept="image/png,image/jpeg,image/webp" multiple hidden><button id="rawReference">版式设置</button></div><div id="rawImages" aria-label="已添加配图"></div></div><div class="raw-output"><p id="rawEmpty">排版预览</p><div id="rawPreview" hidden></div></div></div><div class="dialog-actions raw-actions"><p id="rawStatus" role="status"></p><div class="raw-buttons"><button id="rawApply" disabled>保存本地草稿</button><button id="rawSync" class="primary" disabled>排版并存公众号草稿</button></div></div></dialog><input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><input id="importInput" type="file" accept="application/json" hidden><div id="toast" role="status" hidden></div><script type="module" src="./app.mjs"></script></body></html>

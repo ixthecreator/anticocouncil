@@ -562,7 +562,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
             </dl>
           </section>
         )}
-        {isWorkbenchPage(activeTab) && <Workbench page={activeTab} />}
+        {isWorkbenchPage(activeTab) && <Workbench page={activeTab} draftScope={props.draftScope} />}
         {activeTab === "cards" && <React.Suspense fallback={<p role="status">正在打开名片制作…</p>}>
           <MemberCardStudio key={props.draftScope} draftScope={props.draftScope} libraryReady={ready}
             sharedLibrary={storageMode === "firebase"} onSave={asset => save("assets", asset)}

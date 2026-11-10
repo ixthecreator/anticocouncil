@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { ArrowRight, ChartNoAxesCombined, Files } from "lucide-react";
+import { getCloudAuth } from "../lib/cloudAccess";
 import type { WorkbenchPage } from "../lib/workspaceNavigation";
 import "../styles/workspace/pages/workbench.css";
 
@@ -8,63 +9,41 @@ const tools = [
   { id: "workbench-charts", title: "制图工具", description: "待接入", icon: ChartNoAxesCombined },
 ] as const;
 
-const editorOrigin = "http://127.0.0.1:4174";
-const editorUrl = editorOrigin + "/council";
-
-function WechatDraftWorkbench() {
+function WechatDraftWorkbench({ draftScope }: { draftScope: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<"connecting" | "ready" | "unavailable">("connecting");
+  const editor = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function receive(event: MessageEvent) {
-      if (event.origin !== editorOrigin || event.source !== frame.current?.contentWindow) return;
-      if (event.data?.type === "antico:inkdesk-ready") {
-        window.clearTimeout(timer);
-        setState("ready");
+  useLayoutEffect(() => {
+    async function receive(event: MessageEvent) {
+      if (event.origin !== window.location.origin || event.source !== frame.current?.contentWindow ||
+          event.data?.type !== "antico:wechat-session" || event.ports.length !== 1) return;
+      const port = event.ports[0];
+      try {
+        const user = draftScope.startsWith("cloud:") && event.data.token ? getCloudAuth().currentUser : null;
+        const token = user && draftScope === `cloud:${user.uid}` ? await user.getIdToken() : undefined;
+        port.postMessage({ scope: draftScope, token });
+      } catch {
+        port.postMessage({ scope: draftScope });
+      } finally {
+        port.close();
       }
     }
-    const timer = window.setTimeout(() => setState("unavailable"), 6500);
     window.addEventListener("message", receive);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("message", receive);
-    };
-  }, [attempt]);
+    return () => window.removeEventListener("message", receive);
+  }, [draftScope]);
 
   return (
-    <div className="page-body council-workbench-editor">
-      <div className="council-workbench-actions">
-        <a className="workspace-button subtle" href="#workbench">← 返回工作台</a>
-        <a className="workspace-button subtle" href={editorUrl} target="_blank" rel="noreferrer">在本机窗口打开 ↗</a>
-      </div>
-      {state === "connecting" && <p className="workspace-help" role="status">正在连接本机排版工作台…</p>}
-      {state === "unavailable" && (
-        <div className="workspace-panel">
-          <p role="status">请先启动新版排版工作台。浏览器询问本机访问权限时，可允许此站点连接。</p>
-          <button className="workspace-button" type="button" onClick={() => {
-            setState("connecting");
-            setAttempt(previous => previous + 1);
-          }}>重新连接</button>
-        </div>
-      )}
-      <iframe
-        key={attempt}
-        ref={frame}
-        title="公众号草稿编辑与排版"
-        src={editorUrl}
-        allow="local-network-access; local-network; loopback-network"
-        className={state === "ready" ? "council-workbench-frame" : "council-workbench-frame is-pending"}
-        tabIndex={state === "ready" ? 0 : -1}
-        aria-hidden={state !== "ready"}
-        onLoad={() => frame.current?.contentWindow?.postMessage({ type: "antico:inkdesk-hello" }, editorOrigin)}
-      />
+    <div ref={editor} className="page-body council-workbench-editor">
+      <a className="workspace-button subtle" href="#workbench">← 返回工作台</a>
+      <iframe ref={frame} title="公众号草稿编辑与排版" className="council-workbench-frame"
+        src="/wechat-workbench/index.html"
+        onLoad={() => editor.current?.scrollIntoView({ block: "nearest" })} />
     </div>
   );
 }
 
-export function Workbench({ page }: { page: WorkbenchPage }) {
-  if (page === "workbench-wechat") return <WechatDraftWorkbench />;
+export function Workbench({ page, draftScope }: { page: WorkbenchPage; draftScope: string }) {
+  if (page === "workbench-wechat") return <WechatDraftWorkbench draftScope={draftScope} />;
   if (page === "workbench-charts") return (
     <div className="page-body">
       <a className="workspace-button subtle" href="#workbench">← 返回工作台</a>
