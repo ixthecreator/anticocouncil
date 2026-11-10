@@ -437,6 +437,7 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
     (i) => i.meetingId === currentMeetingId && !i.archived,
   );
   const currentReports = selectedMeeting ? weeklyReports(data, selectedMeeting.date) : [];
+  const showsCouncilRecords = activeTab !== "cards" && activeTab !== "workbench";
 
   return (
     <div className="council-app parliament-app theme-parliament">
@@ -559,17 +560,22 @@ export default function App(props: {mode: "local" | "firebase"; onModeChange: (m
             </dl>
           </section>
         )}
+        {activeTab === "workbench" && (
+          <div className="page-body">
+            <Empty>公众号排版工具待接入。</Empty>
+          </div>
+        )}
         {activeTab === "cards" && <React.Suspense fallback={<p role="status">正在打开名片制作…</p>}>
           <MemberCardStudio key={props.draftScope} draftScope={props.draftScope} libraryReady={ready}
             sharedLibrary={storageMode === "firebase"} onSave={asset => save("assets", asset)}
             onOpenLibrary={() => navigateTo("assets")} />
         </React.Suspense>}
-        {activeTab !== "cards" && !ready && !error && !workspace.connectionError && (
+        {showsCouncilRecords && !ready && !error && !workspace.connectionError && (
           <div className="workspace-loading">
             <AuthLoadingContent headingLevel={2} title="正在准备工作区" description="正在读取会议和工作记录，请稍候。" />
           </div>
         )}
-        {activeTab !== "cards" && workspace.dataLoaded && (
+        {showsCouncilRecords && workspace.dataLoaded && (
           <fieldset className="page-body workspace-editable" disabled={!ready}>
             {activeTab === "overview" && (
               <CouncilOverview
