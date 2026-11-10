@@ -58,8 +58,24 @@ export const workspaceNavigation = [
   {
     id: "workbench",
     title: "工作台",
-    description: "公众号稿件编辑与排版。",
+    description: "选择要打开的工具。",
     group: "会议协作",
+    search: "",
+    searchHint: "",
+  },
+  {
+    id: "workbench-wechat",
+    title: "微信草稿箱",
+    description: "查看草稿、编辑正文并排版。",
+    group: "工具",
+    search: "",
+    searchHint: "",
+  },
+  {
+    id: "workbench-charts",
+    title: "制图工具",
+    description: "制图工具待接入。",
+    group: "工具",
     search: "",
     searchHint: "",
   },
@@ -106,7 +122,13 @@ export const workspaceNavigation = [
 ] as const;
 
 export type WorkspacePage = (typeof workspaceNavigation)[number]["id"];
+export type WorkbenchPage = Extract<WorkspacePage, "workbench" | "workbench-wechat" | "workbench-charts">;
+
+export function isWorkbenchPage(page: WorkspacePage): page is WorkbenchPage {
+  return page === "workbench" || page === "workbench-wechat" || page === "workbench-charts";
+}
 export function workspacePageFromHash(hash: string): WorkspacePage {
   const page = hash.replace(/^#/, "");
   return workspaceNavigation.find((item) => item.id === page)?.id || "overview";
 }
+
