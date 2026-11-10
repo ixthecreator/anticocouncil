@@ -56,6 +56,14 @@ export const workspaceNavigation = [
     searchHint: "会议或日期",
   },
   {
+    id: "workbench",
+    title: "工作台",
+    description: "公众号稿件编辑与排版。",
+    group: "会议协作",
+    search: "",
+    searchHint: "",
+  },
+  {
     id: "activity",
     title: "月度沙龙",
     description: "安排沙龙时间，记录话题与参与者。",

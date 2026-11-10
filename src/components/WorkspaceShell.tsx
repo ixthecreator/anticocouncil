@@ -356,7 +356,7 @@ export function WorkspaceShell({
               </p>
             </div>
             <div className="topbar-tools">
-              {page !== "cards" && (
+              {current.search && (
                 <div className="workspace-search" role="search">
                   <label
                     className="workspace-search-label"
