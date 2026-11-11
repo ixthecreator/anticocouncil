@@ -147,13 +147,23 @@ bun run check:public
 
 `lint` 实际执行 TypeScript 类型检查，不是 ESLint。测试覆盖业务数据、认证与连接状态、路由、会议改名和文档导出；自动测试不等于真实账号登录、收信、审批及云端业务写入的完整验收。
 
-`build` 先执行 Vite，再生成静态公开页面，输出到 `dist/`。`check:public` 必须在构建后运行，检查公开页面、文章内容、链接、字体、工作台应用壳及 404；Vercel 的构建命令不会自动执行该检查。
+`build` 先执行 Vite，再生成静态公开页面，输出到 `dist/`。`check:public` 必须在构建后运行，检查公开页面、文章内容、链接、字体、工作台应用壳及 404。Vercel 的构建命令已包含该检查，检查失败时部署中止，正式站保留上一版。
 
 生产公开首页不加载工作台脚本；`dist/workspace.html` 才是 `/portal`、`/workspace` 和 `/local` 使用的应用壳。不要将所有路径统一重写到 `index.html`。本地 `dev` / `preview` 不会执行 Vercel 的认证代理和完整路由配置，部署验证方法见 [部署说明](docs/deployment.md)。
 
 ## 协作与目录
 
-从最新 `main` 创建功能分支，完成相关检查后提交 PR。合并到 `main` 后，由已关联的 Vercel 项目构建并发布；应确认部署成功后再把修改视为已上线。README 保留当前行为和可复现步骤，临时调试记录及测试次数写入对应 PR。
+从最新 `main` 创建功能分支，完成相关检查后提交 PR。合并到 `main` 后，由已关联的 Vercel 项目构建并发布；应确认部署成功后再把修改视为已上线。
+
+仓库内置以下自动化，无需手动触发：
+
+| 自动化 | 时机 | 作用 |
+| --- | --- | --- |
+| CI（`.github/workflows/ci.yml`） | 每个 PR 与 `main` 推送 | 依次运行上述四项检查，结果显示在 PR 上 |
+| 线上巡检（`.github/workflows/uptime.yml`） | 每天北京时间 8:17、20:17，以及每次生产部署成功后 | 用 `scripts/check-production.mjs` 访问首页、文章、工作台、演示、草稿箱、登录代理和 404；异常时开带 `uptime` 标签的 Issue，恢复后自动关闭 |
+| 依赖升级（`.github/dependabot.yml`） | 每周一 | 把小版本和补丁升级合并成一个 PR；大版本升级需人工评估 |
+
+也可以在本地运行 `SITE_URL=https://www.anticocouncil.com node scripts/check-production.mjs` 巡检任意部署。README 保留当前行为和可复现步骤，临时调试记录及测试次数写入对应 PR。
 
 | 路径 | 职责 |
 | --- | --- |
@@ -165,7 +175,8 @@ bun run check:public
 | `src/lib/firebaseBackend.ts`、`cloudAccess.ts`、`firebase.ts`、`firebaseConnection.ts` | 云端服务接口的 Firebase 实现：认证、成员授权与数据读写 |
 | `src/lib/workspace.ts`、`src/types.ts` | 业务规则、数据校验与类型 |
 | `src/lib/meetingExport.ts`、`meetingPdf.ts`、`meetingDocx.ts` | PDF / Word / LaTeX 共用导出模型与格式生成 |
-| `scripts/`、`vercel.json` | 静态页面生成、产物检查与 Vercel 配置 |
+| `scripts/`、`vercel.json` | 静态页面生成、产物检查、线上巡检与 Vercel 配置 |
+| `.github/` | CI、线上巡检、依赖升级与 PR 模板 |
 | `firestore.rules`、`firebase.json`、`.firebaserc` | Firebase 权限规则与部署目标 |
 | `public/preview/` | 独立示例演示 |
 
