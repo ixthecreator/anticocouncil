@@ -336,6 +336,30 @@
   flex: none;
 }
 
+/* Rotation suggestion: a quieter second way to fill the week. */
+.rotation-suggest {
+  margin: calc(-1 * var(--ac-space-4)) 0 var(--ac-space-7);
+  padding: var(--ac-space-4);
+  border-left: 4px solid var(--ac-color-border, currentColor);
+  max-width: var(--ac-reading-width);
+}
+.rotation-suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--ac-space-3) var(--ac-space-6);
+}
+.rotation-suggest-row .session-subheading {
+  margin: 0 0 var(--ac-space-2);
+}
+.rotation-suggest-row > .workspace-field {
+  flex: 0 0 120px;
+}
+.rotation-suggest > .council-meta {
+  display: block;
+  margin: var(--ac-space-3) 0;
+}
+
 .attendance-summary {
   margin: 0 0 var(--ac-space-3);
   color: var(--ac-color-heading);

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import type { Attendance, Meeting } from "../types";
 import { buildMeetingExport, meetingExportBlocks, renderMeetingLatex } from "./meetingExport";
-import { emptyWorkspace, latestReport, meetingBrief, parseBackup, reportMeetingId, updateReport, weeklyReports } from "./workspace";
+import { emptyWorkspace, latestReport, meetingBrief, parseBackup, reportMeetingId, rotationPicks, updateReport, weeklyReports } from "./workspace";
 
 const now = "2026-09-13T12:00:00.000Z";
 const meeting = (id: string, date: string): Meeting => ({
@@ -127,4 +127,31 @@ test("backups retain actual report scenes and reject malformed scene fields", ()
   expect(parseBackup({ attendance: [row] }).attendance?.[0].reportMeetingId).toBe("sun");
   expect(() => parseBackup({ attendance: [{ ...row, reportMeetingId: 5 }] })).toThrow("文本字段");
   expect(parseBackup({ attendance: [report({ reportAssigned: undefined })] }).attendance).toHaveLength(1);
+});
+
+test("rotation picks the longest-waiting members and skips anyone already scheduled", () => {
+  const data = fixture();
+  data.meetings.push(meeting("aug", "2026-08-30"), meeting("sep1", "2026-09-02"));
+  data.members = ["a", "b", "c", "d", "e"].map((id) => ({ id, name: id.toUpperCase(), role: "秘书处", avatarSymbol: id }));
+  data.attendance = [
+    report({ id: "aug__a", meetingId: "aug", memberId: "a", reportStatus: "reported", reportMeetingId: "aug" }),
+    report({ id: "sep1__b", meetingId: "sep1", memberId: "b", reportStatus: "reported", reportMeetingId: "sep1" }),
+    // An exemption is not a turn, so C stays at the front with the never-reported members.
+    report({ id: "sep1__c", meetingId: "sep1", memberId: "c", reportStatus: "exempt", reportNote: "请假", reportMeetingId: "sep1" }),
+    // D is already scheduled this week.
+    report({ id: "2026-09-07__d", meetingId: "wed", memberId: "d" }),
+  ];
+  const picks = rotationPicks(data, "2026-09-13", 3);
+  expect(picks.map((p) => p.member.id)).toEqual(["c", "e", "a"]);
+  expect(picks.map((p) => p.lastReported)).toEqual(["", "", "2026-08-30"]);
+  expect(rotationPicks(data, "2026-09-13", 10).map((p) => p.member.id)).toEqual(["c", "e", "a", "b"]);
+  expect(rotationPicks(data, "not-a-date", 3)).toEqual([]);
+});
+
+test("a report completed this week does not count as an earlier turn", () => {
+  const data = fixture();
+  data.members = [{ id: "a", name: "甲", role: "秘书处", avatarSymbol: "甲" }, { id: "b", name: "乙", role: "秘书处", avatarSymbol: "乙" }];
+  // Next week's view: A reported on Sunday 09-13 (last week), B never reported.
+  data.attendance = [report({ reportStatus: "reported", reportMeetingId: "sun" })];
+  expect(rotationPicks(data, "2026-09-14", 2).map((p) => [p.member.id, p.lastReported])).toEqual([["b", ""], ["a", "2026-09-13"]]);
 });
