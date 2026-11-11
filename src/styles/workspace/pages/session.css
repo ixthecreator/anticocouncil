@@ -477,3 +477,27 @@
     padding-inline: var(--ac-space-3);
   }
 }
+
+/* One-click drafts (会前通知, 催办提醒) and template shortcuts. */
+.copy-draft textarea {
+  font-family: var(--ac-font-family);
+  line-height: 1.7;
+}
+.copy-draft .workspace-help[role="status"]:empty {
+  display: none;
+}
+.copy-draft-start,
+.report-template-action {
+  margin-top: 0;
+}
+.meeting-prefill-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ac-space-2) var(--ac-space-4);
+  margin: 0 0 var(--ac-space-4);
+}
+.meeting-prefill-note .workspace-help {
+  margin: 0;
+  flex: 1 1 280px;
+}

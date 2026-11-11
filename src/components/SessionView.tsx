@@ -12,7 +12,8 @@ import {
   votingResult,
 } from "../lib/workspace";
 import { AttendanceView } from "./AttendanceView";
-import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
+import { Action, CopyDraft, Empty, Field, SaveForm } from "./WorkspaceForms";
+import { meetingNotice, withReportTemplate } from "../lib/templates";
 
 /* Tag colours support the text label; they never carry the status alone. */
 const statusTone: Record<Issue["status"], string> = {
@@ -100,6 +101,18 @@ export function SessionView({
       <AttendanceView meeting={currentMeeting} workspace={workspace} />
       <div className="session-columns">
         <div className="session-main">
+          <section className="workspace-panel" aria-labelledby="notice-heading">
+            <div className="workspace-heading">
+              <h2 id="notice-heading">会前通知</h2>
+            </div>
+            <CopyDraft
+              key={currentMeeting.id}
+              label="会前通知"
+              hint="按本场时间、本周待汇报成员、待讨论议题和进行中的表决自动生成。"
+              emptyText="无法生成通知。"
+              generate={() => meetingNotice(data, currentMeeting.id)}
+            />
+          </section>
           <section className="workspace-panel" aria-labelledby="agenda-heading">
             <div className="workspace-heading">
               <h2 id="agenda-heading">
@@ -243,7 +256,19 @@ export function SessionView({
                   setEditingNotes(false);
                 }}
               >
-                <Field label="常规报告与会议记录">
+                <div className="workspace-actions report-template-action">
+                  <button
+                    type="button"
+                    className="workspace-button"
+                    onClick={() => setReport(withReportTemplate(report))}
+                  >
+                    插入部门报告模板
+                  </button>
+                </div>
+                <Field
+                  label="常规报告与会议记录"
+                  hint="可直接填写，或先插入按部门分段的模板；已填写的内容会保留。"
+                >
                   <textarea
                     rows={7}
                     value={report}

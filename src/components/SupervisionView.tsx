@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { Meeting, Issue, Member } from "../types";
 import { localDate } from "../lib/workspace";
 import { DeadlineTag, StatusTag } from "./CouncilOverview";
-import { Empty } from "./WorkspaceForms";
+import { CopyDraft, Empty } from "./WorkspaceForms";
+import { reminderText } from "../lib/templates";
 
 interface SupervisionViewProps {
   meetings: Meeting[];
@@ -68,6 +69,17 @@ export function SupervisionView({
           <span>已完成</span>
         </div>
       </div>
+      <section className="workspace-panel" aria-labelledby="reminder-heading">
+        <div className="workspace-heading">
+          <h2 id="reminder-heading">催办提醒</h2>
+        </div>
+        <CopyDraft
+          label="催办提醒"
+          hint="汇总已逾期和 3 天内到期的待执行事项，按负责人分组。"
+          emptyText="没有已逾期或 3 天内到期的事项，暂时无需催办。"
+          generate={() => reminderText(issues, members, today)}
+        />
+      </section>
       <div className="council-filter-toolbar">
         <label htmlFor="supervision-scope">查看范围</label>
         <select
