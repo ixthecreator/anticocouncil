@@ -28,6 +28,7 @@
   height: clamp(360px, calc(100dvh - 80px), 820px);
   border: 1px solid var(--ac-color-border);
 }
+.council-workbench-frame--tall { height: clamp(560px, calc(100dvh - 80px), 1100px); }
 @media (max-width: 650px) {
   .council-workbench-grid { grid-template-columns: 1fr; gap: var(--ac-space-4); }
   .council-workbench-card { padding: var(--ac-space-4); }
