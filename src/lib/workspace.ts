@@ -1,5 +1,5 @@
 import { validateSubmission } from "./editorialSubmission";
-import type { Attendance, Issue, Meeting, WorkspaceData } from "../types";
+import type { Attendance, Issue, Meeting, Member, WorkspaceData } from "../types";
 
 export const collectionNames = [
   "meetings",
@@ -171,6 +171,37 @@ export function weeklyReports(data: WorkspaceData, date: string): Attendance[] {
       byMember.set(row.memberId, row);
   }
   return [...byMember.values()];
+}
+export interface RotationPick {
+  member: Member;
+  /** Date of the member's most recent completed report before this week; "" if never. */
+  lastReported: string;
+}
+
+/**
+ * Suggests who should report this week: members not yet scheduled this week,
+ * longest since their last completed report first (never reported comes first).
+ * Exemptions and unfinished assignments do not count as a turn, so those members
+ * stay near the front. Ties keep roster order so suggestions are stable.
+ */
+export function rotationPicks(data: WorkspaceData, date: string, count: number): RotationPick[] {
+  const week = reportingWeek(date);
+  if (!week || count <= 0) return [];
+  const scheduled = new Set(weeklyReports(data, date).map((row) => row.memberId));
+  const meetingDate = new Map(data.meetings.map((m) => [m.id, m.date]));
+  const last = new Map<string, string>();
+  for (const row of data.attendance) {
+    if (row.reportStatus !== "reported") continue;
+    const reported = meetingDate.get(reportMeetingId(row));
+    if (!reported || reportingWeek(reported) >= week) continue;
+    if (reported > (last.get(row.memberId) || "")) last.set(row.memberId, reported);
+  }
+  return data.members
+    .map((member, order) => ({ member, order, lastReported: last.get(member.id) || "" }))
+    .filter(({ member }) => !scheduled.has(member.id))
+    .sort((a, b) => a.lastReported.localeCompare(b.lastReported) || a.order - b.order)
+    .slice(0, count)
+    .map(({ member, lastReported }) => ({ member, lastReported }));
 }
 export function safeUrl(value: string): string {
   try {

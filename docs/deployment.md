@@ -8,7 +8,7 @@
 
 1. 从最新 `main` 创建分支，完成修改与 [README 中的检查](../README.md#检查与构建)，提交 PR。
 2. 在 Vercel 预览中检查受影响的页面。预览环境有独立的变量和域名配置，构建成功不代表认证已可用，也不代表它拥有独立数据库。
-3. 合并到 `main`，等待 Vercel 生产部署成功，再核对正式域名。现有安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build`，输出目录为 `dist`。
+3. 合并到 `main`，等待 Vercel 生产部署成功，再核对正式域名。现有安装命令为 `bun install --frozen-lockfile`，构建命令为 `bun run build && bun run check:public`，输出目录为 `dist`。生产部署成功后，GitHub 上的「线上巡检」会自动访问关键页面，异常时开 Issue。
 4. 如果修改了 `firestore.rules`，另行确认目标项目并部署规则。Vercel 发布不会应用这些规则，也不会修改 Authentication 的提供方或授权域名。
 
 前端环境变量在构建时写入产物。修改 Vercel 变量后需要重新部署；不要把服务账号私钥或其他服务端凭据写入 `VITE_*`。

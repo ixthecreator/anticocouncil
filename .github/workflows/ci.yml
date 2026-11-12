@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: 类型检查、测试与构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+      - name: 安装依赖
+        run: bun install --frozen-lockfile
+      - name: 类型检查
+        run: bun run lint
+      - name: 单元测试
+        run: bun test
+      - name: 构建
+        run: bun run build
+      - name: 检查公开页面与工作台应用壳
+        run: bun run check:public

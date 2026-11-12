@@ -273,3 +273,86 @@ export function SaveForm({
     </FieldErrorsContext.Provider>
   );
 }
+
+/**
+ * A one-click draft people can edit before copying: 生成 fills an editable
+ * textarea from `generate`, 复制 puts the edited text on the clipboard, and
+ * 重新生成 discards edits for a fresh draft. Nothing is saved or sent.
+ */
+export function CopyDraft({
+  label,
+  generate,
+  emptyText,
+  hint,
+}: {
+  /** e.g. "会前通知"; shown on the buttons and as the field label. */
+  label: string;
+  generate: () => string;
+  /** Shown instead of a draft when generate() returns "". */
+  emptyText: string;
+  hint?: string;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const area = useRef<HTMLTextAreaElement>(null);
+  const open = () => {
+    setText(generate());
+    setStatus("");
+    requestAnimationFrame(() => area.current?.focus());
+  };
+  if (text === null)
+    return (
+      <div className="workspace-actions copy-draft-start">
+        <button type="button" className="workspace-button" onClick={open}>
+          生成{label}
+        </button>
+      </div>
+    );
+  return (
+    <div className="copy-draft">
+      {text ? (
+        <Field label={`${label}（可直接修改）`} hint={hint}>
+          <textarea
+            ref={area}
+            rows={Math.min(16, Math.max(5, text.split("\n").length + 1))}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setStatus("");
+            }}
+          />
+        </Field>
+      ) : (
+        <Empty>{emptyText}</Empty>
+      )}
+      <div className="workspace-actions">
+        {text && (
+          <button
+            type="button"
+            className="workspace-button primary"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(text);
+                setStatus("已复制，可以粘贴到群聊或邮件。");
+              } catch {
+                area.current?.select();
+                setStatus("浏览器不允许自动复制，文字已选中，请按 Ctrl+C / ⌘C 复制。");
+              }
+            }}
+          >
+            复制
+          </button>
+        )}
+        <button type="button" className="workspace-button" onClick={open}>
+          重新生成
+        </button>
+        <button type="button" className="workspace-button" onClick={() => setText(null)}>
+          收起
+        </button>
+      </div>
+      <p className="workspace-help" role="status">
+        {status}
+      </p>
+    </div>
+  );
+}

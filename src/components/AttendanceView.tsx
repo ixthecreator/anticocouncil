@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
-import type { Attendance, Meeting } from "../types";
+import type { Attendance, Meeting, Member } from "../types";
 import { DEFAULT_DEPARTMENTS } from "../types";
 import type { Workspace } from "../lib/useWorkspace";
-import { latestReport, reportMeetingId, reportingWeek, updateReport, weeklyReports } from "../lib/workspace";
+import { latestReport, reportMeetingId, reportingWeek, rotationPicks, updateReport, weeklyReports } from "../lib/workspace";
 import { Action, Empty, Field, SaveForm } from "./WorkspaceForms";
 
 /* Tag colours support the text label; they never carry the status alone. */
@@ -32,6 +32,7 @@ export function AttendanceView({
   const [role, setRole] = useState(DEFAULT_DEPARTMENTS[0]);
   const [editing, setEditing] = useState<Attendance | null>(null);
   const [original, setOriginal] = useState<Attendance | null>(null);
+  const [rotationCount, setRotationCount] = useState(3);
   // 安排汇报 disables itself once the member is in the queue. Focus then
   // moves to the member's new row in the table, once it has rendered.
   const focusTarget = useRef("");
@@ -53,6 +54,27 @@ export function AttendanceView({
         a.checkedInAt.localeCompare(b.checkedInAt) || a.id.localeCompare(b.id),
     );
   const next = records.find((r) => r.reportStatus === "pending");
+  const picks = rotationPicks(data, meeting.date, rotationCount);
+  const assign = async (member: Member) => {
+    const id = `${reportingWeek(meeting.date)}__${member.id}`;
+    await change(
+      "attendance",
+      id,
+      (old) =>
+        old || {
+          id,
+          meetingId: meeting.id,
+          memberId: member.id,
+          memberName: member.name,
+          // Keep the legacy storage field for existing backups and cloud records.
+          checkedInAt: new Date().toISOString(),
+          reportStatus: "pending",
+          reportNote: "",
+          reportAssigned: true,
+        },
+    );
+    return id;
+  };
   const reportedCount = records.filter((r) => r.reportStatus === "reported").length;
   return (
     <section className="workspace-panel" aria-labelledby="weekly-report-heading">
@@ -142,30 +164,56 @@ export function AttendanceView({
           onClick={async () => {
             const member = data.members.find((m) => m.id === memberId);
             if (!member) return;
-            const id = `${reportingWeek(meeting.date)}__${member.id}`;
-            await change(
-              "attendance",
-              id,
-              (old) =>
-                old || {
-                  id,
-                  meetingId: meeting.id,
-                  memberId: member.id,
-                  memberName: member.name,
-                  // Keep the legacy storage field for existing backups and cloud records.
-                  checkedInAt: new Date().toISOString(),
-                  reportStatus: "pending",
-                  reportNote: "",
-                  reportAssigned: true,
-                },
-            );
-            focusTarget.current = `attendance-row-${id}`;
+            focusTarget.current = `attendance-row-${await assign(member)}`;
             requestAnimationFrame(moveFocus);
           }}
         >
           安排汇报
         </Action>
       </div>
+      {data.members.length > 0 && (
+        <div className="rotation-suggest" role="group" aria-labelledby="rotation-heading">
+          <div className="rotation-suggest-row">
+            <h3 id="rotation-heading" className="session-subheading">按轮值安排</h3>
+            <Field label="人数">
+              <select
+                value={rotationCount}
+                onChange={(e) => setRotationCount(Number(e.target.value))}
+              >
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>{n} 人</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          {picks.length ? (
+            <>
+              <p className="council-meta">
+                最久未汇报的成员优先，免汇报不算轮过：
+                {picks
+                  .map(({ member, lastReported }) =>
+                    `${member.name}（${lastReported ? `上次 ${lastReported}` : "尚未汇报"}）`)
+                  .join("、")}
+              </p>
+              <Action
+                onClick={async () => {
+                  let firstId = "";
+                  for (const { member } of picks) {
+                    const id = await assign(member);
+                    firstId ||= id;
+                  }
+                  focusTarget.current = `attendance-row-${firstId}`;
+                  requestAnimationFrame(moveFocus);
+                }}
+              >
+                安排这 {picks.length} 人
+              </Action>
+            </>
+          ) : (
+            <p className="council-meta">成员名册中的每个人本周都已安排。</p>
+          )}
+        </div>
+      )}
       {!records.length ? (
         <Empty>本周还没有安排汇报人员。请选择本周需要汇报的成员。</Empty>
       ) : (

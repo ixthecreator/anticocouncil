@@ -3,6 +3,7 @@ import { Meeting, Issue, Member } from "../types";
 import { Pencil, Plus, X } from "lucide-react";
 import { localDate } from "../lib/workspace";
 import { renameMeeting } from "../lib/meetingRename";
+import { nextMeetingDraft } from "../lib/templates";
 
 interface MeetingManagerProps {
   ready?: boolean;
@@ -207,6 +208,12 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
             onClick={() => {
               if (!ready || operationPending.current) return;
               closeRename(false);
+              if (!adding) {
+                // Prefill from the previous meeting; every field stays editable.
+                const draft = nextMeetingDraft(meetings, localDate());
+                setNewMeetingTitle(draft?.title || "");
+                setNewMeetingDate(draft?.date || localDate());
+              }
               setAdding(!adding);
             }}
           >
@@ -292,6 +299,24 @@ export const MeetingManager: React.FC<MeetingManagerProps> = ({
             <p role="alert" className="workspace-error">
               {error}
             </p>
+          )}
+          {nextMeetingDraft(meetings, localDate()) && (
+            <div className="meeting-prefill-note">
+              <p className="workspace-help">
+                已按上一场例会自动填好下一场的名称和日期（同一星期几、编号加一），可直接修改。
+              </p>
+              <button
+                type="button"
+                className="workspace-button"
+                disabled={!ready || busy}
+                onClick={() => {
+                  setNewMeetingTitle("");
+                  setNewMeetingDate(localDate());
+                }}
+              >
+                清空，手动填写
+              </button>
+            </div>
           )}
           <div className="workspace-fields">
             <div className="workspace-field">
