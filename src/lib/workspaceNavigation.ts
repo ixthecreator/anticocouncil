@@ -72,9 +72,9 @@ export const workspaceNavigation = [
     searchHint: "",
   },
   {
-    id: "workbench-charts",
-    title: "制图工具",
-    description: "制图工具待接入。",
+    id: "workbench-citatio",
+    title: "每日书摘配图",
+    description: "输入引文和出处，生成每日一引配图。",
     group: "工具",
     search: "",
     searchHint: "",
@@ -122,10 +122,10 @@ export const workspaceNavigation = [
 ] as const;
 
 export type WorkspacePage = (typeof workspaceNavigation)[number]["id"];
-export type WorkbenchPage = Extract<WorkspacePage, "workbench" | "workbench-wechat" | "workbench-charts">;
+export type WorkbenchPage = Extract<WorkspacePage, "workbench" | "workbench-wechat" | "workbench-citatio">;
 
 export function isWorkbenchPage(page: WorkspacePage): page is WorkbenchPage {
-  return page === "workbench" || page === "workbench-wechat" || page === "workbench-charts";
+  return page === "workbench" || page === "workbench-wechat" || page === "workbench-citatio";
 }
 export function workspacePageFromHash(hash: string): WorkspacePage {
   const page = hash.replace(/^#/, "");
