@@ -1,5 +1,6 @@
 import { referenceAssetUrls } from './reference-layout.mjs';
 import { sanitizeWechatHtml } from './wechat-html.mjs';
+import { fitImage, imageDigest, wechatImageLimits } from './image-fit.mjs';
 
 export const builtinImages = {
  '/reference/opening-04333e81.gif':'https://mmbiz.qpic.cn/mmbiz_gif/pbSZFRcB05gaVKicpztFy0SjJrdPNzsOQiaj1nEViaTHa9X77wnSC82XcyWwvWhVQoZQI3FQ2wrmMr4BvBCW6C7ZA/640?wx_fmt=gif',
@@ -94,16 +95,42 @@ async function configuration(){
  return hostedConfiguration;
 }
 
-async function sendDraft(draft){
+// Uploads one local image to the official account, or reuses the address WeChat
+// gave the same image before. Body image URLs and cover materials are permanent,
+// so repeat saves of a draft send only what changed. The cache is per browser
+// profile, member and official account.
+async function wechatAsset(db,account,kind,src,used){
+ const data=storedImage(src);
+ const key='wechat-upload:'+account+':'+kind+':'+await imageDigest(data);
+ const cached=await storeRequest(db,'readonly',entries=>entries.get(key));
+ if(typeof cached==='string'&&cached){used.push(key);return cached;}
+ const result=await hosted('asset',{cover:kind==='cover',data:await fitImage(data,wechatImageLimits[kind])});
+ const value=kind==='cover'?result.mediaId:result.url;
+ await storeRequest(db,'readwrite',entries=>entries.put(value,key));
+ return value;
+}
+
+async function sendDraft(draft,retried=false){
+ const {db}=await database();
+ const account=(await configuration()).appId||'default';
  const rich=typeof draft.richHtml==='string';
  const sources=new Set(rich?(draft.richDirty?sanitizeWechatHtml(draft.richHtml,document).localImages:[])
   :[...draft.body.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match=>match[1]));
  for(const src of referenceAssetUrls(draft))if(assets.has(src))sources.add(src);
  const uploaded={};
+ const used=[];
  let coverMediaId='';
- if(draft.cover)coverMediaId=(await hosted('asset',{cover:true,data:storedImage(draft.cover)})).mediaId;
- for(const src of sources)uploaded[src]=(await hosted('asset',{data:storedImage(src)})).url;
- return hosted('wechat/draft',{draft,uploaded,coverMediaId});
+ if(draft.cover)coverMediaId=await wechatAsset(db,account,'cover',draft.cover,used);
+ for(const src of sources)uploaded[src]=await wechatAsset(db,account,'body',src,used);
+ try{
+  return await hosted('wechat/draft',{draft,uploaded,coverMediaId});
+ }catch(error){
+  // 40007: WeChat no longer has a remembered material (deleted in the official
+  // account backend). Forget what was reused and upload again, once.
+  if(retried||!used.length||!/40007/.test(error.message))throw error;
+  for(const key of used)await storeRequest(db,'readwrite',entries=>entries.delete(key));
+  return sendDraft(draft,true);
+ }
 }
 
 export async function api(path,body){

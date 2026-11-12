@@ -54,6 +54,8 @@ async function wxJson(path,params,options){
  const url=new URL('/cgi-bin/'+path,wxHost);
  for(const [key,value] of Object.entries(params))url.searchParams.set(key,value);
  const [response,result]=await responseJson(url,options);
+ // A rejected token must not stay cached for the rest of its nominal lifetime.
+ if([40001,40014,42001].includes(result?.errcode))token=undefined;
  if(result?.errcode===40164)throw fail('公众号拒绝站点出口 IP，请管理员检查微信 IP 白名单',503);
  if(result?.errcode===48001)throw fail('该公众号当前没有所需的草稿或素材接口权限',403);
  if(!response.ok||!result||result.errcode)throw fail('微信接口请求失败'+(result?.errcode?'（'+Number(result.errcode)+'）':''),502);
@@ -62,7 +64,9 @@ async function wxJson(path,params,options){
 let token;
 async function wxToken({account,secret}){
  if(token?.account===account&&token.expiry>Date.now())return token.value;
- const result=await wxJson('token',{grant_type:'client_credential',appid:account,secret});
+ // stable_token returns the same token to every caller until it nears expiry, so
+ // concurrent serverless instances no longer invalidate each other's tokens.
+ const result=await wxJson('stable_token',{},post({grant_type:'client_credential',appid:account,secret,force_refresh:false}));
  if(typeof result.access_token!=='string')throw fail('微信未返回访问令牌',502);
  token={account,value:result.access_token,expiry:Date.now()+Math.max(0,Number(result.expires_in)-120)*1000};
  return token.value;
