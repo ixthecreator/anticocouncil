@@ -33,3 +33,50 @@
   .council-workbench-grid { grid-template-columns: 1fr; gap: var(--ac-space-4); }
   .council-workbench-card { padding: var(--ac-space-4); }
 }
+.council-workbench-window {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ac-color-surface-alt);
+  color: var(--ac-color-text);
+}
+.council-workbench-masthead,
+.council-workbench-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--ac-space-4);
+  padding-inline: clamp(16px, 3vw, 40px);
+}
+.council-workbench-masthead {
+  justify-content: space-between;
+  min-height: 58px;
+  background: var(--ac-color-brand);
+  color: var(--ac-color-on-brand);
+}
+.council-workbench-brand { color: inherit; font-weight: 700; text-decoration: none; }
+.council-workbench-tabs {
+  flex-wrap: wrap;
+  background: var(--ac-color-surface);
+  border-bottom: 1px solid var(--ac-color-border);
+}
+.council-workbench-tabs a {
+  padding-block: 10px 7px;
+  border-bottom: 3px solid transparent;
+  color: var(--ac-color-brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+.council-workbench-tabs a[aria-current="page"] { border-color: var(--ac-color-brand); }
+.council-workbench-main { flex: 1; display: flex; flex-direction: column; }
+.council-workbench-main .council-workbench-grid {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding: clamp(16px, 4vw, 48px);
+}
+.council-workbench-main .council-workbench-editor { display: flex; flex: 1; flex-direction: column; }
+.council-workbench-main .council-workbench-editor > a { display: none; }
+.council-workbench-main .council-workbench-frame {
+  height: calc(100dvh - 106px);
+  min-height: 420px;
+  border: 0;
+}

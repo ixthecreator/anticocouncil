@@ -5,9 +5,11 @@ import { handle } from "../../api/wechat-workbench.mjs";
 const realFetch = globalThis.fetch;
 let calls: { url: URL; body: unknown }[] = [];
 let wechat: (url: URL, body: any) => unknown;
+let accountEmail: string;
 
 beforeEach(() => {
   calls = [];
+  accountEmail = OWNER_EMAIL;
   process.env.WECHAT_APP_ID = "wx-test";
   process.env.WECHAT_APP_SECRET = "secret";
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -15,7 +17,9 @@ beforeEach(() => {
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
     calls.push({ url, body });
     if (url.hostname === "identitytoolkit.googleapis.com")
-      return Response.json({ users: [{ emailVerified: true, email: OWNER_EMAIL, localId: "owner" }] });
+      return Response.json({ users: [{ emailVerified: true, email: accountEmail, localId: "verified-user" }] });
+    if (url.hostname === "firestore.googleapis.com")
+      return Response.json({ fields: { active: { booleanValue: true }, email: { stringValue: accountEmail }, role: { stringValue: "member" } } });
     if (url.hostname === "api.weixin.qq.com") return Response.json(wechat(url, body));
     throw new Error(`unexpected request to ${url.hostname}`);
   }) as typeof fetch;
@@ -31,6 +35,12 @@ const request = (action: string, input = {}) =>
     body: JSON.stringify({ action, input }),
   }));
 const wechatCalls = () => calls.filter((call) => call.url.hostname === "api.weixin.qq.com");
+
+test("a regular member cannot start a site-wide WeChat binding", async () => {
+  accountEmail = "member@example.com";
+  expect((await request("wechat/connect")).status).toBe(403);
+  expect(wechatCalls()).toHaveLength(0);
+});
 
 test("access tokens come from stable_token, are reused, and are dropped once WeChat rejects them", async () => {
   let issued = 0;

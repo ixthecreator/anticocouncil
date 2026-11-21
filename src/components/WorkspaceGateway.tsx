@@ -136,7 +136,7 @@ export function WorkspaceGateway({ children, mode = "firebase" }: WorkspaceGatew
     if (next === mode || busy) return;
     // The workspace calls this only after its pending-save guard has passed.
     // A new route also discards all in-memory data belonging to the old mode.
-    window.location.assign(`${next === "local" ? "/local" : "/portal"}${window.location.hash}`);
+    window.location.assign(`${next === "local" ? "/local" : "/portal"}${window.location.search}${window.location.hash}`);
   };
   useEffect(() => {
     if (mode !== "firebase" || !configured) return;

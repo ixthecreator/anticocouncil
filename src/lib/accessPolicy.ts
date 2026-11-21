@@ -1,5 +1,6 @@
 // Membership rules shared by every cloud backend.
-export const OWNER_EMAIL = "yulun8964@gmail.com";
+import { OWNER_EMAIL } from "./workspaceOwner.mjs";
+export { OWNER_EMAIL };
 export type AccessRole = "member" | "admin";
 export interface CloudIdentity { uid: string; email: string; name: string; verified: boolean; }
 export interface WorkspaceAccess { uid: string; name: string; email: string; role: AccessRole; active: boolean; }

@@ -1,10 +1,14 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>工作台</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./council.css"></head><body>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>工作台</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="/workbench-ui.css"><link rel="stylesheet" href="./council.css"></head><body>
 <main id="councilDraftHome" hidden>
  <header class="council-drafts-header"><h1>稿件</h1><div class="council-drafts-actions">
   <button id="councilNew" class="primary">新建文章</button><button id="councilRaw">自动排版</button><button id="councilSettings">服务设置</button>
  </div></header>
  <div class="council-drafts-tabs" aria-label="稿件来源"><button id="councilWechat" aria-pressed="false">公众号草稿</button><button id="councilLocal" aria-pressed="true">本地草稿</button></div>
- <p id="councilDraftStatus" role="status"></p>
+ <div class="council-connection">
+  <p id="councilDraftStatus" role="status"></p>
+  <button id="councilWechatConnect" type="button" hidden>微信扫码连接公众号</button>
+  <button id="councilWechatRetry" type="button" hidden>重新连接</button>
+ </div>
  <section id="councilLocalPanel" aria-label="本地草稿"><div id="councilLocalList"></div><button id="councilManage">稿件管理</button></section>
  <section id="councilRemotePanel" aria-label="公众号草稿" hidden></section>
 </main>
@@ -23,6 +27,7 @@
  <p class="setting-note">你填写的 Key 在当前页面会话中使用。</p>
  <h3>微信公众号</h3>
  <p id="wechatConnection" class="setting-note"></p>
+ <button id="wechatConnect" type="button" hidden>微信扫码连接公众号</button>
  <div class="dialog-actions"><button type="button" id="checkWechat">检查连接</button><button type="button" id="clearKeys">清除会话 Key</button><button type="submit" class="primary">保存设置</button></div>
  <p id="settingsStatus" role="status"></p>
 </form>

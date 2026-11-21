@@ -219,8 +219,30 @@ function fillSettings(){
   form.elements[key].value='';
   form.elements[key].placeholder=config.configured?.[key]?'已配置 · 留空保留':'选填';
  }
- $('#wechatConnection').textContent=config.appId?'站点已配置公众号，可检查连接。':'公众号连接由站点管理员配置。';
+ $('#wechatConnection').textContent=config.connectionError|| (config.wechatRevoked?'公众号授权已撤销，请由管理员重新扫码。'
+  :config.wechatConnected?`已扫码连接公众号（${config.wechatAccountName||config.appId}）`
+  :config.appId?'站点已配置公众号，可检查连接。'
+  :config.wechatScanConfigured?'请由议会管理员扫码连接公众号。':'公众号扫码服务待管理员配置。');
+ const connect=$('#wechatConnect');
+ connect.hidden=!config.canConnectWechat;
+ connect.disabled=!config.wechatScanConfigured;
+ connect.textContent=config.wechatConnected||config.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
 }
+async function connectWechat(button,status){
+ button.disabled=true;
+ status.textContent='正在打开微信授权页…';
+ try{
+  const result=await api('wechat/connect',{});
+  const url=new URL(result.authorizationUrl);
+  if(url.origin!=='https://mp.weixin.qq.com'||url.pathname!=='/cgi-bin/componentloginpage')throw Error('微信授权地址无效');
+  window.top.location.assign(url.href);
+ }catch(error){
+  status.textContent=error.message;
+  button.disabled=false;
+ }
+}
+$('#wechatConnect').onclick=event=>connectWechat(event.currentTarget,$('#settingsStatus'));
+$('#councilWechatConnect').onclick=event=>connectWechat(event.currentTarget,$('#councilDraftStatus'));
 $('#settings').onclick=async()=>{
  try{config=await api('settings');fillSettings();$('#settingsStatus').textContent='';$('#settingsDialog').showModal();}
  catch(error){toast(error.message);}
@@ -1038,9 +1060,33 @@ async function selectCouncilTab(tab,fallback=false){
   const loaded=await loadWechatLibrary(0);
   if(loaded===false&&fallback&&selection===councilSelection){
    showCouncilDrafts('local');
-   $('#councilDraftStatus').textContent='微信草稿暂不可读取，可先编辑本地草稿。';
+   $('#councilDraftStatus').textContent=$('#wechatLibraryStatus').textContent;
+   $('#councilWechatRetry').hidden=false;
   }
  }
+}
+
+async function connectCouncilDrafts(reconnect=false){
+ const selected=councilSelection;
+ const status=$('#councilDraftStatus');
+ const retry=$('#councilWechatRetry');
+ const connect=$('#councilWechatConnect');
+ status.textContent='正在尝试连接公众号…';
+ retry.hidden=true;
+ retry.textContent='重新连接';
+ const connected=await api('settings',reconnect?{reconnect:true}:undefined).catch(error=>({connectionError:error.message}));
+ connect.hidden=!connected?.canConnectWechat||!connected.wechatScanConfigured;
+ connect.textContent=connected?.wechatConnected||connected?.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
+ if(connected?.connectionError){
+  status.textContent=connected.connectionError;
+  retry.hidden=false;
+  if(connected.connectionStatus===401&&window.top.location.pathname!=='/local')retry.textContent='重新验证登录';
+  return;
+ }
+ if(connected?.wechatRevoked)status.textContent='公众号授权已撤销，请重新扫码。';
+ else if(connected?.appId)status.textContent='';
+ else status.textContent=connected?.wechatScanConfigured?'连接公众号后即可读取微信草稿。':'公众号连接待管理员配置。';
+ if(councilSelection===selected&&connected.appId)await selectCouncilTab('wechat',true);
 }
 
 if(councilEntry.enabled){
@@ -1053,6 +1099,7 @@ if(councilEntry.enabled){
  $('#councilNew').onclick=()=>$('#new').click();
  $('#councilRaw').onclick=()=>$('#rawOpen').click();
  $('#councilSettings').onclick=()=>$('#settings').click();
+ $('#councilWechatRetry').onclick=()=>connectCouncilDrafts(true);
  $('#councilManage').onclick=()=>$('#libraryOpen').click();
  $('#councilWechat').onclick=()=>selectCouncilTab('wechat');
  $('#councilLocal').onclick=()=>selectCouncilTab('local');
@@ -1075,8 +1122,19 @@ try{
  }else{active=activeDrafts()[0].id;show();}
  if(councilEntry.enabled){
   showCouncilDrafts('local');
-  const selected=councilSelection;
-  const connected=await api('settings').catch(()=>null);
-  if(councilSelection===selected&&connected?.wechatMode==='api'&&connected.appId&&connected.configured?.appSecret)await selectCouncilTab('wechat',true);
+  const result=new URL(window.top.location.href).searchParams.get('wechat-scan');
+  const scanMessages={
+   connected:'公众号已连接',cancelled:'已取消微信授权',expired:'扫码已过期，请重新发起',
+   account:'请选择议会指定的公众号',permission:'请在微信授权页授予草稿箱权限',
+   failed:'微信扫码未完成，请重新授权',
+  };
+  if(Object.hasOwn(scanMessages,result)){
+   const url=new URL(window.top.location.href);
+   url.searchParams.delete('wechat-scan');
+   window.top.history.replaceState(window.top.history.state,'',url);
+   toast(scanMessages[result]);
+  }
+  if(window.top.location.pathname==='/local')$('#councilDraftStatus').textContent='登录议会成员工作区后可连接公众号。';
+  else await connectCouncilDrafts();
  }
 }catch(error){toast('读取失败：'+error.message);$('#saveState').textContent='读取失败';}

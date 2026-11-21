@@ -7,21 +7,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cardo:ital,wght@0,400;0,700;1,400&family=GFS+Didot&family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&family=Alegreya:ital,wght@0,400;0,500;0,600;1,400&family=GFS+Neohellenic:wght@400;700&family=Noto+Serif+SC:wght@400;500;600;700&family=LXGW+WenKai+TC:wght@400;700&family=ZCOOL+XiaoWei&family=Ma+Shan+Zheng&display=swap">
+<link rel="stylesheet" href="/workbench-ui.css">
 <style>
 /* Layout: the header image itself leads; tall images stand beside a narrow console
    like an object beside its museum label, wide ones sit above the console. */
 :root {
   /* page chrome follows the Antico site tokens (UK Parliament foundations, council purple) */
-  --page: #ebe9e8;
-  --surface: #ffffff;
-  --surface-alt: #f8f7f7;
-  --heading: #212121;
+  --page: var(--workbench-surface);
+  --surface: var(--workbench-paper);
+  --surface-alt: var(--workbench-surface);
+  --heading: var(--workbench-ink);
   --text: #4d4d4d;
-  --muted: #717171;
-  --border: #cbc9cd;
-  --brand: #373151;
-  --brand-hover: #29253d;
-  --brand-tint: #efedf3;
+  --muted: var(--workbench-muted);
+  --border: var(--workbench-line);
+  --brand: var(--workbench-brand);
+  --brand-hover: var(--workbench-brand-hover);
+  --brand-tint: var(--workbench-tint);
   --on-brand: #ffffff;
   --focus: #96dcbe;
   --warn-bg: #fef3c7;
@@ -31,7 +32,7 @@
   --check-b: #f6f5f7;
   --stage-shadow: 0 1px 2px rgba(33, 33, 33, .08), 0 8px 28px rgba(33, 33, 33, .12);
 
-  --font-ui: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-ui: var(--workbench-font);
   --font-display: "Cinzel", "Noto Serif SC", "Songti SC", "STSong", serif;
   --font-serif: "EB Garamond", "Noto Serif SC", "Songti SC", "STSong", serif;
 }
@@ -66,7 +67,6 @@ body {
 .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
 
 .masthead { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
-.masthead .eyebrow { margin: 0 0 4px; font: 600 12px/1.4 var(--font-display); letter-spacing: .24em; color: var(--muted); text-transform: uppercase; }
 .masthead h1 { margin: 0; font: 600 26px/1.25 var(--font-ui); color: var(--heading); text-wrap: balance; }
 .masthead .hint { margin: 0; color: var(--muted); font-size: 14px; max-width: 46ch; }
 
@@ -256,7 +256,6 @@ button.small { padding: 8px 12px; font-size: 13px; }
 <div class="wrap">
   <header class="masthead">
     <div>
-      <p class="eyebrow">Antico · 安提柯史学社</p>
       <h1>每日书摘配图</h1>
     </div>
     <p class="hint" id="hint">直接点图上的文字修改，或用表单。导出的图片与预览逐字一致，空着的项不会出现在图里。</p>
