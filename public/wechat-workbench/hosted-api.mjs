@@ -158,6 +158,8 @@ export async function api(path,body){
   }
   const remote=await configuration();
   return {...userOptions,model:userOptions.model||remote.model||'deepseek-flash',appId:remote.appId||'',wechatMode:'api',
+   wechatConnected:remote.wechatConnected,wechatRevoked:remote.wechatRevoked,wechatAccountName:remote.wechatAccountName,
+   wechatScanConfigured:remote.wechatScanConfigured,canConnectWechat:remote.canConnectWechat,
    configured:{appSecret:Boolean(remote.appId),key:Boolean(credentials.key||remote.modelConfigured),searchKey:Boolean(credentials.searchKey)}};
  }
  if(path==='wechat/draft')return sendDraft(body);

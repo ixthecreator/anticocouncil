@@ -219,8 +219,30 @@ function fillSettings(){
   form.elements[key].value='';
   form.elements[key].placeholder=config.configured?.[key]?'已配置 · 留空保留':'选填';
  }
- $('#wechatConnection').textContent=config.appId?'站点已配置公众号，可检查连接。':'公众号连接由站点管理员配置。';
+ $('#wechatConnection').textContent=config.wechatRevoked?'公众号授权已撤销，请由管理员重新扫码。'
+  :config.wechatConnected?`已扫码连接公众号（${config.wechatAccountName||config.appId}）`
+  :config.appId?'站点已配置公众号，可检查连接。'
+  :config.wechatScanConfigured?'请由议会管理员扫码连接公众号。':'公众号扫码服务待管理员配置。';
+ const connect=$('#wechatConnect');
+ connect.hidden=!config.canConnectWechat;
+ connect.disabled=!config.wechatScanConfigured;
+ connect.textContent=config.wechatConnected||config.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
 }
+async function connectWechat(button,status){
+ button.disabled=true;
+ status.textContent='正在打开微信授权页…';
+ try{
+  const result=await api('wechat/connect',{});
+  const url=new URL(result.authorizationUrl);
+  if(url.origin!=='https://mp.weixin.qq.com'||url.pathname!=='/cgi-bin/componentloginpage')throw Error('微信授权地址无效');
+  window.top.location.assign(url.href);
+ }catch(error){
+  status.textContent=error.message;
+  button.disabled=false;
+ }
+}
+$('#wechatConnect').onclick=event=>connectWechat(event.currentTarget,$('#settingsStatus'));
+$('#councilWechatConnect').onclick=event=>connectWechat(event.currentTarget,$('#councilDraftStatus'));
 $('#settings').onclick=async()=>{
  try{config=await api('settings');fillSettings();$('#settingsStatus').textContent='';$('#settingsDialog').showModal();}
  catch(error){toast(error.message);}
@@ -1075,8 +1097,23 @@ try{
  }else{active=activeDrafts()[0].id;show();}
  if(councilEntry.enabled){
   showCouncilDrafts('local');
+  const result=new URL(window.top.location.href).searchParams.get('wechat-scan');
+  const scanMessages={
+   connected:'公众号已连接',cancelled:'已取消微信授权',expired:'扫码已过期，请重新发起',
+   account:'请选择议会指定的公众号',permission:'请在微信授权页授予草稿箱权限',
+   failed:'微信扫码未完成，请重新授权',
+  };
+  if(Object.hasOwn(scanMessages,result)){
+   const url=new URL(window.top.location.href);
+   url.searchParams.delete('wechat-scan');
+   window.top.history.replaceState(window.top.history.state,'',url);
+   toast(scanMessages[result]);
+  }
   const selected=councilSelection;
   const connected=await api('settings').catch(()=>null);
+  const connect=$('#councilWechatConnect');
+  connect.hidden=!connected?.canConnectWechat||!connected.wechatScanConfigured;
+  connect.textContent=connected?.wechatConnected||connected?.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
   if(councilSelection===selected&&connected?.wechatMode==='api'&&connected.appId&&connected.configured?.appSecret)await selectCouncilTab('wechat',true);
  }
 }catch(error){toast('读取失败：'+error.message);$('#saveState').textContent='读取失败';}
