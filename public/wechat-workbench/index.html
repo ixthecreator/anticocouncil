@@ -6,7 +6,8 @@
  <section class="council-connection" aria-labelledby="councilConnectTitle">
   <div><h2 id="councilConnectTitle">公众号连接</h2><p id="councilConnectStatus" role="status">正在检查站点连接…</p></div>
   <div class="council-drafts-actions">
-   <button id="councilWechatConnect" class="primary" type="button" disabled>微信扫码连接公众号</button>
+   <a class="council-wechat-login" href="https://mp.weixin.qq.com/" target="_blank" rel="noopener noreferrer">登录公众号（扫码） ↗</a>
+   <button id="councilWechatConnect" type="button" disabled>授权草稿接口</button>
    <button id="councilWechatRetry" type="button" hidden>重新连接</button>
   </div>
  </section>
@@ -30,7 +31,7 @@
  <p class="setting-note">你填写的 Key 在当前页面会话中使用。</p>
  <h3>微信公众号</h3>
  <p id="wechatConnection" class="setting-note"></p>
- <button id="wechatConnect" type="button" hidden>微信扫码连接公众号</button>
+ <button id="wechatConnect" type="button" hidden>授权草稿接口</button>
  <div class="dialog-actions"><button type="button" id="checkWechat">检查连接</button><button type="button" id="clearKeys">清除会话 Key</button><button type="submit" class="primary">保存设置</button></div>
  <p id="settingsStatus" role="status"></p>
 </form>

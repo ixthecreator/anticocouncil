@@ -226,7 +226,7 @@ function fillSettings(){
  const connect=$('#wechatConnect');
  connect.hidden=!config.canConnectWechat;
  connect.disabled=!config.wechatScanConfigured;
- connect.textContent=config.wechatConnected||config.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
+ connect.textContent=config.wechatConnected||config.wechatRevoked?'重新授权草稿接口':'授权草稿接口';
 }
 async function connectWechat(button,status){
  button.disabled=true;
@@ -1078,7 +1078,7 @@ async function connectCouncilDrafts(reconnect=false){
  const connected=await api('settings',reconnect?{reconnect:true}:undefined).catch(error=>({connectionError:error.message}));
  councilConnection=connected;
  connect.disabled=false;
- connect.textContent=connected?.wechatConnected||connected?.wechatRevoked?'重新扫码授权':'微信扫码连接公众号';
+ connect.textContent=connected?.wechatConnected||connected?.wechatRevoked?'重新授权草稿接口':'授权草稿接口';
  if(connected?.connectionError){
   status.textContent=connected.connectionError;
   retry.hidden=false;
@@ -1087,9 +1087,9 @@ async function connectCouncilDrafts(reconnect=false){
  }
  if(connected?.wechatRevoked)status.textContent='公众号授权已撤销，请由管理员重新扫码。';
  else if(connected?.wechatConnected)status.textContent=`已连接 ${connected.wechatAccountName||connected.appId}`;
- else if(!connected?.wechatScanConfigured)status.textContent='微信扫码授权待站点管理员配置。';
+ else if(!connected?.wechatScanConfigured)status.textContent='可直接扫码登录公众号。站内草稿接口尚未配置。';
  else if(!connected.canConnectWechat)status.textContent='需要议会管理员扫码授权，成员可以使用已绑定的公众号。';
- else status.textContent='点击按钮，打开微信官方授权页扫码。';
+ else status.textContent='可直接扫码登录公众号，也可授权站内草稿接口。';
  if(councilSelection===selected&&connected.appId)await selectCouncilTab('wechat',true);
 }
 
@@ -1154,7 +1154,7 @@ try{
    toast(scanMessages[result]);
   }
   if(window.top.location.pathname==='/local'){
-   $('#councilConnectStatus').textContent='请先登录议会成员工作区，再扫码连接。';
+   $('#councilConnectStatus').textContent='可直接扫码登录公众号。授权草稿接口需登录议会成员工作区。';
    $('#councilWechatConnect').disabled=false;
   }
   else await connectCouncilDrafts();
