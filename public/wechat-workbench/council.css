@@ -155,6 +155,13 @@
 .council-skin #wechatLibraryStatus { color: var(--muted); }
 .council-skin #richBody:focus-visible { outline-color: var(--accent); }
 .council-skin #toast { background: var(--accent); }
+.council-skin #wechatSaveQr {
+  display: block;
+  width: 186px;
+  height: 186px;
+  margin: 16px auto;
+  image-rendering: pixelated;
+}
 @media (max-width: 1050px) {
   .council-skin .sidebar { width: 164px; padding: 22px 12px 12px; }
   .council-skin #draftEditor > .workspace { grid-template-columns: minmax(0, 1fr) minmax(260px, 40%); }

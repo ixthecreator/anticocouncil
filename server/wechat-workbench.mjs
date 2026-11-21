@@ -24,7 +24,7 @@ async function responseJson(url,options,timeout=25000){
  return [response,await response.json().catch(()=>null)];
 }
 
-async function requireMember(request){
+export async function requireMember(request){
  const token=request.headers.get('authorization')?.match(/^Bearer ([\w.-]{1,8192})$/)?.[1];
  if(!token)throw fail('请登录议会成员工作区',401);
  const config={

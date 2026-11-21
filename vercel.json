@@ -5,6 +5,10 @@
   "buildCommand": "bun run build && bun run check:public",
   "outputDirectory": "dist",
   "functions": {
+    "api/wechat-browser-save.mjs": {
+      "maxDuration": 300,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    },
     "api/wechat-workbench.mjs": {
       "maxDuration": 60
     }
