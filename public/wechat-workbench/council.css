@@ -81,16 +81,6 @@
 .council-skin .council-connection h2 { margin: 0 0 4px; color: var(--accent); font-size: 15px; }
 .council-skin .council-connection p { margin: 0; color: var(--ink); }
 .council-skin .council-connection p:empty { display: none; }
-.council-skin .council-wechat-login {
-  display: inline-flex;
-  align-items: center;
-  padding: 9px 13px;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: var(--paper);
-  text-decoration: none;
-}
-.council-skin .council-wechat-login:hover { background: var(--workbench-brand-hover); }
 .council-skin .council-drafts-tabs button[aria-pressed="true"] {
   color: var(--accent);
   background: var(--council-tint);

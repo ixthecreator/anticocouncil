@@ -36,9 +36,9 @@ const request = (action: string, input = {}) =>
   }));
 const wechatCalls = () => calls.filter((call) => call.url.hostname === "api.weixin.qq.com");
 
-test("a regular member cannot start a site-wide WeChat binding", async () => {
+test("the retired platform authorization endpoint is unavailable", async () => {
   accountEmail = "member@example.com";
-  expect((await request("wechat/connect")).status).toBe(403);
+  expect((await request("wechat/connect")).status).toBe(404);
   expect(wechatCalls()).toHaveLength(0);
 });
 

@@ -120,7 +120,7 @@ export class WechatBrowser {
   const finish=this.page.getByText(/^(?:确定|完成)$/).filter({visible:true}).last();
   if(await finish.count())await finish.click();
  }
- async submit(d){
+ async submit(d, progress = () => {}){
   if(!onWechat(this.page))throw Error('微信登录窗口已关闭');
   if(!d.title?.trim()||!d.body?.trim())throw Error('请先填写标题与正文');
   let html=render(d);
@@ -131,11 +131,13 @@ export class WechatBrowser {
    else urls.add(src);
   }
   if([...urls].some(src=>src.endsWith('.gif')))throw Error('自定义 GIF 可在工作台预览。存公众号草稿时可选内置动图或静态图片');
+  progress('打开微信编辑器','扫码已确认，正在打开微信编辑器…');
   await this.page.bringToFront();
   const field=await this.openArticle();
   const editor=await this.editable();
   const [existingTitle,existingBody]=await Promise.all([field.evaluate(readEditorField),editor.evaluate(readEditorField)]);
   if(existingTitle.text||existingBody.text||existingBody.media)throw Error('微信编辑器已有内容。为避免覆盖，请新建一篇空白文章后重试');
+  if(urls.size)progress('上传正文图片',`正在上传正文图片（共 ${urls.size} 张）…`);
   for(const src of urls){
    if(!/^\/uploads\/[a-f0-9-]+\.(png|jpg|webp)$/.test(src))throw Error('请先把示例图或外部图替换为本地上传图片');
    const match=(Object.hasOwn(this.images,src)?this.images[src]:'').match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
@@ -149,6 +151,7 @@ export class WechatBrowser {
    await image.waitFor({timeout:18000});const uploaded=await image.getAttribute('src');if(!wechatImageURL(uploaded))throw Error('图片上传未得到微信素材地址，请在微信窗口检查');html=html.replaceAll(src,esc(uploaded));
   }
   if(urls.size){await editor.press('Control+a');await editor.press('Backspace');}
+  progress('自动填稿','正在填写标题和正文…');
   await this.paste(editor,html);
   const inserted=await editor.evaluate(readEditorField);
   if(!inserted.text&&!inserted.media)throw Error('微信没有接收排版正文，已停止保存。请保留本地稿并重试');
@@ -157,6 +160,7 @@ export class WechatBrowser {
   const author=this.page.locator('input[placeholder*="作者"]:visible');if(d.author&&await author.count()===1)await author.fill(d.author);
   const digest=this.page.locator('textarea[placeholder*="摘要"]:visible');if(d.digest&&await digest.count()===1)await digest.fill(d.digest);
   if(d.cover){
+   progress('上传封面','正在上传文章封面…');
    const image=this.images[d.cover];
    const match=String(image||'').match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
    if(!match)throw Error('请重新上传封面图片');
@@ -164,6 +168,7 @@ export class WechatBrowser {
   }
   const save=this.page.getByText('保存为草稿',{exact:true});if(await save.count()!==1)throw Error('正文已填入微信，但未识别到“保存为草稿”。请在微信窗口完成封面选择与保存');
   let result;
+  progress('等待微信保存确认','已向微信提交保存，正在等确认…');
   try{
    const [response]=await Promise.all([
     this.page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).origin==='https://mp.weixin.qq.com'&&/operate_appmsg/.test(r.url()),{timeout:18000}),

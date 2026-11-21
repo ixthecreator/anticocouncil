@@ -6,7 +6,6 @@ import { normalizePreferences } from '../public/wechat-workbench/editor-options.
 import { sanitizeWechatHtml, wechatImageURL } from '../public/wechat-workbench/wechat-html.mjs';
 import { draftRevision, verifyRevision, wechatArticleIndex, buildWechatArticle } from '../public/wechat-workbench/wechat-revision.mjs';
 import { builtinImages } from '../public/wechat-workbench/hosted-api.mjs';
-import { createWechatScan } from './wechat-scan.mjs';
 
 const wxHost='https://api.weixin.qq.com';
 const modelHost='https://api.deepseek.com';
@@ -35,14 +34,13 @@ export async function requireMember(request){
  const [response,info]=await responseJson('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(config.apiKey),post({idToken:token}));
  const user=info?.users?.[0];
  if(!response.ok||!user?.emailVerified||!user.email||!user.localId||user.disabled)throw fail('请重新登录并验证邮箱',401);
- if(user.email===OWNER_EMAIL)return {canConnect:true};
+ if(user.email===OWNER_EMAIL)return;
  const firestore='https://firestore.googleapis.com/v1/projects/'+encodeURIComponent(config.project)+'/databases/'+encodeURIComponent(config.database)+'/documents/workspaceAccess/'+encodeURIComponent(user.localId);
  const [accessResponse,access]=await responseJson(firestore,{headers:{Authorization:'Bearer '+token}});
  const fields=access?.fields;
  if(!accessResponse.ok||!fields?.active?.booleanValue||fields.email?.stringValue!==user.email||!['member','admin'].includes(fields.role?.stringValue)){
   throw fail('此账号暂无议会成员权限',403);
  }
- return {canConnect:fields.role.stringValue==='admin'};
 }
 
 function wxConfig(){
@@ -54,7 +52,7 @@ function wxConfig(){
 async function wxJson(path,params,options){
  const url=new URL('/cgi-bin/'+path,wxHost);
  for(const [key,value] of Object.entries(params))url.searchParams.set(key,value);
- const [response,result]=await responseJson(url,options,path.startsWith('component/')?8000:25000);
+ const [response,result]=await responseJson(url,options);
  // A rejected token must not stay cached for the rest of its nominal lifetime.
  if([40001,40014,42001].includes(result?.errcode))token=undefined;
  if(result?.errcode===40164)throw fail('公众号拒绝站点出口 IP，请管理员检查微信 IP 白名单',503);
@@ -62,8 +60,6 @@ async function wxJson(path,params,options){
  if(!response.ok||!result||result.errcode)throw Object.assign(fail('微信接口请求失败'+(result?.errcode?'（'+Number(result.errcode)+'）':''),502),{wechatCode:result?.errcode});
  return result;
 }
-const scan = createWechatScan(wxJson);
-export const wechatComponentEvent = request => scan.event(request);
 let token;
 async function wxToken({account,secret}){
  if(token?.account===account&&token.expiry>Date.now())return token.value;
@@ -202,36 +198,23 @@ async function model(action,input){
 }
 
 export async function handle(request){
- let binding,scanToken;
  try{
   const url=new URL(request.url);
-  if(request.method==='GET'&&url.searchParams.has('state'))return await scan.callback(request);
   if(request.method!=='POST')return json({error:'请求方式不受支持'},405);
   if(!sameOrigin(request,url))return json({error:'请求来源不受支持'},403);
   if(!request.headers.get('content-type')?.startsWith('application/json'))return json({error:'需要 JSON 请求'},415);
-  const {canConnect}=await requireMember(request);
+  await requireMember(request);
   const payload=await request.json().catch(()=>null);
   if(!payload||typeof payload.action!=='string')throw fail('请求格式错误');
   const input=payload.input||{};
-  if(payload.action==='wechat/connect'){
-   if(!canConnect)throw fail('请由议会管理员连接公众号',403);
-   return await scan.start(request);
-  }
-  if(payload.action==='settings'){
-   const current=await scan.binding();
-   return json({
-    appId:current?.revoked?'':current?.account||(process.env.WECHAT_APP_SECRET?process.env.WECHAT_APP_ID||'':''),
-    wechatConnected:Boolean(current&&!current.revoked),wechatRevoked:Boolean(current?.revoked),
-    wechatAccountName:current?.accountName||'',
-    wechatScanConfigured:scan.configured,canConnectWechat:canConnect,
-    model:process.env.DEEPSEEK_MODEL||'',modelConfigured:Boolean(process.env.DEEPSEEK_API_KEY),
-   });
-  }
+  if(payload.action==='settings')return json({
+   appId:process.env.WECHAT_APP_SECRET?process.env.WECHAT_APP_ID||'':'',
+   model:process.env.DEEPSEEK_MODEL||'',modelConfigured:Boolean(process.env.DEEPSEEK_API_KEY),
+  });
   if(['search','chat','editor/reference-plan'].includes(payload.action))return json(await model(payload.action,input));
   if(!['wechat/check','wechat/draft/list','wechat/draft/read','wechat/draft','asset'].includes(payload.action))throw fail('没有这个服务',404);
-  binding=await scan.binding();
-  const config=binding||wxConfig();
-  const accessToken=binding?(scanToken=await scan.accessToken(binding)):await wxToken(config);
+  const config=wxConfig();
+  const accessToken=await wxToken(config);
   if(payload.action==='wechat/check')return json({message:'公众号凭据可用'});
   if(payload.action==='wechat/draft/list')return json(await listDrafts(input,config.account,accessToken));
   if(payload.action==='wechat/draft/read'){
@@ -241,7 +224,6 @@ export async function handle(request){
   if(payload.action==='asset')return json(await asset(input,accessToken));
   return json(await saveDraft(input,config.account,accessToken));
  }catch(error){
-  if(binding&&scanToken&&[40001,40014,42001].includes(error.wechatCode))await scan.invalidate(binding,scanToken).catch(()=>{});
   return json({error:error.status?error.message:'站点服务处理失败，请检查输入后重试'},error.status||500);
  }
 }
