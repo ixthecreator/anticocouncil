@@ -1,3 +1,6 @@
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+
 const maxBody = 4_400_000;
 
 export async function serveNode(request, response, loadHandler) {
@@ -10,7 +13,9 @@ export async function serveNode(request, response, loadHandler) {
    response.writeHead(400, { 'Cache-Control': 'no-store' }).end();
    return;
   }
-  const init = { method, headers: request.headers };
+  const abort = new AbortController();
+  response.once('close', () => abort.abort());
+  const init = { method, headers: request.headers, signal: abort.signal };
   if (method !== 'GET' && method !== 'HEAD') {
    let body = request.body;
    if (body === undefined) {
@@ -33,8 +38,10 @@ export async function serveNode(request, response, loadHandler) {
   const handler = await loadHandler();
   const result = await handler(new Request(url, init));
   response.writeHead(result.status, Object.fromEntries(result.headers));
-  response.end(Buffer.from(await result.arrayBuffer()));
+  if (result.body) await pipeline(Readable.fromWeb(result.body), response);
+  else response.end();
  } catch (error) {
+  if (response.destroyed) return;
   console.error('WeChat workbench handler failed:', error?.code || error?.name);
   if (!response.headersSent) response.writeHead(503, {
    'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '3',

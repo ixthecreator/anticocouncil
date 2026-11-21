@@ -4,7 +4,7 @@ import {listMarkers,markerLabels} from './markers.mjs';
 import {normalizePreferences,normalizeTemplate,checkGuidelines,detachRemote} from './editor-options.mjs';
 import {sanitizeWechatHtml,wechatImageURL} from './wechat-html.mjs';
 import {formatReferenceText,referenceAssetSlots,referenceAssetUrls,referenceBuiltinAssets,referenceImagePath,referenceLayout} from './reference-layout.mjs';
-import {api,displayImage,displayMarkup,canonicalMarkup,storedImage} from './hosted-api.mjs';
+import {api,displayImage,displayMarkup,canonicalMarkup,storedImage,saveDraftByScan} from './hosted-api.mjs';
 const $=s=>document.querySelector(s);let drafts=[],active='',timer,saveChain=Promise.resolve(),uploadMode='body',config={},revision=0;
 const councilEntry={enabled:true};
 document.documentElement.classList.add('council-skin','hosted-workbench');
@@ -266,6 +266,42 @@ $('#clearKeys').onclick=async()=>{
  catch(error){$('#settingsStatus').textContent=error.message;}
 };
 let wechatSaving=false;
+async function scanAndSave(draft,onProgress){
+ const dialog=$('#wechatSaveDialog');
+ const status=$('#wechatSaveStatus');
+ const qr=$('#wechatSaveQr');
+ const cancel=$('#wechatSaveCancel');
+ const controller=new AbortController();
+ status.textContent='正在打开微信官方扫码页…';
+ cancel.disabled=false;
+ cancel.onclick=()=>controller.abort();
+ dialog.oncancel=event=>{event.preventDefault();if(!cancel.disabled)controller.abort();};
+ qr.hidden=true;
+ dialog.showModal();
+ try{
+  return await saveDraftByScan(draft,event=>{
+   if(event.type==='qr'){
+    status.textContent='用公众号管理员的微信扫码，按手机提示确认。';
+    qr.src='data:image/png;base64,'+event.data;
+    qr.hidden=false;
+   }else if(event.type==='status'){
+    status.textContent=event.message;
+    onProgress(event.message);
+    if(event.message.startsWith('微信扫码成功')){
+     qr.hidden=true;
+     cancel.disabled=true;
+    }
+   }
+  },controller.signal);
+ }catch(error){
+  if(controller.signal.aborted)throw Error('已取消扫码，稿件仍保存在本地。');
+  throw error;
+ }finally{
+  qr.removeAttribute('src');
+  dialog.close();
+ }
+}
+
 async function sendToWechat(draft,onProgress,automatic=false){
  if(wechatSaving)throw Error('另一篇稿件正在同步');
  if(!draft?.title.trim()||(!draft.body.trim()&&!draft.richHtml)||draft.deletedAt)throw Error('请选择一篇未删除且含标题和正文的稿件');
@@ -279,7 +315,9 @@ async function sendToWechat(draft,onProgress,automatic=false){
   if(automatic&&(!snapshot.wechatId||!snapshot.wechatRevision||!draft.autoSync))throw Error('自动同步需要绑定微信草稿');
   onProgress('正在存入公众号草稿箱…');
   if(draft.deletedAt||(automatic&&!draft.autoSync))throw Error('稿件已停止同步');
-  const result=await api('wechat/draft',snapshot);
+  const result=automatic||snapshot.wechatId||typeof snapshot.richHtml==='string'
+   ?await api('wechat/draft',snapshot)
+   :await scanAndSave(snapshot,onProgress);
   if(!result.ok&&!result.media_id)throw Error('微信尚未确认草稿已保存，请先检查草稿箱');
   if(result.media_id){
    draft.wechatId=result.media_id;
@@ -856,7 +894,7 @@ async function checkForRemoteChanges(){
 window.setInterval(checkForRemoteChanges,25000);
 
 function syncButtonLabel(draft){
- return draft?.wechatId?'保存回微信原稿 ↗':'存入公众号草稿箱 ↗';
+ return draft?.wechatId?'保存回微信原稿 ↗':'扫码存入公众号草稿箱 ↗';
 }
 
 function showRichBody(draft){
@@ -1087,9 +1125,9 @@ async function connectCouncilDrafts(reconnect=false){
  }
  if(connected?.wechatRevoked)status.textContent='公众号授权已撤销，请由管理员重新扫码。';
  else if(connected?.wechatConnected)status.textContent=`已连接 ${connected.wechatAccountName||connected.appId}`;
- else if(!connected?.wechatScanConfigured)status.textContent='可直接扫码登录公众号。站内草稿接口尚未配置。';
+ else if(!connected?.wechatScanConfigured)status.textContent='新稿可在编辑页扫码保存。读取已有微信草稿需要配置草稿接口。';
  else if(!connected.canConnectWechat)status.textContent='需要议会管理员扫码授权，成员可以使用已绑定的公众号。';
- else status.textContent='可直接扫码登录公众号，也可授权站内草稿接口。';
+ else status.textContent='新稿可在编辑页扫码保存。授权草稿接口后可读取已有微信草稿。';
  if(councilSelection===selected&&connected.appId)await selectCouncilTab('wechat',true);
 }
 

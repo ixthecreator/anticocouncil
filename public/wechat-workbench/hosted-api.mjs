@@ -77,6 +77,47 @@ export function storedImage(url){
 const retryableActions=new Set(['settings','wechat/check','wechat/draft/list','wechat/draft/read']);
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
+export async function saveDraftByScan(draft,onEvent,signal){
+ const {scope}=await database();
+ const session=await parentSession(true);
+ if(!session.token||session.scope!==scope)throw Error('请先登录议会成员工作区。');
+ const sources=new Set([...draft.body.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map(match=>match[1]));
+ for(const asset of referenceAssetUrls(draft))if(!Object.hasOwn(builtinImages,asset))sources.add(asset);
+ if(draft.cover)sources.add(draft.cover);
+ const images={};
+ for(const source of sources){
+  signal.throwIfAborted();
+  images[source]=await fitImage(storedImage(source),wechatImageLimits.body);
+ }
+ const body=JSON.stringify({draft,images});
+ if(new TextEncoder().encode(body).length>4_300_000)throw Error('这篇稿件的图片总量过大，请缩小图片后重试。');
+ const response=await fetch('/api/wechat-browser-save',{
+  method:'POST',headers:{Authorization:'Bearer '+session.token,'Content-Type':'application/json'},body,signal,
+ });
+ if(!response.ok){
+  const error=await response.json().catch(()=>null);
+  throw Error(error?.error||'微信扫码服务暂不可用');
+ }
+ const reader=response.body.pipeThrough(new TextDecoderStream()).getReader();
+ let partial='';
+ try{
+  for(;;){
+   const {done,value}=await reader.read();
+   if(done)break;
+   partial+=value;
+   const lines=partial.split('\n');
+   partial=lines.pop();
+   for(const line of lines){
+    const event=JSON.parse(line);
+    if(event.type==='saved'&&event.result?.ok===true)return event.result;
+    if(event.type==='error')throw Error(event.message);
+    onEvent(event);
+   }
+  }
+  throw Error('微信连接已中断，请先检查草稿箱再重试。');
+ }finally{await reader.cancel().catch(()=>{});}
+}
+
 async function hosted(action,input){
  const {scope}=await database();
  if(scope==='local')throw Object.assign(Error('请进入议会成员工作区使用公众号或 AI 服务'),{status:401});
