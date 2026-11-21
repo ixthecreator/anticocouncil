@@ -6,12 +6,10 @@
  <section class="council-connection" aria-labelledby="councilConnectTitle">
   <div><h2 id="councilConnectTitle">公众号连接</h2><p id="councilConnectStatus" role="status">正在检查站点连接…</p></div>
   <div class="council-drafts-actions">
-   <a class="council-wechat-login" href="https://mp.weixin.qq.com/" target="_blank" rel="noopener noreferrer">打开公众号后台 ↗</a>
-   <button id="councilWechatConnect" type="button" disabled>授权草稿接口</button>
    <button id="councilWechatRetry" type="button" hidden>重新连接</button>
   </div>
  </section>
- <div class="council-drafts-tabs" aria-label="稿件来源"><button id="councilWechat" aria-pressed="false">公众号草稿</button><button id="councilLocal" aria-pressed="true">本地草稿</button></div>
+ <div class="council-drafts-tabs" aria-label="稿件来源"><button id="councilWechat" aria-pressed="false" hidden>公众号草稿</button><button id="councilLocal" aria-pressed="true">本地草稿</button></div>
  <p id="councilDraftStatus" role="status"></p>
  <section id="councilLocalPanel" aria-label="本地草稿"><div id="councilLocalList"></div><button id="councilManage">稿件管理</button></section>
  <section id="councilRemotePanel" aria-label="公众号草稿" hidden></section>
@@ -37,7 +35,6 @@
  <p class="setting-note">你填写的 Key 在当前页面会话中使用。</p>
  <h3>微信公众号</h3>
  <p id="wechatConnection" class="setting-note"></p>
- <button id="wechatConnect" type="button" hidden>授权草稿接口</button>
  <div class="dialog-actions"><button type="button" id="checkWechat">检查连接</button><button type="button" id="clearKeys">清除会话 Key</button><button type="submit" class="primary">保存设置</button></div>
  <p id="settingsStatus" role="status"></p>
 </form>

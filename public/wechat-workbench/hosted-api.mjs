@@ -91,8 +91,18 @@ export async function saveDraftByScan(draft,onEvent,signal){
  }
  const body=JSON.stringify({draft,images});
  if(new TextEncoder().encode(body).length>4_300_000)throw Error('这篇稿件的图片总量过大，请缩小图片后重试。');
+ const idle=new AbortController();
+ const deadline=AbortSignal.timeout(250000);
+ const requestSignal=AbortSignal.any([signal,idle.signal,deadline]);
+ let timer,saving=false;
+ function resetTimeout(ms){
+  clearTimeout(timer);
+  timer=setTimeout(()=>idle.abort(),ms);
+ }
+ resetTimeout(35000);
+ try{
  const response=await fetch('/api/wechat-browser-save',{
-  method:'POST',headers:{Authorization:'Bearer '+session.token,'Content-Type':'application/json'},body,signal,
+  method:'POST',headers:{Authorization:'Bearer '+session.token,'Content-Type':'application/json'},body,signal:requestSignal,
  });
  if(!response.ok){
   const error=await response.json().catch(()=>null);
@@ -104,6 +114,7 @@ export async function saveDraftByScan(draft,onEvent,signal){
   for(;;){
    const {done,value}=await reader.read();
    if(done)break;
+   resetTimeout(26000);
    partial+=value;
    const lines=partial.split('\n');
    partial=lines.pop();
@@ -111,11 +122,18 @@ export async function saveDraftByScan(draft,onEvent,signal){
     const event=JSON.parse(line);
     if(event.type==='saved'&&event.result?.ok===true)return event.result;
     if(event.type==='error')throw Error(event.message);
+    if(event.saving===true)saving=true;
     onEvent(event);
    }
   }
-  throw Error('微信连接已中断，请先检查草稿箱再重试。');
+  throw Error(saving?'微信连接已中断，请先检查草稿箱再重试。':'微信连接中断，稿件仍保存在本地。');
  }finally{await reader.cancel().catch(()=>{});}
+ }catch(error){
+  if(idle.signal.aborted||deadline.aborted)throw Error(saving
+   ?'等待微信保存确认超时，请先核对公众号草稿箱。'
+   :'微信扫码保存没有响应，已结束本次操作。稿件仍保存在本地。');
+  throw error;
+ }finally{clearTimeout(timer);}
 }
 
 async function hosted(action,input){
@@ -213,8 +231,6 @@ export async function api(path,body){
   }
   const remote=await configuration(body?.reconnect===true);
   return {...userOptions,model:userOptions.model||remote.model||'deepseek-flash',appId:remote.appId||'',wechatMode:'api',
-   wechatConnected:remote.wechatConnected,wechatRevoked:remote.wechatRevoked,wechatAccountName:remote.wechatAccountName,
-   wechatScanConfigured:remote.wechatScanConfigured,canConnectWechat:remote.canConnectWechat,
    connectionError:remote.connectionError,connectionStatus:remote.connectionStatus,
    configured:{appSecret:Boolean(remote.appId),key:Boolean(credentials.key||remote.modelConfigured),searchKey:Boolean(credentials.searchKey)}};
  }
