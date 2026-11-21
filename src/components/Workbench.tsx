@@ -17,6 +17,7 @@ function currentTool(): WorkbenchPage {
 export function WorkbenchWindow({ draftScope, account }: { draftScope: string; account?: ReactNode }) {
   const [page, setPage] = useState(currentTool);
   const active = tools.find(tool => tool.id === page);
+  const councilHome = draftScope === "local" ? "/local#overview" : "/portal#overview";
   useEffect(() => {
     const sync = () => setPage(currentTool());
     window.addEventListener("hashchange", sync);
@@ -32,6 +33,7 @@ export function WorkbenchWindow({ draftScope, account }: { draftScope: string; a
         <div>{account || <a className="council-workbench-brand" href="/portal?workbench=1#workbench-wechat">登录议会</a>}</div>
       </header>
       <nav className="council-workbench-tabs" aria-label="工作台工具">
+        <a href={councilHome}>← 返回议会</a>
         <a href="#workbench" aria-current={!active ? "page" : undefined}>工作台</a>
         {tools.map(tool => <a href={`#${tool.id}`} key={tool.id} aria-current={page === tool.id ? "page" : undefined}>{tool.title}</a>)}
       </nav>

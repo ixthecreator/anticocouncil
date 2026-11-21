@@ -9,7 +9,7 @@
   --council-tint: var(--workbench-tint);
   --council-font: var(--workbench-font);
 }
-.council-skin #councilDraftHome,
+.council-skin body,
 .council-skin .sidebar,
 .council-skin #draftEditor > header,
 .council-skin .editor,
@@ -21,7 +21,10 @@
 }
 .council-skin #preview,
 .council-skin #rawPreview,
-.council-skin .tool-preview { color: #30352f; }
+.council-skin .tool-preview {
+  color: #30352f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
 .council-skin button,
 .council-skin input,
 .council-skin textarea,
@@ -67,10 +70,16 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-block: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  background: var(--council-tint);
 }
-.council-skin .council-connection p { margin: 0; }
+.council-skin .council-connection h2 { margin: 0 0 4px; color: var(--accent); font-size: 15px; }
+.council-skin .council-connection p { margin: 0; color: var(--ink); }
 .council-skin .council-connection p:empty { display: none; }
 .council-skin .council-drafts-tabs button[aria-pressed="true"] {
   color: var(--accent);
@@ -93,6 +102,49 @@
 }
 .council-skin #councilRemotePanel #wechatLibraryDialog > .panel-heading { display: none; }
 .council-skin #councilRemotePanel #wechatLibraryList { max-height: none; }
+.council-skin .new { border-color: var(--line); }
+.council-skin .theme { background: var(--paper); color: var(--ink); }
+.council-skin .theme.active,
+.council-skin .marker-badge,
+.council-skin .preview-actions [aria-pressed="true"],
+.council-skin .library-tools [aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--council-tint);
+  color: var(--accent);
+}
+.council-skin .assistant { background: var(--paper); box-shadow: -12px 0 32px #37315118; }
+.council-skin .message { background: var(--council-tint); }
+.council-skin .source a,
+.council-skin dialog a,
+.council-skin .assistant-intro h2 { color: var(--accent); }
+.council-skin .breadcrumb,
+.council-skin .draft-meta,
+.council-skin .eyebrow,
+.council-skin .editor-top button,
+.council-skin .metadata,
+.council-skin .digest,
+.council-skin .cover-line button,
+.council-skin #coverStatus,
+.council-skin #saveState,
+.council-skin #draftEditor footer,
+.council-skin .adjust,
+.council-skin .assistant-intro,
+.council-skin .message-label,
+.council-skin .source p,
+.council-skin .setting-note,
+.council-skin dialog label { color: var(--muted); }
+.council-skin #rawEmpty,
+.council-skin #rawStatus,
+.council-skin #markerCount,
+.council-skin .marker-controls,
+.council-skin .marker-remove,
+.council-skin .marker-empty,
+.council-skin .library-list p,
+.council-skin #wechatSyncState,
+.council-skin .wechat-library-group > small,
+.council-skin #wechatLibraryStatus { color: var(--muted); }
+.council-skin #richBody:focus-visible { outline-color: var(--accent); }
+.council-skin #toast { background: var(--accent); }
 @media (max-width: 1050px) {
   .council-skin .sidebar { width: 164px; padding: 22px 12px 12px; }
   .council-skin #draftEditor > .workspace { grid-template-columns: minmax(0, 1fr) minmax(260px, 40%); }

@@ -95,7 +95,7 @@ bun run dev
 
 公众号读写与 AI 服务限已批准的议会成员。管理员在 Vercel 服务端设置 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`，并将部署出口 IP 加入公众号白名单。站点可通过 `DEEPSEEK_API_KEY` 和 `DEEPSEEK_MODEL` 提供默认 AI 服务，成员也可在本次编辑器会话填写自己的 Key。
 
-启用扫码连接时，在微信开放平台申请第三方平台和公众号草稿、素材所需权限，并将站点域名登记为授权发起页域名。授权事件接收地址填 `https://www.anticocouncil.com/api/wechat-component-events`，扫码回调走同域 `/api/wechat-workbench`。按 `.env.example` 在 Vercel 配置第三方平台凭据、允许绑定的公众号 AppID 和专用 Upstash Redis。微信推送验证票据后，议会管理员从「服务设置 → 微信扫码连接公众号」发起授权。扫码回跳会先试读草稿列表，已连接的授权用于后续草稿和素材请求。取消授权后，重新扫码即可恢复。
+启用扫码连接时，在微信开放平台申请第三方平台和公众号草稿、素材所需权限，并将站点域名登记为授权发起页域名。授权事件接收地址填 `https://www.anticocouncil.com/api/wechat-component-events`，扫码回调走同域 `/api/wechat-workbench`。按 `.env.example` 在 Vercel 配置第三方平台凭据、允许绑定的公众号 AppID 和专用 Upstash Redis。微信推送验证票据后，议会管理员从「微信草稿箱 → 公众号连接 → 微信扫码连接公众号」发起授权。扫码回跳会先试读草稿列表，已连接的授权用于后续草稿和素材请求。取消授权后，重新扫码即可恢复。
 
 同步草稿时，超过公众号大小限制的图片会在浏览器里自动压缩（正文约 1 MB、封面约 2.5 MB，GIF 不处理）；已传过的图片按内容记在当前浏览器，再次同步不重复上传，公众号提示素材失效时自动重传一次。服务端使用 `stable_token` 获取令牌，不会挤掉其他工具正在使用的令牌。
 
