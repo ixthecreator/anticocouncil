@@ -1,3 +1,4 @@
-import { wechatComponentEvent } from './wechat-workbench.mjs';
+import { serveNode } from '../server/node-response.mjs';
 
-export default { fetch: wechatComponentEvent };
+export default (request, response) => serveNode(request, response, async () =>
+ (await import('../server/wechat-workbench.mjs')).wechatComponentEvent);

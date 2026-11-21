@@ -74,6 +74,7 @@ export function WorkspaceShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const extraNavigation = useRef<HTMLDetailsElement>(null);
+  const workbenchWindow = useRef<Window | null>(null);
   const settingsDetails = useRef<HTMLDetailsElement>(null);
   const dailyActive = dailyNavigation.some((item) => item.id === page);
   const status =
@@ -247,9 +248,17 @@ export function WorkspaceShell({
               {primaryNavigation.map((item) => (
                 <li key={item.id}>
                   <a
-                    href={`#${item.id}`}
+                    href={item.id === "workbench" ? `${mode === "local" ? "/local" : "/portal"}?workbench=1#workbench` : `#${item.id}`}
+                    target={item.id === "workbench" ? "antico-workbench" : undefined}
                     aria-current={page === item.id ? "page" : item.id === "workbench" && isWorkbenchPage(page) ? "location" : undefined}
-                    onClick={follow(item.id)}
+                    onClick={item.id === "workbench" ? (event) => {
+                      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                      const existing = workbenchWindow.current;
+                      const popup = existing && !existing.closed ? existing
+                        : window.open(event.currentTarget.href, "antico-workbench", "popup,width=1280,height=900,resizable,scrollbars");
+                      workbenchWindow.current = popup;
+                      if (popup) { event.preventDefault(); popup.focus(); }
+                    } : follow(item.id)}
                   >
                     {item.title}
                   </a>

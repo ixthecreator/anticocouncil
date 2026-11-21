@@ -14,14 +14,14 @@ let credentials = {};
 let userOptions = {provider:'deepseek',baseURL:'https://api.deepseek.com',model:''};
 let hostedConfiguration;
 
-function parentSession(token = false){
+function parentSession(token = false, refresh = false){
  if(window.parent===window)return Promise.resolve({scope:'local'});
  const channel = new MessageChannel();
  return new Promise(resolve=>{
   const done=result=>{clearTimeout(timeout);channel.port1.close();resolve(result);};
   const timeout=setTimeout(()=>done({scope:'local'}),token?10000:2000);
   channel.port1.onmessage=event=>done(event.data||{scope:'local'});
-  window.parent.postMessage({type:'antico:wechat-session',token},location.origin,[channel.port2]);
+  window.parent.postMessage({type:'antico:wechat-session',token,refresh},location.origin,[channel.port2]);
  });
 }
 
@@ -74,23 +74,37 @@ export function storedImage(url){
  return assets.get(url);
 }
 
+const retryableActions=new Set(['settings','wechat/check','wechat/draft/list','wechat/draft/read']);
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
 async function hosted(action,input){
  const {scope}=await database();
  if(scope==='local')throw Object.assign(Error('请进入议会成员工作区使用公众号或 AI 服务'),{status:401});
- const session=await parentSession(true);
- if(!session.token||scope!==session.scope)throw Object.assign(Error('请在议会成员工作区登录后使用公众号或 AI 服务'),{status:401});
- const response=await fetch('/api/wechat-workbench',{
-  method:'POST',headers:{Authorization:'Bearer '+session.token,'Content-Type':'application/json'},
-  body:JSON.stringify({action,input}),signal:AbortSignal.timeout(65000),
- });
- const result=await response.json().catch(()=>({error:'站点服务暂不可用，请稍后重试'}));
- if(!response.ok)throw Object.assign(Error(result.error||'请求失败'),{status:response.status});
- return result;
+ const retryable=retryableActions.has(action);
+ let session=await parentSession(true);
+ for(let attempt=0;;attempt++){
+  if(!session.token||scope!==session.scope)throw Object.assign(Error('请重新登录议会成员工作区后连接公众号'),{status:401});
+  const response=await fetch('/api/wechat-workbench',{
+   method:'POST',headers:{Authorization:'Bearer '+session.token,'Content-Type':'application/json'},
+   body:JSON.stringify({action,input}),signal:AbortSignal.timeout(retryable?10000:65000),
+  }).catch(()=>null);
+  const result=await response?.json().catch(()=>null);
+  if(response?.ok&&result)return result;
+  if(response?.status===401&&attempt===0&&retryable){
+   session=await parentSession(true,true);
+   continue;
+  }
+  const temporary=!response||(!result&&response.status>=500)||[502,504].includes(response.status)||response.headers.has('Retry-After');
+  if(temporary&&retryable&&attempt<2){await pause(700*(attempt+1));continue;}
+  throw Object.assign(Error(result?.error||(temporary?'暂时无法连接，可以重试。':`连接失败（${response.status}）`)),
+   {status:response?.status||503,temporary});
+ }
 }
 
-async function configuration(){
- if(!hostedConfiguration)hostedConfiguration=hosted('settings',{}).catch(()=>{
-  hostedConfiguration=undefined;return {};
+async function configuration(reconnect=false){
+ if(reconnect)hostedConfiguration=undefined;
+ if(!hostedConfiguration)hostedConfiguration=hosted('settings',{}).catch(error=>{
+  hostedConfiguration=undefined;return {connectionError:error.message,connectionStatus:error.status};
  });
  return hostedConfiguration;
 }
@@ -156,10 +170,11 @@ export async function api(path,body){
    if(typeof body.model==='string')userOptions.model=body.model.trim();
    await storeRequest(db,'readwrite',entries=>entries.put(userOptions,'settings'));
   }
-  const remote=await configuration();
+  const remote=await configuration(body?.reconnect===true);
   return {...userOptions,model:userOptions.model||remote.model||'deepseek-flash',appId:remote.appId||'',wechatMode:'api',
    wechatConnected:remote.wechatConnected,wechatRevoked:remote.wechatRevoked,wechatAccountName:remote.wechatAccountName,
    wechatScanConfigured:remote.wechatScanConfigured,canConnectWechat:remote.canConnectWechat,
+   connectionError:remote.connectionError,connectionStatus:remote.connectionStatus,
    configured:{appSecret:Boolean(remote.appId),key:Boolean(credentials.key||remote.modelConfigured),searchKey:Boolean(credentials.searchKey)}};
  }
  if(path==='wechat/draft')return sendDraft(body);

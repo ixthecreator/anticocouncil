@@ -140,7 +140,7 @@ export function createWechatScan(wxJson, env = process.env) {
   const redirect = result => new Response(null, {
    status: 303,
    headers: {
-    Location: new URL('/portal?wechat-scan=' + result + '#workbench-wechat', origin).href,
+    Location: new URL('/portal?workbench=1&wechat-scan=' + result + '#workbench-wechat', origin).href,
     'Set-Cookie': cookie('', 0), 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
    },
   });

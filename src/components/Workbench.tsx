@@ -1,13 +1,46 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Files, Quote } from "lucide-react";
 import { getCloudAuth } from "../lib/cloudAccess";
-import type { WorkbenchPage } from "../lib/workspaceNavigation";
+import { isWorkbenchPage, workspacePageFromHash, type WorkbenchPage } from "../lib/workspaceNavigation";
 import "../styles/workspace/pages/workbench.css";
 
 const tools = [
   { id: "workbench-wechat", title: "微信草稿箱", description: "打开草稿，导入原文，排版后存入公众号。", icon: Files },
   { id: "workbench-citatio", title: "每日书摘配图", description: "输入引文与出处，选版式和底图，导出「每日一引」PNG。", icon: Quote },
 ] as const;
+
+function currentTool(): WorkbenchPage {
+  const page = workspacePageFromHash(window.location.hash);
+  return isWorkbenchPage(page) ? page : "workbench";
+}
+
+export function WorkbenchWindow({ draftScope, account }: { draftScope: string; account?: ReactNode }) {
+  const [page, setPage] = useState(currentTool);
+  const active = tools.find(tool => tool.id === page);
+  useEffect(() => {
+    const sync = () => setPage(currentTool());
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  useEffect(() => {
+    document.title = active ? `${active.title} · 安提柯议会工作台` : "工作台 · 安提柯议会";
+  }, [active]);
+  return (
+    <div className="council-workbench-window">
+      <header className="council-workbench-masthead">
+        <a className="council-workbench-brand" href="#workbench">安提柯议会 · 工作台</a>
+        <div>{account || <a className="council-workbench-brand" href="/portal?workbench=1#workbench-wechat">登录议会</a>}</div>
+      </header>
+      <nav className="council-workbench-tabs" aria-label="工作台工具">
+        <a href="#workbench" aria-current={!active ? "page" : undefined}>工作台</a>
+        {tools.map(tool => <a href={`#${tool.id}`} key={tool.id} aria-current={page === tool.id ? "page" : undefined}>{tool.title}</a>)}
+      </nav>
+      <main className="council-workbench-main">
+        <Workbench page={page} draftScope={draftScope} />
+      </main>
+    </div>
+  );
+}
 
 function WechatDraftWorkbench({ draftScope }: { draftScope: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
@@ -20,7 +53,7 @@ function WechatDraftWorkbench({ draftScope }: { draftScope: string }) {
       const port = event.ports[0];
       try {
         const user = draftScope.startsWith("cloud:") && event.data.token ? getCloudAuth().currentUser : null;
-        const token = user && draftScope === `cloud:${user.uid}` ? await user.getIdToken() : undefined;
+        const token = user && draftScope === `cloud:${user.uid}` ? await user.getIdToken(event.data.refresh === true) : undefined;
         port.postMessage({ scope: draftScope, token });
       } catch {
         port.postMessage({ scope: draftScope });

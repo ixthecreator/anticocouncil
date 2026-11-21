@@ -1,0 +1,11 @@
+:root {
+  --workbench-brand: #373151;
+  --workbench-brand-hover: #29253d;
+  --workbench-tint: #efedf3;
+  --workbench-paper: #fff;
+  --workbench-surface: #f8f7f7;
+  --workbench-ink: #212121;
+  --workbench-muted: #717171;
+  --workbench-line: #cbc9cd;
+  --workbench-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", system-ui, sans-serif;
+}
