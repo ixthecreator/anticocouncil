@@ -253,7 +253,14 @@ export function WorkspaceShell({
                     aria-current={page === item.id ? "page" : item.id === "workbench" && isWorkbenchPage(page) ? "location" : undefined}
                     onClick={item.id === "workbench" ? (event) => {
                       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                      const existing = workbenchWindow.current;
+                      let existing = workbenchWindow.current;
+                      try {
+                        if (existing && !existing.closed && new URLSearchParams(existing.location.search).get("workbench") !== "1") {
+                          existing = null;
+                        }
+                      } catch {
+                        // The existing window can be on WeChat's cross-origin authorization page.
+                      }
                       const popup = existing && !existing.closed ? existing
                         : window.open(event.currentTarget.href, "antico-workbench", "popup,width=1280,height=900,resizable,scrollbars");
                       workbenchWindow.current = popup;
